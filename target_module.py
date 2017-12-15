@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import csv
 import numpy as np
@@ -151,7 +152,7 @@ def extract_dataframe(population_data, target_list, date_window, min_date_window
     #######################
     for latlon_ind in range(0, latlon_length):
         if latlon_ind % 500 == 0:
-            print('.   ')        
+            print('.   ', end='')        
         
         #   skip columns (latlon) where the sum of column is 0
         #   In other words, skip latlon if sum across time is 0
