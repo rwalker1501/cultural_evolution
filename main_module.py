@@ -47,9 +47,9 @@ class MainProgram:
         self.clustering_on=False
         self.critical_distance=250
         self.date_window=1500
-        self.number_of_kfolds = 10
+        self.number_of_kfolds = 2
         self.minimum_likelihood_ratio = 0
-        self.perform_cross_validation = False
+        self.perform_cross_validation = True
         self.user_max_for_uninhabited = 1000
         self.default_mfu = True
         self.min_date_window = 0
@@ -316,8 +316,10 @@ class MainProgram:
         # - plots targets and controls on a map
         plm.plot_targets_on_map(self.dataframe, self.controls_dataframe, new_path, directory)
 
+        if self.perform_cross_validation:
+            print("Performing cross validation..")
+            r2_linear, r2_threshold = stm.cross_validation(new_path, self.dataframe, self.controls_dataframe, clustered_target_list, population_data, self.number_of_kfolds, max_for_uninhabited, self.minimum_controls)
 
-        plm.plot_densities_on_map_by_range(population_data, 5700, 5800, 75, 44000)
         f2.close()
 
         return "Generated results."

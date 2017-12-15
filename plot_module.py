@@ -22,8 +22,6 @@ def plot_time_clusters(time, labels):
     plt.show()
 
 
-
-
 def plot_histogram(values, titles, title, file_path):
     fig = plt.figure(figsize=(11,8))
     ax = fig.add_subplot(111)
@@ -63,15 +61,15 @@ def plot_boxplot(values, titles, title, file_path):
     fig.savefig(os.path.join(file_path, filename+".png"))
 
 
-def plot_likelihood_ratio(bins, actual_multipliers, lambda_tau, predicted_multipliers, label, identifier, file_path):
+def plot_likelihood_ratio(bins, actual_p_likelihood_ratios, lambda_tau, predicted_p_likelihood_ratios, label, identifier, file_path):
     fig = plt.figure()
     ax = fig.add_subplot(111)
 
-    plt.scatter(bins, actual_multipliers, label=label)
+    plt.scatter(bins, actual_p_likelihood_ratios, label=label)
     if label=="threshold":
         ax.axvline(lambda_tau, color='k', linestyle='--')
     ax.axhline(1, color='k', linestyle='--')
-    ax.plot(bins, predicted_multipliers, 'g')
+    ax.plot(bins, predicted_p_likelihood_ratios, 'g')
     plt.ylabel("p Likelihood Ratio")
     plt.xlabel("Population density")
     plt.gca().set_ylim(bottom=0)
@@ -172,7 +170,7 @@ def plot_densities_on_map_by_time(population_data, time):
 
     time_index = -1
     for i in range(0, len(population_data.time_array)):
-        if time == population_data.time_array[i]*population_data.time_multiplier:
+        if time == population_data.time_array[i]*population_data.time_p_likelihood_ratio:
             time_index = i
             break
 
@@ -209,9 +207,9 @@ def plot_densities_on_map_by_range(population_data, min_density, max_density, st
     start_time_index = -1
     end_time_index = -1
     for i in range(0, len(population_data.time_array)):
-        if start_time == population_data.time_array[i]*population_data.time_multiplier:
+        if start_time == population_data.time_array[i]*population_data.time_p_likelihood_ratio:
             start_time_index = i
-        if end_time == population_data.time_array[i]*population_data.time_multiplier:
+        if end_time == population_data.time_array[i]*population_data.time_p_likelihood_ratio:
             end_time_index = i
         if start_time_index != -1 and end_time_index != -1:
             break
@@ -259,9 +257,9 @@ def plot_densities_on_map_snapshot(population_data, start_time, end_time):
     start_time_index = -1
     end_time_index = -1
     for i in range(0, len(population_data.time_array)):
-        if start_time == population_data.time_array[i]*population_data.time_multiplier:
+        if start_time == population_data.time_array[i]*population_data.time_p_likelihood_ratio:
             start_time_index = i
-        if end_time == population_data.time_array[i]*population_data.time_multiplier:
+        if end_time == population_data.time_array[i]*population_data.time_p_likelihood_ratio:
             end_time_index = i
         if start_time_index != -1 and end_time_index != -1:
             break

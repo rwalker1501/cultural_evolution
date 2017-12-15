@@ -1,5 +1,7 @@
+import os
 import numpy as np
 import plot_module as plm
+import write_module as wrm
 import matplotlib.pyplot as plt
 from classes_module import Target, PopulationData
 from scipy.optimize import curve_fit
@@ -312,8 +314,8 @@ def generate_stats_for_likelihood_ratio(bins,likelihood_ratios,n_samples,n_contr
     a_file.write('*********************' +'\n')
     a_file.write('curve fitting'+'\n')
     a_file.write('*********************' +'\n')
-    a_file.write('LMS linear model for multiplier:'+"{:8.7f}".format(lms(trimmed_p_likelihood_ratios,linear_predicted_p_likelihood_ratios))+'\n')
-    a_file.write('LMS threshold model for multiplier:'+"{:8.7f}".format(lms(trimmed_p_likelihood_ratios,threshold_predicted_p_likelihood_ratios))+'\n')
+    a_file.write('LMS linear model for p_likelihood_ratio:'+"{:8.7f}".format(lms(trimmed_p_likelihood_ratios,linear_predicted_p_likelihood_ratios))+'\n')
+    a_file.write('LMS threshold model for p_likelihood_ratios:'+"{:8.7f}".format(lms(trimmed_p_likelihood_ratios,threshold_predicted_p_likelihood_ratios))+'\n')
     a_file.write('Coefficients for linear fit: slope=' + str(slope) + " intercept=" + str(intercept) + "\n")
     a_file.write('Coefficients for threshold fit: ' + "scaling_factor=" + str(threshold_parameters[0]) + " lambda_tau=" + str(threshold_parameters[1]) + " alpha=" + str(threshold_parameters[2]) + "\n")
     a_file.write("r2_threshold: " + str(r2_threshold) + "  r2_linear: " + str(r2_linear) + "\n")
@@ -379,7 +381,7 @@ def threshold_fit(data_x,data_y):
     return p_opt, p_cov 
 
 def threshold_fit2(data_x,data_y, max_lambda_tau):
-    p_opt,p_cov=curve_fit(threshold_model2, data_x,data_y, bounds=([0, 0, 0], [np.inf, 25, 1]))
+    p_opt,p_cov=curve_fit(threshold_model2, data_x,data_y, bounds=([0, 0, 0], [np.inf, max_lambda_tau, 1]))
     return p_opt, p_cov
 
         
@@ -418,3 +420,86 @@ def threshold_model2(x, scaling_factor, lambda_tau, alpha):
                 result=alpha
             results.append(result)
     return(results)
+
+def test_threshold_against_linear(train_p_likelihood_ratios, train_bin_values, test_p_likelihood_ratios, test_bin_values, max_lambda_tau):
+    # linear
+    train_slope, train_intercept, train_r, train_p, train_stderr=linregress(train_bin_values,train_p_likelihood_ratios)
+    test_linear_predicted=np.asarray(linear_model2(test_bin_values,train_intercept,train_slope))
+
+    # threshold
+    train_parameters, train_covariance = threshold_fit2(train_bin_values,train_p_likelihood_ratios, max_lambda_tau)
+    test_threshold_predicted=np.asarray(threshold_model2(test_bin_values, train_parameters[0], train_parameters[1], train_parameters[2]))
+  
+
+    r2_linear = r2_score(test_p_likelihood_ratios, test_linear_predicted)
+    r2_threshold = r2_score(test_p_likelihood_ratios, test_threshold_predicted)
+
+    chi_linear, p = chisquare(test_linear_predicted, test_p_likelihood_ratios)
+    chi_threshold, p  = chisquare(test_threshold_predicted, test_p_likelihood_ratios)
+
+    return train_parameters, train_slope, train_intercept, r2_threshold, r2_linear, chi_threshold, chi_linear, test_threshold_predicted, test_linear_predicted
+
+
+def cross_validation(file_path, dataframe, controls_dataframe, target_list, population_data, number_of_kfolds, max_for_uninhabited, minimum_controls):
+    r2_linear_array = []
+    r2_threshold_array = []
+    chi_linear_array = []
+    chi_threshold_array = []
+    slopes = []
+    intercepts = []
+    parameter_1 = []
+    parameter_2 = []
+    parameter_3 = []
+
+
+    bin_file = open(os.path.join(file_path, "bin_file.csv"), "w")
+    cluster_list = []
+    for x in range(0, len(target_list)):
+        if len(target_list[x]) > 0:
+            cluster_list.append(target_list[x][0].cluster_id)
+    cluster_list = np.array(cluster_list)
+
+    k_fold = RepeatedKFold(n_splits=2, n_repeats=number_of_kfolds)
+    i = 0
+    for train_index, test_index in k_fold.split(cluster_list):
+        train_dataframe = dataframe[dataframe['cluster_id'].isin(cluster_list[train_index])]
+        test_dataframe = dataframe[dataframe['cluster_id'].isin(cluster_list[test_index])]
+
+        train_sample_means, train_control_means, train_growth_coefficients, train_samples_gt_controls, train_n_targets_gt_0, train_dataframe = process_dataframe(train_dataframe, max_for_uninhabited)
+        train_bin_values, train_n_samples, train_n_controls, train_likelihood_ratios, train_p_samples, train_p_controls, train_p_likelihood_ratios = generate_bin_values(train_dataframe, controls_dataframe, population_data, max_for_uninhabited, minimum_controls)
+
+        test_sample_means, test_control_means, test_growth_coefficients, test_samples_gt_controls, test_n_targets_gt_0, test_dataframe = process_dataframe(test_dataframe, max_for_uninhabited)
+        test_bin_values, test_n_samples, test_n_controls, test_likelihood_ratios, test_p_samples, test_p_controls, test_p_likelihood_ratios = generate_bin_values(test_dataframe, controls_dataframe, population_data, max_for_uninhabited, minimum_controls)
+
+        wrm.write_bin_table(bin_file, test_bin_values, test_n_samples, test_n_controls, test_likelihood_ratios, test_p_samples, test_p_controls, test_p_likelihood_ratios)
+
+        test_bins, test_likelihood_ratios, test_n_samples, test_n_controls, test_p_likelihood_ratios, test_p_samples, test_p_controls = trim_values(test_bin_values, test_likelihood_ratios, test_n_samples, test_n_controls, test_p_likelihood_ratios, test_p_samples, test_p_controls)
+        train_bins, train_likelihood_ratios, train_n_samples, train_n_controls, train_p_likelihood_ratios, train_p_samples, train_p_controls = trim_values(train_bin_values, train_likelihood_ratios, train_n_samples, train_n_controls, train_p_likelihood_ratios, train_p_samples, train_p_controls)
+
+        max_lambda_tau = max(train_bins)
+        train_parameters, train_slope, train_intercept, r2_threshold, r2_linear, chi_threshold, chi_linear, test_threshold_predicted, test_linear_predicted= test_threshold_against_linear(train_p_likelihood_ratios, train_bins, test_p_likelihood_ratios, test_bins, max_lambda_tau) 
+
+        r2_linear_array.append(r2_linear)
+        r2_threshold_array.append(r2_threshold)
+        chi_linear_array.append(chi_linear)
+        chi_threshold_array.append(chi_threshold)
+        parameter_1.append(train_parameters[0])
+        parameter_2.append(train_parameters[1])
+        parameter_3.append(train_parameters[2])
+        slopes.append(train_slope)
+        intercepts.append(train_intercept)
+        print(i)
+        i+=1
+
+    bin_file.close()
+
+
+    plm.plot_boxplot([np.array(r2_linear_array), np.array(r2_threshold_array)], ["linear", "threshold"], "R2 - Linear vs Threshold", file_path)
+    plm.plot_boxplot([np.array(parameter_1), np.array(parameter_2), np.array(parameter_3)], ['Param 1', 'Param 2', 'Param 3'], "Parameters", file_path)
+
+    plm.plot_boxplot([np.array(chi_linear_array), np.array(chi_threshold_array)], ["linear", "threshold"], "Chi - Linear vs Threshold", file_path)
+
+    wrm.write_validation_file(file_path, "r2", r2_linear_array, r2_threshold_array, slopes, intercepts, parameter_1, parameter_2, parameter_3)
+    wrm.write_validation_file(file_path, "chi", chi_linear_array, chi_threshold_array, slopes, intercepts, parameter_1, parameter_2, parameter_3)
+
+    return r2_linear_array, r2_threshold_array
