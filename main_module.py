@@ -47,9 +47,9 @@ class MainProgram:
         self.clustering_on=False
         self.critical_distance=250
         self.date_window=1500
-        self.number_of_kfolds = 2
+        self.number_of_kfolds = 10
         self.minimum_likelihood_ratio = 0
-        self.perform_cross_validation = True
+        self.perform_cross_validation = False
         self.user_max_for_uninhabited = 1000
         self.default_mfu = True
         self.min_date_window = 0
