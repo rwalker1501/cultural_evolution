@@ -240,8 +240,12 @@ def compute_divided_graph_ratio(left_samples_array, left_controls_array, right_s
     left_p_controls = left_controls_sum/(left_controls_sum+right_controls_sum)
     right_p_controls = right_controls_sum/(left_controls_sum+right_controls_sum)
 
-    left_p_likelihood_ratio = left_p_samples/left_p_controls
-    right_p_likelihood_ratio = right_p_samples/right_p_controls
+    left_p_likelihood_ratio = -1
+    if left_p_controls != 0:
+       left_p_likelihood_ratio = left_p_samples/left_p_controls
+    right_p_likelihood_ratio = -1
+    if right_p_controls != 0:
+        right_p_likelihood_ratio = right_p_samples/right_p_controls
 
     return left_p_likelihood_ratio, right_p_likelihood_ratio
 
@@ -375,7 +379,7 @@ def threshold_fit(data_x,data_y):
     return p_opt, p_cov 
 
 def threshold_fit2(data_x,data_y, max_lambda_tau):
-    p_opt,p_cov=curve_fit(threshold_model2, data_x,data_y, bounds=([0, 0, 0], [np.inf, 3500, 1]))
+    p_opt,p_cov=curve_fit(threshold_model2, data_x,data_y, bounds=([0, 0, 0], [np.inf, 25, 1]))
     return p_opt, p_cov
 
         

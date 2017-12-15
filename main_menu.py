@@ -272,7 +272,7 @@ class Driver:
 				user_int=int(user_option)
 
 				if user_int > len(population_data_sources):
-					print 'not a valid number'
+					print('not a valid number')
 					valid_number=False
 
 				if valid_number:
@@ -283,7 +283,7 @@ class Driver:
 					valid_number = False
 
 			except ValueError:
-				print 'not a valid number'
+				print('not a valid number')
 				valid_number=False
 
 	def add_population_data(self):
@@ -333,7 +333,7 @@ class Driver:
 		print("*** AVAILABLE FILES ***")
 		print("***********************")
 		for name in filenames:
-			print name
+			print(name)
 		print("***********************")
 		while not (os.path.isfile(filename+'.csv')):
 			filename=raw_input('Insert file name - no extension:  ')

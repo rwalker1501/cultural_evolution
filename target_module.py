@@ -22,6 +22,7 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
 
     # transform target list into a 2D array target list that groups clusters
     folded_target_list = fold_target_list(clustered_list)
+    # clustered_list, folded_target_list = limit_target_list_to_oldest(folded_target_list)
 
 
     ###################################################
@@ -70,6 +71,25 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
 
     return folded_target_list, dataframe, controls_dataframe
 
+def limit_target_list_to_oldest(target_list):
+    new_target_list = []
+    new_folded_target_list = []
+
+    for cluster in target_list:
+        max_location = ""
+        max_date = -1
+        for target in cluster:
+            if target.date_from > max_date:
+                max_location = target.location
+                max_date = target.date_from
+
+        for target in cluster:
+            if target.location == max_location:
+                new_target_list.append(target)
+                new_folded_target_list.append([target])
+
+    print(len(new_target_list))
+    return new_target_list, new_folded_target_list
 
 def load_processed_targets(base_path, filename):
     processed_targets_dir = os.path.join(base_path, "processed_targets")
@@ -131,7 +151,7 @@ def extract_dataframe(population_data, target_list, date_window, min_date_window
     #######################
     for latlon_ind in range(0, latlon_length):
         if latlon_ind % 500 == 0:
-            print '.',        
+            print('.   ')        
         
         #   skip columns (latlon) where the sum of column is 0
         #   In other words, skip latlon if sum across time is 0
@@ -372,10 +392,10 @@ def in_target_location(target, time, lat, lon, is_control, date_window):
     date_from=target.date_from
     date_to=date_from+date_window
     if lat<-90 or lat>90:
-        print 'latitude out of range'
+        print('latitude out of range')
         sys.exit()
     if lon<0 or lon>360:
-        print 'longitude out of range'
+        print('longitude out of range')
         sys.exit()
     if time>=date_from:
         if time<=date_to:
@@ -451,7 +471,7 @@ def save_target_list_to_csv(target_list, directory, filename):
         headers='location,latitude,longitude,date,country,date of reference,is_direct,calibrated,kind,figurative,source,is_controversial,cluster_id'
         my_writer.writerow(headers)
         for target in target_list:
-            print 'saving ',target.location
+            print('saving ',target.location)
             row=[]
             row.append(target.location)
             row.append(target.orig_lat)
@@ -489,23 +509,23 @@ def filter_targets_for_date_before(target_list, value, filters_applied):
     return filtered_list, filters_applied
     
 def filter_targets_for_not_direct(target_list, filters_applied):
-    print "length of original list=",len(target_list)
+    print("length of original list=",len(target_list))
     filtered_list=[target for target in target_list if target.is_direct=='Yes']
-    print "length of filtered list=",len(filtered_list)
+    print("length of filtered list=",len(filtered_list))
     filters_applied=filters_applied+" "+"Excluded targets with indirect measurements;"
     return filtered_list, filters_applied
 
 def filter_targets_for_not_figurative(target_list, filters_applied):
-    print "length of original list=",len(target_list)
+    print("length of original list=",len(target_list))
     filtered_list=[target for target in target_list if target.figurative=='Yes']
-    print "length of filtered list=",len(filtered_list)
+    print("length of filtered list=",len(filtered_list))
     filters_applied=filters_applied+" "+"Excluded targets with non-figurative art;"
     return filtered_list, filters_applied
 
 def filter_targets_for_not_controversial(target_list, filters_applied):
-    print "length of original list=",len(target_list)
+    print("length of original list=",len(target_list))
     filtered_list=[target for target in target_list if target.is_controversial=='No']
-    print "length of filtered list=",len(filtered_list)
+    print("length of filtered list=",len(filtered_list))
     filters_applied=filters_applied+" "+"Excluded targets with disputed measurements;"
     return filtered_list, filters_applied
 
@@ -542,5 +562,5 @@ def filter_targets_for_latitude(target_list, minimum_lat, maximum_lat, filters_a
     return filtered_targets, filters_applied
 
 def print_target(target, date_window):
-    print target.location,': cluster_id:',target.cluster_id, ' lat_nw:',target.lat_nw,' lon_nw:',target.lon_nw,'lat_se:',target.lat_se,'lon_se:',target.lon_se,'date_from:',target.date_from,'  date_to:',target.date_from+date_window
+    print(target.location,': cluster_id:',target.cluster_id, ' lat_nw:',target.lat_nw,' lon_nw:',target.lon_nw,'lat_se:',target.lat_se,'lon_se:',target.lon_se,'date_from:',target.date_from,'  date_to:',target.date_from+date_window)
     

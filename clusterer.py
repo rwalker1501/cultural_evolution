@@ -63,14 +63,14 @@ class ClusterAnalysis:
                 target = target_group[i]
                 target.cluster_id = prev_cluster_id + labels[i]
                 new_target_list.append(target)
-                print target.location,"cluster_id:",target.cluster_id
+                print(target.location,"cluster_id:",target.cluster_id)
 
             prev_cluster_id = prev_cluster_id + max(labels) + 1
 
         # sort targets by cluster id
         sorted_target_list=sorted(new_target_list,key=lambda an_id: an_id.cluster_id) 
         for target in sorted_target_list:
-            print "cluster_id:",target.cluster_id, target.location
+            print("cluster_id:",target.cluster_id, target.location)
 
         return sorted_target_list
 
@@ -114,7 +114,7 @@ class ClusterAnalysis:
         lat = []
         lon = []
         if len(target_list)==0:
-            print "No targets to cluster"
+            print("No targets to cluster")
             sys.exit
         for target in target_list:
                 lat.append(target.orig_lat)
