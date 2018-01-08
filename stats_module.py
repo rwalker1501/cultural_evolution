@@ -129,7 +129,12 @@ def generate_bin_values(dataframe, controls_dataframe, population_data, max_for_
     # total controls by counting rows
     total_samples = dataframe[dataframe.type=='s']['contribution'].sum()
     total_controls = controls_dataframe['density'].count()
-
+    # compute min controls necessary to get confidence of 0.95 with range of 5%
+    top_term=1.96**2*0.5**2/0.05**2
+    bottom_term=1+(1.96**2*0.5**2/0.05**2)/((0.05**2)*total_controls)
+    minimum_controls=int(top_term/bottom_term)
+    print 'total_controls=',total_controls
+    print 'minimum_controls=',minimum_controls
     #########################
     # Loop through each bin #
     #########################
