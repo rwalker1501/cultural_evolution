@@ -45,7 +45,7 @@ class MainProgram:
         self.controls = "No Empty Lats"
         self.controls_dataframe = pd.DataFrame()
         self.clustering_on=False
-        self.critical_distance=250
+        self.critical_distance=0
         self.date_window=1500
         self.number_of_kfolds = 10
         self.minimum_likelihood_ratio = 0
@@ -54,7 +54,7 @@ class MainProgram:
         self.default_mfu = True
         self.min_date_window = 0
         self.critical_time = 10000
-        self.minimum_controls = 385 # check statistics power if correct
+        
 
     def set_critical_time(self, critical_time):
         self.critical_time = critical_time
@@ -158,9 +158,6 @@ class MainProgram:
     def get_controls(self):
         return self.controls
 
-    def get_minimum_controls(self):
-        return self.minimum_controls
-
     def load_population_data(self):
         self.population_data_sources = pdm.load_population_data(self.base_path, self.population_data_sources)
 
@@ -226,8 +223,8 @@ class MainProgram:
         f2.write('Date: '+dateTime)
         f2.write('\n')
 
-        header_labels = ['population_data', 'max_for_uninhabited', 'date_window', 'critical_distance', "filters_applied", "minimum_controls"]
-        header_values = [population_data.name, max_for_uninhabited, self.date_window, self.critical_distance, self.filters_applied, self.minimum_controls]
+        header_labels = ['population_data', 'max_for_uninhabited', 'date_window', 'critical_distance', "filters_applied"]
+        header_values = [population_data.name, max_for_uninhabited, self.date_window, self.critical_distance, self.filters_applied]
         wrm.write_information(f2, header_labels, header_values, ", ")
 
         ##############################
@@ -286,8 +283,8 @@ class MainProgram:
         #################
         # - extracts bin values
         # - write bin values to file
-        bin_array, sample_counts, control_counts, likelihood_ratios, p_samples, p_controls, p_likelihood_ratios = stm.generate_bin_values(self.dataframe, self.controls_dataframe, population_data, max_for_uninhabited, self.minimum_controls)
-        wrm.write_bin_table(f2, bin_array, sample_counts, control_counts, likelihood_ratios, p_samples, p_controls, p_likelihood_ratios)
+        bin_array, sample_counts, control_counts, likelihood_ratios, p_samples, p_controls, p_likelihood_ratios,minimum_controls = stm.generate_bin_values(self.dataframe, self.controls_dataframe, population_data, max_for_uninhabited)
+        wrm.write_bin_table(f2, bin_array, sample_counts, control_counts, likelihood_ratios, p_samples, p_controls, p_likelihood_ratios,minimum_controls)
         
 
         ##################################
@@ -383,6 +380,6 @@ def run_experiment(results_path, target_list_file, output_directory, population_
     #     mp.set_number_of_kfolds(number_of_kfolds)
     #     mp.set_minimum_likelihood_ratio(minimum_likelihood_ratio)
 
-    print(len(target_list))
+    
 
     return mp.generate_results(population_data, target_list, results_path, output_directory)

@@ -198,7 +198,6 @@ class Driver:
 			date_window = self.main_program.get_date_window()
 			mfu = self.main_program.get_user_max_for_uninhabited()
 			default_mfu = self.main_program.get_default_mfu()
-			min_controls = self.main_program.get_minimum_controls()
 			perform_cv = self.main_program.get_perform_cross_validation()
 			num_kfolds = self.main_program.get_number_of_kfolds()
 			controls = self.main_program.get_controls()

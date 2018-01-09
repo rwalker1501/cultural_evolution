@@ -13,6 +13,7 @@ def write_headers(a_file, headers, delimiter):
         if i != len(headers)-1:
             a_file.write(delimiter)
     a_file.write('\n')
+    
 
 def write_table(a_file, label, headers, values, delimiter):
     write_label(a_file, label)
@@ -43,10 +44,10 @@ def write_target_table(a_file, targetList, date_window):
     # a_file.write('\n')
     
 def write_information(a_file, labels, values, delimiter):
+    information_str=""
     for i in range(0, len(labels)):
-        a_file.write(str(labels[i]) + "=" + str(values[i]))
-        if i is not len(labels)-1:
-            a_file.write(delimiter)
+        information_str=information_str+str(labels[i]) + "=" + str(values[i])+" "
+    a_file.write(information_str)
     a_file.write('\n')
 
 
@@ -87,9 +88,10 @@ def write_cluster_table(a_file, dataframe, growth_coefficients):
         if i != 0 and i%2==1:
             a_file.write("\n")
 
-def write_bin_table(a_file, bin_array, sample_counts, control_counts, likelihood_ratios, p_samples, p_controls, p_likelihood_ratios):
+def write_bin_table(a_file, bin_array, sample_counts, control_counts, likelihood_ratios, p_samples, p_controls, p_likelihood_ratios,minimum_controls):
 
-    write_label(a_file, "Distribution of values for samples and controls")
+    print 'minimum controls in write_bin_table=',str(minimum_controls)
+    write_label(a_file, "Distribution of values for samples and controls - Minimum-controls="+str(minimum_controls))
 
     columns = ['Bin value', 'Samples', 'Controls', 'Likelihood Ratios', 'pSamples', 'pControls', 'p Likelihood Ratios']
     write_headers(a_file,columns,";")

@@ -89,7 +89,7 @@ def compute_growth_coefficient(times, populations):
 
 
 
-def generate_bin_values(dataframe, controls_dataframe, population_data, max_for_uninhabited, minimum_controls):
+def generate_bin_values(dataframe, controls_dataframe, population_data, max_for_uninhabited):
     bin_size = population_data.bin_size
     max_population = population_data.max_population
     # minimum_bin=max_for_uninhabited
@@ -135,8 +135,6 @@ def generate_bin_values(dataframe, controls_dataframe, population_data, max_for_
     top_term=1.96**2*p_for_filter*q_for_filter/0.0025**2
     bottom_term=1+((1.96**2)*p_for_filter*q_for_filter)/(0.0025**2*total_controls)
     minimum_controls=int(top_term/bottom_term)
-    print 'total_controls=',total_controls
-    print 'minimum_controls=',minimum_controls
     #########################
     # Loop through each bin #
     #########################
@@ -185,7 +183,7 @@ def generate_bin_values(dataframe, controls_dataframe, population_data, max_for_
 
         current_bin += bin_size
 
-    return bin_array, sample_counts, control_counts, likelihood_ratios, p_samples, p_controls, p_likelihood_ratios
+    return bin_array, sample_counts, control_counts, likelihood_ratios, p_samples, p_controls, p_likelihood_ratios,minimum_controls
 
 
 def trim_values(bins, likelihood_ratios, n_samples, n_controls, p_likelihood_ratios, p_samples, p_controls):
