@@ -223,8 +223,8 @@ class MainProgram:
         f2.write('Date: '+dateTime)
         f2.write('\n')
 
-        header_labels = ['population_data', 'max_for_uninhabited', 'date_window', 'critical_distance', "filters_applied"]
-        header_values = [population_data.name, max_for_uninhabited, self.date_window, self.critical_distance, self.filters_applied]
+        header_labels = ['population_data', 'max_for_uninhabited', 'date_window', 'critical_distance', "filters_applied","controls"]
+        header_values = [population_data.name, max_for_uninhabited, self.date_window, self.critical_distance, self.filters_applied,self.controls]
         wrm.write_information(f2, header_labels, header_values, ", ")
 
         ##############################
@@ -320,7 +320,7 @@ class MainProgram:
         return "Generated results."
 
 
-def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", controls="All", date_window=1500, user_max_for_uninhabited=-1, clustering_on = False, critical_distance=1, filter_date_before=-1, filter_not_direct=False, filter_not_figurative=False, filter_not_controversial = False, perform_cross_validation=False, number_of_kfolds = 100, minimum_controls=385, min_date_window=0, critical_time=10000, filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False):
+def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", controls="No Empty Lats", date_window=1500, user_max_for_uninhabited=-1, clustering_on = False, critical_distance=1, filter_date_before=-1, filter_not_direct=False, filter_not_figurative=False, filter_not_controversial = False, perform_cross_validation=False, number_of_kfolds = 100, minimum_controls=385, min_date_window=0, critical_time=10000, filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False):
   # Note: current setting of minimum_controls is overwritten in stats_module   
     mp = MainProgram()
     base_path = mp.get_base_path()
