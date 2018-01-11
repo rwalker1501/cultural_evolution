@@ -193,7 +193,7 @@ class Driver:
 
 	def set_parameters(self):
 		user_option = ""
-		while user_option != '9':
+		while user_option != '8':
 			self.print_label("Set Parameters")
 			date_window = self.main_program.get_date_window()
 			mfu = self.main_program.get_user_max_for_uninhabited()
@@ -206,11 +206,10 @@ class Driver:
 			print("2) Define date window for target: " + str(date_window))
 			print("3) Toggle default max population for areas considered as uninhabited: " + str(default_mfu) )
 			print("4) Define max population for areas considered as uninhabited (sets default=False): " + str(mfu))
-			print("5) Set minimum controls: " + str(min_controls))
-			print("6) Toggle perform cross validation: " + str(perform_cv))
-			print("7) Set folds for cross validation: " + str(num_kfolds))
-			print("8) Define controls range: " + str(controls))
-			print("9) Save and exit")
+			print("5) Toggle perform cross validation: " + str(perform_cv))
+			print("6) Set folds for cross validation: " + str(num_kfolds))
+			print("7) Define controls range: " + str(controls))
+			print("8) Save and exit")
 			user_option = raw_input("Choose an option: ")
 			if user_option=='1':
 				self.toggle_population_data()
@@ -221,12 +220,10 @@ class Driver:
 			elif user_option=='4':
 				self.main_program.set_user_max_for_uninhabited(self.get_number('Insert max density for uninhabited - for no max write -1: ',-1,5000))
 			elif user_option=='5':
-				self.main_program.set_minimum_controls(self.get_number('Insert minimum controls: ', 0, 500000))
-			elif user_option=='6':
 				self.main_program.set_perform_cross_validation(not perform_cv)
-			elif user_option=='7':
+			elif user_option=='6':
 				self.main_program.set_number_of_kfolds(self.get_number("Insert number of kfolds: ", 1, 200))
-			elif user_option=='8':
+			elif user_option=='7':
 				controls_option = 1
 				self.print_label("Define Controls Range")
 				print("1) All")
