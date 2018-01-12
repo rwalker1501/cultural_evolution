@@ -34,7 +34,7 @@ base_path = os.getcwd()
 ############
 
 # =============================================================================
-# mm.run_experiment(base_path, "rockpaintings v8", "full_a_e", controls="No Empty Lats")
+#mm.run_experiment(base_path, "rockpaintings v8", "full_a_e", controls="All")
 # =============================================================================
 # =============================================================================
 # mm.run_experiment(base_path, "trial_latitudes", "trial_latitudes_e", controls="Trial Latitudes")
@@ -84,7 +84,7 @@ base_path = os.getcwd()
 
 # =============================================================================
 # =============================================================================
-# mm.run_experiment(base_path, "rockpaintings v8", "full_a_e_lat-40--30", processed_targets=False, filter_min_lat = -40, filter_max_lat = -30)
+mm.run_experiment(base_path, "rockpaintings v8", "full_a_e_lat-40--30", processed_targets=False, filter_min_lat = -40, filter_max_lat = -30)
 # mm.run_experiment(base_path, "rockpaintings v8", "full_a_e_lat-30--20", filter_min_lat = -30, filter_max_lat = -20)
 # mm.run_experiment(base_path, "rockpaintings v8", "full_a_e_lat-20--10", filter_min_lat = -20, filter_max_lat = -10)
 # mm.run_experiment(base_path, "rockpaintings v8", "full_a_e_lat-10-0", processed_targets=False, filter_min_lat = -10, filter_max_lat = 0)
@@ -104,7 +104,7 @@ base_path = os.getcwd()
 # # 
 # # 
 # =============================================================================
-mm.run_experiment(base_path, "france_spain", "fs_e", controls="France and Spain", processed_targets=False)
+#mm.run_experiment(base_path, "france_spain", "fs_e", controls="France and Spain", processed_targets=False)
 # =============================================================================
 # # # mm.run_experiment(base_path, "france_spain", "fs_e_d0-10k", controls="France and Spain", filter_min_date = 0, filter_max_date = 10000)
 # # # mm.run_experiment(base_path, "france_spain", "fs_e_d10k-20k", controls="France and Spain", filter_min_date = 10000, filter_max_date = 20000)
@@ -123,7 +123,7 @@ mm.run_experiment(base_path, "france_spain", "fs_e", controls="France and Spain"
 # # # mm.run_experiment(base_path, "france_spain", "fs_e_cd250_ct1000", controls="France and Spain", clustering_on=True, critical_distance=250, critical_time=1000)
 # # # mm.run_experiment(base_path, "france_spain", "fs_e_cd500_ct1000", controls="France and Spain", clustering_on=True, critical_distance=500, critical_time=1000)
 
-mm.run_experiment(base_path, "australia", "au_e", controls="Australia", processed_targets=False)
+#mm.run_experiment(base_path, "australia", "au_e", controls="Australia", processed_targets=False)
 # # # mm.run_experiment(base_path, "australia", "au_e_d0-10k", controls="Australia", filter_min_date = 0, filter_max_date = 10000)
 # # # mm.run_experiment(base_path, "australia", "au_e_d10k-20k", controls="Australia", filter_min_date = 10000, filter_max_date = 20000)
 # # # mm.run_experiment(base_path, "australia", "au_e_d20k-30k", controls="Australia", filter_min_date = 20000, filter_max_date = 30000)

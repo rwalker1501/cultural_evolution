@@ -262,8 +262,8 @@ def load_bin_controls_for_all(population_data, target_list, date_window):
 
     minimum_latitude = 90
     maximum_latitude = -90
-    minimum_date = 150001
-    maximum_date = -1
+    minimum_date = 150001 #This is a starting value to find true minimum - not an actual value
+    maximum_date = -1 #This is a starting value to find true maximum - not an actual value
     ######################################
     # Getting the minimum/maximum values #
     ######################################
@@ -277,10 +277,10 @@ def load_bin_controls_for_all(population_data, target_list, date_window):
         if target.date_from < minimum_date:
             minimum_date = target.date_from
     minimum_latitude = int(round(minimum_latitude))
-    maximum_latitude = int(round(maximum_latitude)) + date_window #WTF!!!! What is date window doing here
-    # I think maximum date should be minimum_date-date_window
-    print(minimum_date)
-    print(maximum_date) #how do we compute maximum date???
+    maximum_latitude = int(round(maximum_latitude)) 
+    maximum_date=maximum_date+date_window
+    print('minimum date=', minimum_date)
+    print('maximum date=',maximum_date)
     lat = (minimum_latitude+maximum_latitude)/2
     time = 0
     temp_target = Target(lat,0,maximum_latitude,-1, minimum_latitude,1,"location",time,"country","date_of_reference","is_direct","calibrated","kind","figurative","source","is_controversial",0)

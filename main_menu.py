@@ -26,7 +26,7 @@ class Driver:
 			dataframe_loaded = self.main_program.get_dataframe_loaded()
 			filters_applied = self.main_program.get_filters_applied()
 
-			print("\nActive Population Data")
+			print("Active Population Data")
 			for pop_data in population_data:
 				if pop_data.is_active:
 					print("   " + pop_data.name)
