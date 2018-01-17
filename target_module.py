@@ -262,8 +262,8 @@ def load_bin_controls_for_all(population_data, target_list, date_window):
 
     minimum_latitude = 90
     maximum_latitude = -90
-    minimum_date = 150001 #This is a starting value to find true minimum - not an actual value
-    maximum_date = -1 #This is a starting value to find true maximum - not an actual value
+    minimum_date = 150001
+    maximum_date = -1
     ######################################
     # Getting the minimum/maximum values #
     ######################################
