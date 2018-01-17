@@ -27,8 +27,9 @@ import main_module as mm
 # filter_min_lat=-1
 # filter_max_lat=-1
 desktop_path = "/Users/jrwalker/Dropbox (HappyFamily)/Richard global sync/EPFL documents/Documents 2017/Richard articles and papers/Basic informational constraint/Empirical studies" #saves results at this address
-base_path = os.getcwd()
-
+#base_path = os.getcwd()
+#base_path="/Users/rwalker/Dropbox (HappyFamily)/Richard global sync/EPFL documents/Documents 2017/Richard articles and papers/Basic informational constraint/Empirical studies" #saves results at this address
+base_path="/Users/rwalker/Dropbox (HappyFamily)/Richard global sync/EPFL documents/Documents 2017/Richard articles and papers/Basic informational constraint/Empirical studies" #saves results at this address
 ############
 # ERIKSSON #
 ############

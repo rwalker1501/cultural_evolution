@@ -267,14 +267,15 @@ def generate_stats_for_likelihood_ratio(bins,likelihood_ratios,n_samples,n_contr
     # Fitting and Comparing Models #
     ################################
 
-    # linear
-    slope, intercept, r, p, stderr=linregress(trimmed_bins,trimmed_p_likelihood_ratios)
-    linear_predicted_p_likelihood_ratios =np.asarray(linear_model2(trimmed_bins,intercept,slope))
+    # linear with no intercept
+    linear_parameters, p_cov =linear_fit(trimmed_bins,trimmed_p_likelihood_ratios)
+    linear_slope=linear_parameters[0]
+    print "linear_slope=", linear_slope
+    linear_predicted_p_likelihood_ratios =linear_model(trimmed_bins,linear_slope)
 
     # threshold
-    max_lambda_tau = max(trimmed_bins)
-    threshold_parameters, threshold_covariance = threshold_fit2(trimmed_bins, trimmed_p_likelihood_ratios, max_lambda_tau)
-    threshold_predicted_p_likelihood_ratios = threshold_model2(trimmed_bins, threshold_parameters[0], threshold_parameters[1], threshold_parameters[2])
+    threshold_slope, threshold_intercept, r, p, stderr=linregress(trimmed_bins,trimmed_p_likelihood_ratios)
+    threshold_predicted_p_likelihood_ratios = threshold_model(trimmed_bins, threshold_slope, threshold_intercept)
 
     r2_linear = r2_score(trimmed_p_likelihood_ratios, linear_predicted_p_likelihood_ratios)
     r2_threshold = r2_score(trimmed_p_likelihood_ratios, threshold_predicted_p_likelihood_ratios)
@@ -292,7 +293,7 @@ def generate_stats_for_likelihood_ratio(bins,likelihood_ratios,n_samples,n_contr
     # - get levene score of arrays
 
 
-    lambda_tau = threshold_parameters[1]
+    lambda_tau = -threshold_intercept/threshold_slope
 
     left_samples_array, left_controls_array, left_p_array, right_samples_array, right_controls_array, right_p_array = divide_graph(trimmed_bins, trimmed_n_samples, trimmed_n_controls, trimmed_p_likelihood_ratios, lambda_tau)
 
@@ -319,8 +320,8 @@ def generate_stats_for_likelihood_ratio(bins,likelihood_ratios,n_samples,n_contr
     a_file.write('*********************' +'\n')
     a_file.write('LMS linear model for multiplier:'+"{:8.7f}".format(lms(trimmed_p_likelihood_ratios,linear_predicted_p_likelihood_ratios))+'\n')
     a_file.write('LMS threshold model for multiplier:'+"{:8.7f}".format(lms(trimmed_p_likelihood_ratios,threshold_predicted_p_likelihood_ratios))+'\n')
-    a_file.write('Coefficients for linear fit: slope=' + str(slope) + " intercept=" + str(intercept) + "\n")
-    a_file.write('Coefficients for threshold fit: ' + "scaling_factor=" + str(threshold_parameters[0]) + " lambda_tau=" + str(threshold_parameters[1]) + " alpha=" + str(threshold_parameters[2]) + "\n")
+    a_file.write('Coefficients for linear fit: slope=' + str(linear_slope) + "\n")
+    a_file.write('Coefficients for threshold fit: threshold=' + str(lambda_tau) + ' slope=' + str(threshold_slope) + '\n')
     a_file.write("r2_threshold: " + str(r2_threshold) + "  r2_linear: " + str(r2_linear) + "\n")
     a_file.write("chi_threshold: " + str(chi_threshold) + "  chi_linear: " + str(chi_linear) + "\n")
 
@@ -379,47 +380,60 @@ def lms(data_y,predicted_y):
         error=error+(data_y[i]-predicted_y[i])**2
     return error 
     
+def linear_fit(data_x,data_y):
+    p_opt,p_cov=curve_fit(linear_model, data_x,data_y)
+    return p_opt, p_cov   
+
 def threshold_fit(data_x,data_y):
     p_opt,p_cov=curve_fit(threshold_model, data_x,data_y)
     return p_opt, p_cov 
 
-def threshold_fit2(data_x,data_y, max_lambda_tau):
-    p_opt,p_cov=curve_fit(threshold_model2, data_x,data_y, bounds=([0, 0, 0], [np.inf, 25, 1]))
-    return p_opt, p_cov
+# =============================================================================
+# def threshold_fit2(data_x,data_y, max_lambda_tau):
+#     p_opt,p_cov=curve_fit(threshold_model2, data_x,data_y, bounds=([0, 0, 0], [np.inf, 25, 1]))
+#     return p_opt, p_cov
+# =============================================================================
 
-        
+     
+
 def linear_model(x,beta):
+# This function implements a linear model with no intercept
     results=[]
     for an_x in x: 
         result=float(an_x*beta)
         results.append(result)
     return (results)
 
-def linear_model2(x,alpha,beta,):
+def threshold_model(x,alpha,beta,):
+# This functions a conventional linear model with an intercept but all values below 0 are set to zero
     results=[]
     for an_x in x: 
         result=float(alpha+an_x*beta)
+        if result<0:
+            result=0
         results.append(result)
         
     return (results)
 
-def threshold_model(x, n_pop,lambda_tau):
-    results=[]
-    for an_x in x: 
-        result=n_pop*(1-lambda_tau*1/an_x)
-        if result<0:
-            result=0
-        results.append(result)
-    return(results)
-
-def threshold_model2(x, scaling_factor, lambda_tau, alpha):
-    results=[]
-    for an_x in x: 
-        if an_x - lambda_tau < 0:
-            results.append(alpha)
-        else:
-            result=alpha+scaling_factor*(an_x - lambda_tau)
-            if result<0:
-                result=alpha
-            results.append(result)
-    return(results)
+# =============================================================================
+# def threshold_model(x, n_pop,lambda_tau):
+#     results=[]
+#     for an_x in x: 
+#         result=n_pop*(1-lambda_tau*1/an_x)
+#         if result<0:
+#             result=0
+#         results.append(result)
+#     return(results)
+# 
+# def threshold_model2(x, scaling_factor, lambda_tau, alpha):
+#     results=[]
+#     for an_x in x: 
+#         if an_x - lambda_tau < 0:
+#             results.append(alpha)
+#         else:
+#             result=alpha+scaling_factor*(an_x - lambda_tau)
+#             if result<0:
+#                 result=alpha
+#             results.append(result)
+#     return(results)
+# =============================================================================
