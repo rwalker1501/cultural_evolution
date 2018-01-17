@@ -320,8 +320,9 @@ class MainProgram:
         return "Generated results."
 
 
-def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", controls="No Empty Lats", date_window=1500, user_max_for_uninhabited=-1, clustering_on = False, critical_distance=1, filter_date_before=-1, filter_not_direct=False, filter_not_figurative=False, filter_not_controversial = False, perform_cross_validation=False, number_of_kfolds = 100, minimum_controls=385, min_date_window=0, critical_time=10000, filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False):
-  # Note: current setting of minimum_controls is overwritten in stats_module   
+def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", controls="All", date_window=1500, user_max_for_uninhabited=-1, clustering_on = False, critical_distance=0, filter_date_before=-1, filter_not_direct=False, filter_not_figurative=False, filter_not_controversial = False, perform_cross_validation=False, number_of_kfolds = 100,  min_date_window=0, critical_time=10000, filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False):
+  # Note: current setting of minimum_controls is overwritten in stats_module
+  # Why is population_data_name set to eriksson - I think this is default
     mp = MainProgram()
     base_path = mp.get_base_path()
     pop_data_path = os.path.join(base_path, "population_data")
@@ -350,8 +351,6 @@ def run_experiment(results_path, target_list_file, output_directory, population_
     mp.set_critical_distance(critical_distance)
     mp.set_critical_time(critical_time)
     mp.set_controls(controls)
-    mp.set_minimum_controls(minimum_controls)
-
     if processed_targets:
         target_list, dataframe, controls_dataframe = tam.load_processed_targets(results_path, output_directory)
         mp.set_target_list(target_list)
