@@ -133,8 +133,9 @@ def generate_bin_values(dataframe, controls_dataframe, population_data, max_for_
     q_for_filter=1-p_for_filter
     # compute min controls necessary to get confidence of 0.95 on likelihood ratio with range of 0.0025
     top_term=1.96**2*p_for_filter*q_for_filter/0.0025**2
-    bottom_term=1+((1.96**2)*p_for_filter*q_for_filter)/(0.0025**2*total_controls)
+    bottom_term=1+((1.96**2)*p_for_filter*q_for_filter)/(0.005**2*total_controls)
     minimum_controls=int(top_term/bottom_term)
+    minimum_controls=500   #This is a temporary override on computed value - to be removed
     #########################
     # Loop through each bin #
     #########################
@@ -274,8 +275,10 @@ def generate_stats_for_likelihood_ratio(bins,likelihood_ratios,n_samples,n_contr
     linear_predicted_p_likelihood_ratios =linear_model(trimmed_bins,linear_slope)
 
     # threshold
-    threshold_slope, threshold_intercept, r, p, stderr=linregress(trimmed_bins,trimmed_p_likelihood_ratios)
-    threshold_predicted_p_likelihood_ratios = threshold_model(trimmed_bins, threshold_slope, threshold_intercept)
+    threshold_parameters,p_cov=threshold_fit(trimmed_bins,trimmed_p_likelihood_ratios)
+    threshold_threshold=threshold_parameters[0]
+    threshold_slope=threshold_parameters[1]
+    threshold_predicted_p_likelihood_ratios = threshold_model(trimmed_bins, threshold_threshold, threshold_slope)
 
     r2_linear = r2_score(trimmed_p_likelihood_ratios, linear_predicted_p_likelihood_ratios)
     r2_threshold = r2_score(trimmed_p_likelihood_ratios, threshold_predicted_p_likelihood_ratios)
@@ -293,7 +296,7 @@ def generate_stats_for_likelihood_ratio(bins,likelihood_ratios,n_samples,n_contr
     # - get levene score of arrays
 
 
-    lambda_tau = -threshold_intercept/threshold_slope
+    lambda_tau = threshold_threshold
 
     left_samples_array, left_controls_array, left_p_array, right_samples_array, right_controls_array, right_p_array = divide_graph(trimmed_bins, trimmed_n_samples, trimmed_n_controls, trimmed_p_likelihood_ratios, lambda_tau)
 
@@ -308,7 +311,7 @@ def generate_stats_for_likelihood_ratio(bins,likelihood_ratios,n_samples,n_contr
     ###############
     plm.plot_likelihood_ratio(trimmed_bins, trimmed_p_likelihood_ratios, 0, linear_predicted_p_likelihood_ratios, "linear", directory, file_path)
 
-    plm.plot_likelihood_ratio(trimmed_bins, trimmed_p_likelihood_ratios, lambda_tau, threshold_predicted_p_likelihood_ratios, "threshold", directory, file_path)
+    plm.plot_likelihood_ratio(trimmed_bins, trimmed_p_likelihood_ratios, threshold_threshold, threshold_predicted_p_likelihood_ratios, "threshold", directory, file_path)
 
 
     ############################
@@ -385,7 +388,7 @@ def linear_fit(data_x,data_y):
     return p_opt, p_cov   
 
 def threshold_fit(data_x,data_y):
-    p_opt,p_cov=curve_fit(threshold_model, data_x,data_y)
+    p_opt,p_cov=curve_fit(threshold_model, data_x,data_y,p0=[1000.0,0.0002])
     return p_opt, p_cov 
 
 # =============================================================================
@@ -404,16 +407,32 @@ def linear_model(x,beta):
         results.append(result)
     return (results)
 
-def threshold_model(x,alpha,beta,):
-# This functions a conventional linear model with an intercept but all values below 0 are set to zero
+# =============================================================================
+# def threshold_model(x,alpha,beta,):
+# # This functions a conventional linear model with an intercept but all values below 0 are set to zero
+#     results=[]
+#     for an_x in x: 
+#         result=float(alpha+an_x*beta)
+#         if result<0:
+#             result=0
+#         results.append(result)
+#         
+#     return (results)
+# =============================================================================
+
+def threshold_model(x,threshold,beta):
+# This instantiates a threshold model in which y grows linearly with slope b for values of x >threshold
     results=[]
     for an_x in x: 
-        result=float(alpha+an_x*beta)
-        if result<0:
-            result=0
+        if an_x>=threshold:
+            result=float((an_x-threshold)*beta)
+        else:
+            result=0.0
         results.append(result)
         
     return (results)
+
+
 
 # =============================================================================
 # def threshold_model(x, n_pop,lambda_tau):
