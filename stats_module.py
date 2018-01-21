@@ -277,8 +277,9 @@ def generate_stats_for_likelihood_ratio(bins,likelihood_ratios,n_samples,n_contr
     # threshold
     threshold_parameters,p_cov=threshold_fit(trimmed_bins,trimmed_p_likelihood_ratios)
     threshold_threshold=threshold_parameters[0]
-    threshold_slope=threshold_parameters[1]
-    threshold_predicted_p_likelihood_ratios = threshold_model(trimmed_bins, threshold_threshold, threshold_slope)
+    threshold_gamma=threshold_parameters[1]
+    threshold_slope=threshold_parameters[2]
+    threshold_predicted_p_likelihood_ratios = threshold_model(trimmed_bins, threshold_threshold, threshold_gamma,threshold_slope)
 
     r2_linear = r2_score(trimmed_p_likelihood_ratios, linear_predicted_p_likelihood_ratios)
     r2_threshold = r2_score(trimmed_p_likelihood_ratios, threshold_predicted_p_likelihood_ratios)
@@ -388,7 +389,7 @@ def linear_fit(data_x,data_y):
     return p_opt, p_cov   
 
 def threshold_fit(data_x,data_y):
-    p_opt,p_cov=curve_fit(threshold_model, data_x,data_y,p0=[1000.0,0.0002])
+    p_opt,p_cov=curve_fit(threshold_model, data_x,data_y,p0=[1000.0,0.1,0.0002])
     return p_opt, p_cov 
 
 # =============================================================================
@@ -420,14 +421,14 @@ def linear_model(x,beta):
 #     return (results)
 # =============================================================================
 
-def threshold_model(x,threshold,beta):
+def threshold_model(x,threshold,gamma,beta):
 # This instantiates a threshold model in which y grows linearly with slope b for values of x >threshold
     results=[]
     for an_x in x: 
         if an_x>=threshold:
-            result=float((an_x-threshold)*beta)
+            result=float((an_x-threshold)*beta+gamma)
         else:
-            result=0.0
+            result=gamma
         results.append(result)
         
     return (results)
