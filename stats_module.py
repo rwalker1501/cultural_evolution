@@ -132,10 +132,10 @@ def generate_bin_values(dataframe, controls_dataframe, population_data, max_for_
     p_for_filter=float(total_samples/total_controls)
     q_for_filter=1-p_for_filter
     # compute min controls necessary to get confidence of 0.95 on likelihood ratio with range of 0.0025
-    top_term=1.96**2*p_for_filter*q_for_filter/0.0025**2
+    top_term=1.96**2*p_for_filter*q_for_filter/0.005**2
     bottom_term=1+((1.96**2)*p_for_filter*q_for_filter)/(0.005**2*total_controls)
     minimum_controls=int(top_term/bottom_term)
-    minimum_controls=500   #This is a temporary override on computed value - to be removed
+   # minimum_controls=500   This is a temporary override on computed value - to be removed
     #########################
     # Loop through each bin #
     #########################
