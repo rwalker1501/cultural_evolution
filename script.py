@@ -35,7 +35,7 @@ base_path="/Users/rwalker/Dropbox (HappyFamily)/Richard global sync/EPFL documen
 ############
 
 # =============================================================================
-mm.run_experiment(base_path, "rockpaintings v8", "full_a_e", controls="All")
+#mm.run_experiment(base_path, "rockpaintings v8", "full_a_e", controls="All")
 # =============================================================================
 # =============================================================================
 # mm.run_experiment(base_path, "trial_latitudes", "trial_latitudes_e", controls="Trial Latitudes")
