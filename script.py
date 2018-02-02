@@ -35,7 +35,7 @@ base_path="/Users/richard/Dropbox (HappyFamily)/Richard global sync/EPFL documen
 ############
 
 # =============================================================================
-mm.run_experiment(base_path, "rockpaintings v8a", "full_a_e", controls="All")
+#mm.run_experiment(base_path, "rockpaintings v8a", "full_a_e_old_threshold", controls="All")
 # =============================================================================
 # =============================================================================
 # mm.run_experiment(base_path, "trial_latitudes", "trial_latitudes_e", controls="Trial Latitudes")
@@ -53,7 +53,7 @@ mm.run_experiment(base_path, "rockpaintings v8a", "full_a_e", controls="All")
 # mm.run_experiment(base_path, "rockpaintings v8a", "full_a_e_dir", controls="No Empty Lats", filter_not_direct=True)
 # mm.run_experiment(base_path, "rockpaintings v8a", "full_a_e_fig", controls="No Empty Lats", filter_not_figurative=True)
 # 
-# mm.run_experiment(base_path, "rockpaintings v8a", "full_a_e_cd500_ct10000", controls="No Empty Lats", clustering_on=True, critical_distance=500, critical_time=10000)
+#mm.run_experiment(base_path, "rockpaintings v8a", "full_a_e_cd500_ct10000", controls="Full", clustering_on=True, critical_distance=500, critical_time=10000)
 # 
 # 
 # ##############
@@ -132,7 +132,7 @@ mm.run_experiment(base_path, "rockpaintings v8a", "full_a_e", controls="All")
 
 #mm.run_experiment(base_path, "australia", "au_e_cd100_ct10000", controls="Australia", clustering_on=True, critical_distance=100, critical_time=10000)
 #mm.run_experiment(base_path, "australia", "au_e_cd250_ct10000", controls="Australia", clustering_on=True, critical_distance=250, critical_time=10000)
-#mm.run_experiment(base_path, "australia", "au_e_cd500_ct10000", controls="Australia", clustering_on=True, critical_distance=500, critical_time=10000)
+mm.run_experiment(base_path, "australia", "au_e_cd500_ct10000 old threshold", controls="Australia", clustering_on=True, critical_distance=500, critical_time=10000)
 
 #mm.run_experiment(base_path, "australia", "au_e_cd100_ct5000", controls="Australia", clustering_on=True, critical_distance=100, critical_time=5000)
 #mm.run_experiment(base_path, "australia", "au_e_cd250_ct5000", controls="Australia", clustering_on=True, critical_distance=250, critical_time=5000)

@@ -135,7 +135,7 @@ def generate_bin_values(dataframe, controls_dataframe, population_data, max_for_
     top_term=1.96**2*p_for_filter*q_for_filter/0.005**2
     bottom_term=1+((1.96**2)*p_for_filter*q_for_filter)/(0.005**2*total_controls)
     minimum_controls=int(top_term/bottom_term)
-   # minimum_controls=500   This is a temporary override on computed value - to be removed
+    minimum_controls=500   # This is a temporary override on computed value - to be removed
     #########################
     # Loop through each bin #
     #########################
@@ -277,10 +277,9 @@ def generate_stats_for_likelihood_ratio(bins,likelihood_ratios,n_samples,n_contr
     # threshold
     threshold_parameters,p_cov=threshold_fit(trimmed_bins,trimmed_p_likelihood_ratios)
     threshold_threshold=threshold_parameters[0]
-    threshold_gamma=threshold_parameters[1]
-    threshold_slope=threshold_parameters[2]
-    threshold_predicted_p_likelihood_ratios = threshold_model(trimmed_bins, threshold_threshold, threshold_gamma,threshold_slope)
-
+    #threshold_gamma=threshold_parameters[1]
+    threshold_slope=threshold_parameters[1]
+    threshold_predicted_p_likelihood_ratios = threshold_model(trimmed_bins, threshold_threshold, threshold_slope)
     r2_linear = r2_score(trimmed_p_likelihood_ratios, linear_predicted_p_likelihood_ratios)
     r2_threshold = r2_score(trimmed_p_likelihood_ratios, threshold_predicted_p_likelihood_ratios)
 
@@ -389,7 +388,7 @@ def linear_fit(data_x,data_y):
     return p_opt, p_cov   
 
 def threshold_fit(data_x,data_y):
-    p_opt,p_cov=curve_fit(threshold_model, data_x,data_y,p0=[1000.0,0.1,0.0002])
+    p_opt,p_cov=curve_fit(threshold_model, data_x,data_y,p0=[1000.0,0.0002])
     return p_opt, p_cov 
 
 # =============================================================================
@@ -421,14 +420,14 @@ def linear_model(x,beta):
 #     return (results)
 # =============================================================================
 
-def threshold_model(x,threshold,gamma,beta):
+def threshold_model(x,threshold,beta):
 # This instantiates a threshold model in which y grows linearly with slope b for values of x >threshold
     results=[]
     for an_x in x: 
         if an_x>=threshold:
-            result=float((an_x-threshold)*beta+gamma)
+            result=float((an_x-threshold)*beta)
         else:
-            result=gamma
+            result=0
         results.append(result)
         
     return (results)
