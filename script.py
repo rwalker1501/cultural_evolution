@@ -26,16 +26,16 @@ import main_module as mm
 # filter_max_date=-1
 # filter_min_lat=-1
 # filter_max_lat=-1
-desktop_path = "/Users/jrwalker/Dropbox (HappyFamily)/Richard global sync/EPFL documents/Documents 2017/Richard articles and papers/Basic informational constraint/Empirical studies" #saves results at this address
+desktop_path = "/Users/richard/Dropbox (HappyFamily)/Richard global sync/EPFL documents/Documents 2017/Richard articles and papers/Basic informational constraint/Empirical studies" #saves results at this address
 #base_path = os.getcwd()
 #base_path="/Users/rwalker/Dropbox (HappyFamily)/Richard global sync/EPFL documents/Documents 2017/Richard articles and papers/Basic informational constraint/Empirical studies" #saves results at this address
-base_path="/Users/rwalker/Dropbox (HappyFamily)/Richard global sync/EPFL documents/Documents 2017/Richard articles and papers/Basic informational constraint/Empirical studies" #saves results at this address
+base_path="/Users/richard/Dropbox (HappyFamily)/Richard global sync/EPFL documents/Documents 2017/Richard articles and papers/Basic informational constraint/Empirical studies" #saves results at this address
 ############
 # ERIKSSON #
 ############
 
 # =============================================================================
-#mm.run_experiment(base_path, "rockpaintings v8", "full_a_e", controls="All")
+mm.run_experiment(base_path, "rockpaintings v8a", "full_a_e", controls="All")
 # =============================================================================
 # =============================================================================
 # mm.run_experiment(base_path, "trial_latitudes", "trial_latitudes_e", controls="Trial Latitudes")
@@ -105,24 +105,24 @@ base_path="/Users/rwalker/Dropbox (HappyFamily)/Richard global sync/EPFL documen
 # # 
 # # 
 # =============================================================================
-mm.run_experiment(base_path, "france_spain", "fs_e", controls="France and Spain", processed_targets=False)
+#mm.run_experiment(base_path, "france_spain", "fs_e", controls="France and Spain", processed_targets=False)
 # =============================================================================
 # # # mm.run_experiment(base_path, "france_spain", "fs_e_d0-10k", controls="France and Spain", filter_min_date = 0, filter_max_date = 10000)
 # # # mm.run_experiment(base_path, "france_spain", "fs_e_d10k-20k", controls="France and Spain", filter_min_date = 10000, filter_max_date = 20000)
 # # # mm.run_experiment(base_path, "france_spain", "fs_e_d20k-30k", controls="France and Spain", filter_min_date = 20000, filter_max_date = 30000)
 # # # mm.run_experiment(base_path, "france_spain", "fs_e_d30k-80k", controls="France and Spain", filter_min_date = 30000, filter_max_date = 80000)
 
-mm.run_experiment(base_path, "france_spain", "fs_e_cd100_ct10000", controls="France and Spain", clustering_on=True, critical_distance=100, critical_time=10000)
-mm.run_experiment(base_path, "france_spain", "fs_e_cd250_ct10000", controls="France and Spain", clustering_on=True, critical_distance=250, critical_time=10000)
-mm.run_experiment(base_path, "france_spain", "fs_e_cd500_ct10000", controls="France and Spain", clustering_on=True, critical_distance=500, critical_time=10000)
+#mm.run_experiment(base_path, "france_spain", "fs_e_cd100_ct10000", controls="France and Spain", clustering_on=True, critical_distance=100, critical_time=10000)
+#mm.run_experiment(base_path, "france_spain", "fs_e_cd250_ct10000", controls="France and Spain", clustering_on=True, critical_distance=250, critical_time=10000)
+#mm.run_experiment(base_path, "france_spain", "fs_e_cd500_ct10000", controls="France and Spain", clustering_on=True, critical_distance=500, critical_time=10000)
 
-mm.run_experiment(base_path, "france_spain", "fs_e_cd100_ct5000", controls="France and Spain", clustering_on=True, critical_distance=100, critical_time=5000)
-mm.run_experiment(base_path, "france_spain", "fs_e_cd250_ct5000", controls="France and Spain", clustering_on=True, critical_distance=250, critical_time=5000)
-mm.run_experiment(base_path, "france_spain", "fs_e_cd500_ct5000", controls="France and Spain", clustering_on=True, critical_distance=500, critical_time=5000)
+#mm.run_experiment(base_path, "france_spain", "fs_e_cd100_ct5000", controls="France and Spain", clustering_on=True, critical_distance=100, critical_time=5000)
+#mm.run_experiment(base_path, "france_spain", "fs_e_cd250_ct5000", controls="France and Spain", clustering_on=True, critical_distance=250, critical_time=5000)
+#mm.run_experiment(base_path, "france_spain", "fs_e_cd500_ct5000", controls="France and Spain", clustering_on=True, critical_distance=500, critical_time=5000)
 
-mm.run_experiment(base_path, "france_spain", "fs_e_cd100_ct1000", controls="France and Spain", clustering_on=True, critical_distance=100, critical_time=1000)
-mm.run_experiment(base_path, "france_spain", "fs_e_cd250_ct1000", controls="France and Spain", clustering_on=True, critical_distance=250, critical_time=1000)
-mm.run_experiment(base_path, "france_spain", "fs_e_cd500_ct1000", controls="France and Spain", clustering_on=True, critical_distance=500, critical_time=1000)
+#mm.run_experiment(base_path, "france_spain", "fs_e_cd100_ct1000", controls="France and Spain", clustering_on=True, critical_distance=100, critical_time=1000)
+#mm.run_experiment(base_path, "france_spain", "fs_e_cd250_ct1000", controls="France and Spain", clustering_on=True, critical_distance=250, critical_time=1000)
+#mm.run_experiment(base_path, "france_spain", "fs_e_cd500_ct1000", controls="France and Spain", clustering_on=True, critical_distance=500, critical_time=1000)
 
 # mm.run_experiment(base_path, "australia", "au_e", controls="Australia", processed_targets=False)
 # # # mm.run_experiment(base_path, "australia", "au_e_d0-10k", controls="Australia", filter_min_date = 0, filter_max_date = 10000)
@@ -130,17 +130,17 @@ mm.run_experiment(base_path, "france_spain", "fs_e_cd500_ct1000", controls="Fran
 # # # mm.run_experiment(base_path, "australia", "au_e_d20k-30k", controls="Australia", filter_min_date = 20000, filter_max_date = 30000)
 # # # mm.run_experiment(base_path, "australia", "au_e_d30k-80k", controls="Australia", filter_min_date = 30000, filter_max_date = 80000)
 
-mm.run_experiment(base_path, "australia", "au_e_cd100_ct10000", controls="Australia", clustering_on=True, critical_distance=100, critical_time=10000)
-mm.run_experiment(base_path, "australia", "au_e_cd250_ct10000", controls="Australia", clustering_on=True, critical_distance=250, critical_time=10000)
-mm.run_experiment(base_path, "australia", "au_e_cd500_ct10000", controls="Australia", clustering_on=True, critical_distance=500, critical_time=10000)
+#mm.run_experiment(base_path, "australia", "au_e_cd100_ct10000", controls="Australia", clustering_on=True, critical_distance=100, critical_time=10000)
+#mm.run_experiment(base_path, "australia", "au_e_cd250_ct10000", controls="Australia", clustering_on=True, critical_distance=250, critical_time=10000)
+#mm.run_experiment(base_path, "australia", "au_e_cd500_ct10000", controls="Australia", clustering_on=True, critical_distance=500, critical_time=10000)
 
-mm.run_experiment(base_path, "australia", "au_e_cd100_ct5000", controls="Australia", clustering_on=True, critical_distance=100, critical_time=5000)
-mm.run_experiment(base_path, "australia", "au_e_cd250_ct5000", controls="Australia", clustering_on=True, critical_distance=250, critical_time=5000)
-mm.run_experiment(base_path, "australia", "au_e_cd500_ct5000", controls="Australia", clustering_on=True, critical_distance=500, critical_time=5000)
+#mm.run_experiment(base_path, "australia", "au_e_cd100_ct5000", controls="Australia", clustering_on=True, critical_distance=100, critical_time=5000)
+#mm.run_experiment(base_path, "australia", "au_e_cd250_ct5000", controls="Australia", clustering_on=True, critical_distance=250, critical_time=5000)
+#mm.run_experiment(base_path, "australia", "au_e_cd500_ct5000", controls="Australia", clustering_on=True, critical_distance=500, critical_time=5000)
 
-mm.run_experiment(base_path, "australia", "au_e_cd100_ct1000", controls="Australia", clustering_on=True, critical_distance=100, critical_time=1000)
-mm.run_experiment(base_path, "australia", "au_e_cd250_ct1000", controls="Australia", clustering_on=True, critical_distance=250, critical_time=1000)
-mm.run_experiment(base_path, "australia", "au_e_cd500_ct1000", controls="Australia", clustering_on=True, critical_distance=500, critical_time=1000)
+#mm.run_experiment(base_path, "australia", "au_e_cd100_ct1000", controls="Australia", clustering_on=True, critical_distance=100, critical_time=1000)
+#mm.run_experiment(base_path, "australia", "au_e_cd250_ct1000", controls="Australia", clustering_on=True, critical_distance=250, critical_time=1000)
+#mm.run_experiment(base_path, "australia", "au_e_cd500_ct1000", controls="Australia", clustering_on=True, critical_distance=500, critical_time=1000)
 
 
 # # # mm.run_experiment(base_path, "no_australia_a", "no_australia_e", processed_targets=True)
