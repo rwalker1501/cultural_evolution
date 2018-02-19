@@ -85,8 +85,10 @@ def write_cluster_table(a_file, dataframe, growth_coefficients):
         a_file.write(str(counts[i]) + ";")
         a_file.write(str(growth_coefficients[i]))
         a_file.write("\n")
-        if i != 0 and i%2==1:
-            a_file.write("\n")   #not sure this is necessary
+# =============================================================================
+#         if i != 0 and i%2==1:
+#             a_file.write("\n")   #I was getting an unexplained CR on every two lines - think this is responsible.
+# =============================================================================
 
 def write_bin_table(a_file, bin_array, sample_counts, control_counts, likelihood_ratios, p_samples, p_controls, p_likelihood_ratios,minimum_controls):
 

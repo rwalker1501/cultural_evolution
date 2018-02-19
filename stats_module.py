@@ -132,8 +132,8 @@ def generate_bin_values(dataframe, controls_dataframe, population_data, max_for_
     p_for_filter=float(total_samples/total_controls)
     q_for_filter=1-p_for_filter
     # compute min controls necessary to get confidence of 0.95 on likelihood ratio with range of 0.0025
-    top_term=1.96**2*p_for_filter*q_for_filter/0.005**2
-    bottom_term=1+((1.96**2)*p_for_filter*q_for_filter)/(0.005**2*total_controls)
+    top_term=1.96**2*p_for_filter*q_for_filter/0.001**2
+    bottom_term=1+((1.96**2)*p_for_filter*q_for_filter)/(0.001**2*total_controls)
     minimum_controls=int(top_term/bottom_term)
    # minimum_controls=500   This is a temporary override on computed value - to be removed
     #########################
@@ -325,7 +325,7 @@ def generate_stats_for_likelihood_ratio(bins,likelihood_ratios,n_samples,n_contr
     a_file.write('LMS linear model for multiplier:'+"{:8.7f}".format(lms(trimmed_p_likelihood_ratios,linear_predicted_p_likelihood_ratios))+'\n')
     a_file.write('LMS threshold model for multiplier:'+"{:8.7f}".format(lms(trimmed_p_likelihood_ratios,threshold_predicted_p_likelihood_ratios))+'\n')
     a_file.write('Coefficients for linear fit: slope=' + str(linear_slope) + "\n")
-    a_file.write('Coefficients for threshold fit: threshold=' + str(lambda_tau) + ' slope=' + str(threshold_slope) + '\n')
+    a_file.write('Coefficients for threshold fit: gamma='+str(threshold_gamma)+' threshold=' + str(lambda_tau) + ' slope=' + str(threshold_slope) + '\n')
     a_file.write("r2_threshold: " + str(r2_threshold) + "  r2_linear: " + str(r2_linear) + "\n")
     a_file.write("chi_threshold: " + str(chi_threshold) + "  chi_linear: " + str(chi_linear) + "\n")
 
@@ -389,7 +389,11 @@ def linear_fit(data_x,data_y):
     return p_opt, p_cov   
 
 def threshold_fit(data_x,data_y):
-    p_opt,p_cov=curve_fit(threshold_model, data_x,data_y,p0=[1000.0,0.1,0.0002])
+    if len(data_x)>3:
+        p_opt,p_cov=curve_fit(threshold_model, data_x,data_y,p0=[1000.0,0.1,0.0002])
+    else:
+        p_opt=[0,0,0]
+        p_cov=0
     return p_opt, p_cov 
 
 # =============================================================================
