@@ -172,22 +172,23 @@ def extract_dataframe(population_data, target_list, date_window, min_date_window
 
 
                 ############################################
-                # Loop from date_from to date_to of target #
+                # Loop from date_to to date_from of target #
                 ############################################
-                date_from = target.date_from + min_date_window
-                date_to = target.date_from + date_window
+                date_from = target.date_from
+                date_to = target.date_to
+                if date_from - date_to < date_window:
+                    date_to = target.date_from - date_window;
 
-                time = date_from
-                if  date_from % time_multiplier != 0:
+                time = date_to
+                if  date_to % time_multiplier != 0:
                     # get next value divisible by time_multiplier
                     # For example: 
                     #   time_multiplier = 25
-                    #   date_from = 20
+                    #   date_to = 20
                     #   time = 20 + (25 - 20) = 25
-                    time = date_from + (time_multiplier - date_from % time_multiplier)
+                    time = date_to + (time_multiplier - date_to % time_multiplier)
                 
-                while(time <= date_to and time != -1):
-
+                while(time <= date_from and time != -1):
                     # small loop is created here so that code is not repeated
                     for is_control in range(0,2):
                         # if time and lat/lon is in target conditions
@@ -281,9 +282,11 @@ def load_bin_controls_for_all(population_data, target_list, date_window):
     maximum_date=maximum_date+date_window
     print('minimum date=', minimum_date)
     print('maximum date=',maximum_date)
+    print('minimum latitude=', minimum_latitude)
+    print('maximum latitude=',maximum_latitude)
     lat = (minimum_latitude+maximum_latitude)/2
     time = 0
-    temp_target = Target(lat,0,maximum_latitude,-1, minimum_latitude,1,"location",time,"country","date_of_reference","is_direct","calibrated","kind","figurative","source","is_controversial",0)
+    temp_target = Target(lat,0,maximum_latitude,-1, minimum_latitude,1,"location",maximum_date, time,"country","date_of_reference","is_direct","calibrated","kind","figurative","source","is_controversial",0)
 
     df = extract_dataframe(population_data, [[temp_target]], maximum_date, minimum_date)
     df = df[df.type=='c']
@@ -315,7 +318,7 @@ def load_bin_controls_for_australia(population_data, target_list, date_window):
     lon_nw = 112.14
     lon_se = 154.86
     time = 0
-    temp_target = Target(latitude,longitude,lat_nw,lon_nw,lat_se,lon_se,"location",time,"country","date_of_reference","is_direct","calibrated","kind","figurative","source","is_controversial",0)
+    temp_target = Target(latitude,longitude,lat_nw,lon_nw,lat_se,lon_se,"location",maximum_date, time,"country","date_of_reference","is_direct","calibrated","kind","figurative","source","is_controversial",0)
 
     df = extract_dataframe(population_data, [[temp_target]], maximum_date, minimum_date)
     df = df[df.type=='s']
@@ -347,8 +350,8 @@ def load_bin_controls_for_francespain(population_data, target_list, date_window)
     lon_nw = 350
     lon_se = 7
     time = 0
-    target_east = Target(latitude,longitude,lat_nw,lon_nw,lat_se,359,"location",time,"country","date_of_reference","is_direct","calibrated","kind","figurative","source","is_controversial",0)
-    target_west = Target(latitude,longitude,lat_nw,0,lat_se,lon_se,"location",time,"country","date_of_reference","is_direct","calibrated","kind","figurative","source","is_controversial",0)
+    target_east = Target(latitude,longitude,lat_nw,lon_nw,lat_se,359,"location",maximum_date, time,"country","date_of_reference","is_direct","calibrated","kind","figurative","source","is_controversial",0)
+    target_west = Target(latitude,longitude,lat_nw,0,lat_se,lon_se,"location",maximum_date, time, "country","date_of_reference","is_direct","calibrated","kind","figurative","source","is_controversial",0)
 
     df = extract_dataframe(population_data, [[target_east, target_west]], maximum_date, minimum_date)
 
@@ -390,15 +393,18 @@ def in_target_location(target, time, lat, lon, is_control, date_window):
     lat_se=target.lat_se
     lon_se=target.lon_se
     date_from=target.date_from
-    date_to=date_from+date_window
+    date_to=target.date_to
+    if date_from - date_to < date_window:
+        date_to = target.date_from - date_window;
+
     if lat<-90 or lat>90:
         print('latitude out of range')
         sys.exit()
     if lon<0 or lon>360:
         print('longitude out of range')
         sys.exit()
-    if time>=date_from:
-        if time<=date_to:
+    if time<=date_from:
+        if time>=date_to:
             if lat<=lat_nw:
                 if lat>=lat_se:
                     if lon_in_bin(lon_nw,lon_se,lon):
@@ -447,7 +453,15 @@ def read_target_list_from_csv(filename):
             lon_nw=lon-1
             lat_se=lat-0.5
             lon_se=lon+1
-            date=int(float(row[3]))
+            date_from=0;
+            date_to=1000000;
+            dates = row[3].split(";");
+            for string_date in dates:
+                date = int(string_date);
+                if date > date_from:
+                    date_from = date;
+                if date < date_to:
+                    date_to = date;
             country=row[4]
             date_of_reference=row[5]
             is_direct=row[6]
@@ -456,7 +470,7 @@ def read_target_list_from_csv(filename):
             figurative=row[9]
             source=row[10]
             is_controversial=row[11]
-            target=Target(lat,lon,lat_nw,lon_nw,lat_se,lon_se,location,date,country,date_of_reference,is_direct,calibrated,kind,figurative,source,is_controversial,cluster_id)
+            target=Target(lat,lon,lat_nw,lon_nw,lat_se,lon_se,location,date_from, date_to, country,date_of_reference,is_direct,calibrated,kind,figurative,source,is_controversial,cluster_id)
             cluster_id=cluster_id+1
             target_list.append(target)
     target_file.close
@@ -476,7 +490,7 @@ def save_target_list_to_csv(target_list, directory, filename):
             row.append(target.location)
             row.append(target.orig_lat)
             row.append(target.orig_lon)
-            row.append(target.date_from)
+            row.append(str(target.date_from) + ";" + str(target.date_to));
             row.append(target.country)
             row.append(target.date_of_reference)
             row.append(target.is_direct)
