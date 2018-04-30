@@ -20,7 +20,7 @@ class Driver:
 		print('')
 		self.print_label('Population analysis tool v. 0.1 by Richard Walker')
 		user_option = 0
-		while user_option != '9':
+		while user_option != '10':
 			target_list = self.main_program.get_current_target_list()
 			population_data = self.main_program.get_population_data()
 			dataframe_loaded = self.main_program.get_dataframe_loaded()
@@ -43,8 +43,9 @@ class Driver:
 			print('5)    Plot population by time')
 			print('6)    Clear processed targets')
 			print('7)    Generate results')
-			print('8)    Add new population data source')
-			print('9)    Exit')
+			print('8)    Generate confounder analysis')
+			print('9)    Add new population data source')
+			print('10)   Exit')
 			random.seed(2002)
 			user_option = raw_input("Choose an option: ")
 			if user_option=='1':
@@ -68,11 +69,17 @@ class Driver:
 				for population_data_source in population_data:
 					if population_data_source.is_active:
 						directory=raw_input("Insert directory name: ")
-						report = self.main_program.generate_results(population_data_source, target_list, base_path, directory)
+						report = self.main_program.generate_results(population_data_source, target_list, base_path, directory, False)
 						print(report)
 			elif user_option=='8':
+				for population_data_source in population_data:
+					if population_data_source.is_active:
+						directory=raw_input("Insert directory name: ")
+						report = self.main_program.generate_confounder_analysis(population_data_source, target_list, base_path, directory)
+						print(report)
+			elif user_option=='9':
 				self.add_population_data()
-			elif user_option!='9':
+			elif user_option!='10':
 				print("Invalid option. Try again.")
 
 	def define_target_list(self, some_target_list):
@@ -187,9 +194,9 @@ class Driver:
 				chosen_file = filename + '_dataframe.csv'
 				print(chosen_file)
 
-			target_list, dataframe, controls_dataframe = tam.load_processed_targets(base_path, filename)
+			target_list, dataframe, globals_dataframe = tam.load_processed_targets(base_path, filename)
 			self.main_program.set_target_list(target_list)
-			self.main_program.set_dataframe(dataframe, controls_dataframe)
+			self.main_program.set_dataframe(dataframe, globals_dataframe)
 
 	def set_parameters(self):
 		user_option = ""
@@ -200,7 +207,7 @@ class Driver:
 			default_mfu = self.main_program.get_default_mfu()
 			perform_cv = self.main_program.get_perform_cross_validation()
 			num_kfolds = self.main_program.get_number_of_kfolds()
-			controls = self.main_program.get_controls()
+			globals = self.main_program.get_globals()
 			print("")
 			print("1) Set active population data")
 			print("2) Define date window for target: " + str(date_window))
@@ -208,7 +215,7 @@ class Driver:
 			print("4) Define max population for areas considered as uninhabited (sets default=False): " + str(mfu))
 			print("5) Toggle perform cross validation: " + str(perform_cv))
 			print("6) Set folds for cross validation: " + str(num_kfolds))
-			print("7) Define controls range: " + str(controls))
+			print("7) Define globals range: " + str(globals))
 			print("8) Save and exit")
 			user_option = raw_input("Choose an option: ")
 			if user_option=='1':
@@ -224,27 +231,27 @@ class Driver:
 			elif user_option=='6':
 				self.main_program.set_number_of_kfolds(self.get_number("Insert number of kfolds: ", 1, 200))
 			elif user_option=='7':
-				controls_option = 1
-				self.print_label("Define Controls Range")
+				globals_option = 1
+				self.print_label("Define globals Range")
 				print("1) All")
 				print("2) Australia")
 				print("3) France and Spain")
 				print("4) Trial Latitudes")
 				print("5) Trial Latitudes 2")
-				print("6) No Empty Lats (New Controls)")
-				controls_option = self.get_number("Insert option: ", 1, 6)
-				if controls_option == 1:
-					self.main_program.set_controls("All")
-				elif controls_option == 2:
-					self.main_program.set_controls("Australia")
-				elif controls_option == 3:
-					self.main_program.set_controls("France and Spain")
-				elif controls_option == 4:
-					self.main_program.set_controls("Trial Latitudes")
-				elif controls_option == 5:
-					self.main_program.set_controls("Trial Latitudes 2")
-				elif controls_option == 6:
-					self.main_program.set_controls("No Empty Lats")
+				print("6) No Empty Lats (New globals)")
+				globals_option = self.get_number("Insert option: ", 1, 6)
+				if globals_option == 1:
+					self.main_program.set_globals("All")
+				elif globals_option == 2:
+					self.main_program.set_globals("Australia")
+				elif globals_option == 3:
+					self.main_program.set_globals("France and Spain")
+				elif globals_option == 4:
+					self.main_program.set_globals("Trial Latitudes")
+				elif globals_option == 5:
+					self.main_program.set_globals("Trial Latitudes 2")
+				elif globals_option == 6:
+					self.main_program.set_globals("No Empty Lats")
 			elif user_option!='9':
 				print("Invalid option. Try again.")
 

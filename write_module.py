@@ -14,6 +14,57 @@ def write_headers(a_file, headers, delimiter):
             a_file.write(delimiter)
     a_file.write('\n')
     
+def write_confounder_analysis_table(a_file, label, dictionary, keys, or_MHs, MH_stats, MH_stat_ps):
+
+    headers = [""];
+    small_headers = ["Bin values"]
+    for key in keys:
+        headers.append(key);
+        headers.append("");
+        headers.append("");
+        headers.append("");
+        headers.append("");
+        headers.append("");
+        headers.append("");
+        headers.append("");
+        small_headers.append("Samples");
+        small_headers.append("Globals");
+        small_headers.append("Controls");
+        small_headers.append("Odds Ratio");
+        small_headers.append("top ORMH");
+        small_headers.append("bottom ORMH");
+        small_headers.append("top test MH");
+        small_headers.append("bottom test MH");
+    headers.append("OR MH");
+    headers.append("MH Statistics");
+    headers.append("MH Statistics p-value");
+
+    write_label(a_file, label);
+    write_headers(a_file, headers, ";");
+    write_headers(a_file, small_headers, ";");
+
+    bin_array = dictionary[keys[0]][0];
+
+    for i in range(0, len(bin_array)):
+        a_file.write(str(bin_array[i]) + ";");
+        for j in range(0, len(keys)):
+            key = keys[j];
+            values = dictionary[key];
+            a_file.write(str(values[1][i]) + ";");
+            a_file.write(str(values[2][i]) + ";");
+            a_file.write(str(values[3][i]) + ";");
+            a_file.write(str(values[4][i]) + ";");
+            a_file.write(str(values[5][i]) + ";");
+            a_file.write(str(values[6][i]) + ";");
+            a_file.write(str(values[7][i]) + ";");
+            a_file.write(str(values[8][i]) + ";");
+        a_file.write(str(or_MHs[i]) + ";");
+        a_file.write(str(MH_stats[i]) + ";");
+        a_file.write(str(MH_stat_ps[i]) + "\n");
+
+
+
+
 
 def write_table(a_file, label, headers, values, delimiter):
     write_label(a_file, label)
@@ -52,7 +103,7 @@ def write_information(a_file, labels, values, delimiter):
 
 
 def write_cluster_table(a_file, dataframe, growth_coefficients):
-    cluster_headers=["First Location in cluster", "Cluster", "Latitude", "Longitude", "Sample/Control", "Mean Population Density over Period", "N samples over period", "growthCoefficient"]
+    cluster_headers=["First Location in cluster", "Cluster", "Latitude", "Longitude", "Sample/Global", "Mean Population Density over Period", "N samples over period", "growthCoefficient"]
     write_headers(a_file, cluster_headers, ';')
 
     ################################
@@ -80,7 +131,7 @@ def write_cluster_table(a_file, dataframe, growth_coefficients):
         if temp_types[i]=='a':
             a_file.write("Sample;")
         else:
-            a_file.write('Control;')
+            a_file.write('Global;')
         a_file.write(str(means[i]) + ";")
         a_file.write(str(counts[i]) + ";")
         a_file.write(str(growth_coefficients[i]))
@@ -90,21 +141,25 @@ def write_cluster_table(a_file, dataframe, growth_coefficients):
 #             a_file.write("\n")   #I was getting an unexplained CR on every two lines - think this is responsible.
 # =============================================================================
 
-def write_bin_table(a_file, bin_array, sample_counts, control_counts, likelihood_ratios, p_samples, p_controls, p_likelihood_ratios,minimum_controls):
+def write_bin_table(a_file, bin_array, sample_counts, the_global_counts, control_counts, odds_ratios, lower_cis, upper_cis, likelihood_ratios, p_samples, p_the_globals, p_likelihood_ratios,minimum_the_globals):
 
-    print 'minimum controls in write_bin_table=',str(minimum_controls)
-    write_label(a_file, "Distribution of values for samples and controls - Minimum-controls="+str(minimum_controls))
+    print 'minimum the_globals in write_bin_table=',str(minimum_the_globals)
+    write_label(a_file, "Distribution of values for samples and the_globals - Minimum-the_globals="+str(minimum_the_globals))
 
-    columns = ['Bin value', 'Samples', 'Controls', 'Likelihood Ratios', 'pSamples', 'pControls', 'p Likelihood Ratios']
+    columns = ['Bin value', 'Samples', 'Globals', 'Controls', 'Odds Ratios', 'Lower CIs', 'Upper CIs', 'Likelihood Ratios', 'pSamples', 'pGlobals', 'p Likelihood Ratios']
     write_headers(a_file,columns,";")
 
     for i in range(0, len(bin_array)):
         a_file.write(str(bin_array[i]) + ';')
         a_file.write(str(sample_counts[i]) + ';')
+        a_file.write(str(the_global_counts[i]) + ';')
         a_file.write(str(control_counts[i]) + ';')
+        a_file.write(str(odds_ratios[i]) + ';')
+        a_file.write(str(lower_cis[i]) + ';')
+        a_file.write(str(upper_cis[i]) + ';')
         a_file.write(str(likelihood_ratios[i]) + ';')
         a_file.write(str(p_samples[i]) + ';')
-        a_file.write(str(p_controls[i]) + ";")
+        a_file.write(str(p_the_globals[i]) + ";")
         a_file.write(str(p_likelihood_ratios[i]))
         a_file.write("\n")
 

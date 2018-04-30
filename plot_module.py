@@ -62,21 +62,73 @@ def plot_boxplot(values, titles, title, file_path):
     filename = title.lower().replace(" ", "_")
     fig.savefig(os.path.join(file_path, filename+".png"))
 
-
-def plot_likelihood_ratio(bins, actual_multipliers, lambda_tau, predicted_multipliers, label, identifier, file_path):
+def plot_ratio(bins, actual_ratios, lambda_tau, linear_predicted_ratios, threshold_predicted_ratios, identifier, label, file_path):
     fig = plt.figure()
     ax = fig.add_subplot(111)
 
-    plt.scatter(bins, actual_multipliers, label=label)
-    if label=="threshold":
-        ax.axvline(lambda_tau, color='k', linestyle='--')
+    plt.scatter(bins, actual_ratios)
+    ax.axvline(lambda_tau, color='k', linestyle='--')
     ax.axhline(1, color='k', linestyle='--')
-    ax.plot(bins, predicted_multipliers, 'g')
-    plt.ylabel("p Likelihood Ratio")
+    linear = ax.plot(bins, linear_predicted_ratios, 'b', label="linear");
+    threshold = ax.plot(bins, threshold_predicted_ratios, 'g', label="threshold");
+    plt.ylabel(label)
     plt.xlabel("Population density")
     plt.gca().set_ylim(bottom=0)
-    fig.savefig(os.path.join(file_path, str(identifier) + "_" + label + "_ratio.png"))
+
+    label = label.lower();
+    label = label.replace(" ", "_");
+    fig.savefig(os.path.join(file_path, str(identifier) + "_" + label + ".png"))
     plt.close()
+
+def plot_odds_ratio(bins, actual_ratios, lambda_tau, linear_predicted_ratios, threshold_predicted_ratios, lower_cis, upper_cis, identifier, label, file_path):
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+
+    y_cis_lower = [];
+    y_cis_upper = [];
+    for i in range(0, len(bins)):
+        lower_ci = lower_cis[i];
+        upper_ci = upper_cis[i];
+        ratio = actual_ratios[i];
+        if lower_ci == "NA":
+            y_cis_lower.append(0);
+            y_cis_upper.append(0);
+        else:
+            lower = ratio - lower_ci;
+            upper = upper_ci - ratio;
+            y_cis_lower.append(lower);
+            y_cis_upper.append(upper);
+
+    ax.errorbar(bins, actual_ratios, yerr=[y_cis_lower, y_cis_upper], fmt="o", capsize=3)
+    ax.axvline(lambda_tau, color='k', linestyle='--')
+    ax.axhline(1, color='k', linestyle='--')
+    linear = ax.plot(bins, linear_predicted_ratios, 'b', label="linear");
+    threshold = ax.plot(bins, threshold_predicted_ratios, 'g', label="threshold");
+    plt.ylabel(label)
+    plt.xlabel("Population density")
+    plt.gca().set_ylim(bottom=0)
+
+    label = label.lower();
+    label = label.replace(" ", "_");
+    fig.savefig(os.path.join(file_path, str(identifier) + "_" + label + ".png"))
+    plt.close()
+
+
+
+# def plot_likelihood_ratio(bins, actual_multipliers, lambda_tau, predicted_multipliers, label, identifier, file_path):
+#     fig = plt.figure()
+#     ax = fig.add_subplot(111)
+
+#     plt.scatter(bins, actual_multipliers, label=label)
+#     if label=="threshold":
+#         ax.axvline(lambda_tau, color='k', linestyle='--')
+#     ax.axhline(1, color='k', linestyle='--')
+#     ax.plot(bins, predicted_multipliers, 'g')
+#     plt.ylabel("p Likelihood Ratio")
+#     plt.xlabel("Population density")
+#     plt.gca().set_ylim(bottom=0)
+#     fig.savefig(os.path.join(file_path, str(identifier) + "_" + label + "_ratio.png"))
+#     plt.close()
 
 def plot_sites_graph(bins, actual_sites, predicted_sites, label, identifier, title, file_path):
     fig = plt.figure()

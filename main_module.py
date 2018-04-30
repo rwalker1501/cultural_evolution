@@ -42,8 +42,8 @@ class MainProgram:
         self.target_list=[]
         self.dataframe_loaded = False
         self.dataframe = pd.DataFrame()
-        self.controls = "No Empty Lats"
-        self.controls_dataframe = pd.DataFrame()
+        self.globals = "No Empty Lats"
+        self.globals_dataframe = pd.DataFrame()
         self.clustering_on=False
         self.critical_distance=0
         self.date_window=1500
@@ -90,13 +90,13 @@ class MainProgram:
     def set_target_list(self, some_target_list):
         self.target_list = some_target_list
 
-    def set_dataframe(self, dataframe, controls_dataframe):
+    def set_dataframe(self, dataframe, globals_dataframe):
         self.dataframe = dataframe
-        self.controls_dataframe = controls_dataframe
+        self.globals_dataframe = globals_dataframe
         self.dataframe_loaded = True
 
-    def set_controls(self, controls):
-        self.controls = controls
+    def set_globals(self, globals):
+        self.globals = globals
 
     def set_perform_cross_validation(self, perform_cv):
         self.perform_cross_validation = perform_cv
@@ -110,8 +110,8 @@ class MainProgram:
     def set_min_date_window(self, min_date_window):
         self.min_date_window = min_date_window
 
-    def set_minimum_controls(self, minimum_controls):
-        self.minimum_controls = minimum_controls
+    def set_minimum_globals(self, minimum_globals):
+        self.minimum_globals = minimum_globals
 
     def get_clustering(self):
         return self.clustering_on
@@ -155,8 +155,8 @@ class MainProgram:
     def get_number_of_kfolds(self):
         return self.number_of_kfolds
 
-    def get_controls(self):
-        return self.controls
+    def get_globals(self):
+        return self.globals
 
     def load_population_data(self):
         self.population_data_sources = pdm.load_population_data(self.base_path, self.population_data_sources)
@@ -182,7 +182,81 @@ class MainProgram:
         new_population_data = pdm.load_population_data_source(name, binary_path, info_path)
         self.population_data_sources.append(new_population_data)
 
-    def generate_results(self, population_data, original_target_list, base_path, directory):
+    def generate_confounder_analysis(self, population_data, original_target_list, base_path, directory):
+        # Date analysis
+        minimum_date, maximum_date = tam.get_min_max_date_of_targets(original_target_list);
+
+        date_bands = dict();
+        date_keys = []
+        start_date = maximum_date;
+        end_date = maximum_date - 10000;
+        while(True):
+            if end_date < minimum_date:
+                end_date = minimum_date;
+            new_dir = "date_" + str(start_date) + "-" + str(end_date) + "_" + directory;
+            new_target_list, f = tam.filter_targets_for_date(original_target_list, end_date, start_date, "");
+            if len(new_target_list) > 1:
+                try:
+                    bin_array, sample_counts, global_counts, control_counts, odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_likelihood_ratios = self.generate_results(population_data, new_target_list, base_path, new_dir, True);
+                    label = str(int(start_date)) + " to " + str(int(end_date))
+                    date_keys.append(label);
+                    date_bands[label] = [bin_array, sample_counts, global_counts, control_counts, odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs]
+                except:
+                    print("No Geographic Points Fall in Target Areas");
+            if end_date == minimum_date:
+                break;
+            start_date = end_date
+            end_date -= 10000;
+        
+        # Latitude analysis
+
+        minimum_lat, maximum_lat = tam.get_min_max_latitude_of_targets(original_target_list);
+
+        latitude_bands = dict();
+        latitude_keys = [];
+        start_lat = maximum_lat;
+        end_lat = maximum_lat-10;
+        while(True):
+            if end_lat < minimum_lat:
+                end_lat = minimum_lat;
+            new_dir = "lat_" + str(int(start_lat)) + "-" + str(int(end_lat)) + "_" + directory;
+            new_target_list, f = tam.filter_targets_for_latitude(original_target_list, end_lat, start_lat, "");
+            if len(new_target_list) > 1:
+                try:
+                    bin_array, sample_counts, global_counts, control_counts, odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_likelihood_ratios = self.generate_results(population_data, new_target_list, base_path, new_dir, True);
+                    label = str(int(start_lat)) + " to " + str(int(end_lat))
+                    latitude_keys.append(label)
+                    latitude_bands[label] = [bin_array, sample_counts, global_counts, control_counts, odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs]
+                except:
+                    print("No Geographic Points Fall in Target Areas")
+                
+            if end_lat == minimum_lat:
+                break;
+            start_lat = end_lat
+            end_lat -= 10;
+
+        results_path = os.path.join(base_path, "results")
+        if not os.path.exists(results_path):
+            os.makedirs(results_path)
+
+        new_path = os.path.join(results_path, directory)
+        if not os.path.exists(new_path):
+            os.makedirs(new_path)
+        results_filename= os.path.join(new_path, directory + "_results.csv") 
+
+        print("Confounder Analysis Results: " + results_filename)
+        a_file = open(results_filename, 'w');
+
+        lat_or_MHs, lat_MH_stats, lat_MH_ps = stm.get_confounder_analysis_values(latitude_keys, latitude_bands)
+        date_or_MHs, date_MH_stats, date_MH_ps = stm.get_confounder_analysis_values(date_keys, date_bands)
+
+        wrm.write_confounder_analysis_table(a_file, "Latitude Confounder Analysis", latitude_bands, latitude_keys, lat_or_MHs, lat_MH_stats, lat_MH_ps);
+        wrm.write_confounder_analysis_table(a_file, "Date Confounder Analysis", date_bands, date_keys, date_or_MHs, date_MH_stats, date_MH_ps);
+        a_file.close();
+
+        return "Generated Results";
+
+    def generate_results(self, population_data, original_target_list, base_path, directory, is_confounder_analysis):
 
 
         # Check if a target list has been loaded, otherwise abort
@@ -223,8 +297,8 @@ class MainProgram:
         f2.write('Date: '+dateTime)
         f2.write('\n')
 
-        header_labels = ['population_data', 'max_for_uninhabited', 'date_window', 'critical_distance', "filters_applied","controls"]
-        header_values = [population_data.name, max_for_uninhabited, self.date_window, self.critical_distance, self.filters_applied,self.controls]
+        header_labels = ['population_data', 'max_for_uninhabited', 'date_window', 'critical_distance', "filters_applied","globals"]
+        header_values = [population_data.name, max_for_uninhabited, self.date_window, self.critical_distance, self.filters_applied,self.globals]
         wrm.write_information(f2, header_labels, header_values, ", ")
 
         ##############################
@@ -241,7 +315,7 @@ class MainProgram:
         #   - clusters targets and returns 2D array of targets grouped in clusters
         #   - If dataframe has not been loaded (through load processed targets), extracts dataframe and saves it.
         #   - dataframe: contains all locations and population densities in the population data that is relevant to the target list
-        clustered_target_list, self.dataframe, self.controls_dataframe = tam.process_targets(self.base_path, population_data, original_target_list, self.dataframe, self.controls_dataframe, self.controls, self.dataframe_loaded, self.clustering_on, self.date_window, self.critical_distance, self.critical_time, directory, self.min_date_window)
+        clustered_target_list, self.dataframe, self.globals_dataframe = tam.process_targets(self.base_path, population_data, original_target_list, self.dataframe, self.globals_dataframe, self.globals, self.dataframe_loaded, self.clustering_on, self.date_window, self.critical_distance, self.critical_time, directory, self.min_date_window)
 
         if self.dataframe.empty:
             f2.write("No Geographic Points Fall in Target Areas")
@@ -253,7 +327,7 @@ class MainProgram:
         #####################
         # - gets statistics (means, growth coefficients) of dataframe
         # - filters target list/dataframe by removing clusters with 0 sample means 
-        all_sample_means, all_control_means, growth_coefficients, samples_gt_controls, n_targets_gt_0, self.dataframe = stm.process_dataframe(self.dataframe, max_for_uninhabited)
+        all_sample_means, all_global_means, growth_coefficients, samples_gt_globals, n_targets_gt_0, self.dataframe = stm.process_dataframe(self.dataframe, max_for_uninhabited)
 
         ########################################
         # Write filtered clustered target list #
@@ -268,13 +342,13 @@ class MainProgram:
         # - binomial test
         # - wilcoxon
         wrm.write_label(f2, "Statistics")
-        p_binomial=binom_test(samples_gt_controls,n_targets_gt_0,0.5)
+        p_binomial=binom_test(samples_gt_globals,n_targets_gt_0,0.5)
         stats_header_labels = ["Number of successes", "Number of targets", "pBinomial"]
-        stats_header_values = [samples_gt_controls, n_targets_gt_0, p_binomial]
+        stats_header_values = [samples_gt_globals, n_targets_gt_0, p_binomial]
         wrm.write_information(f2, stats_header_labels, stats_header_values, "   ")
 
-        t_wilcox,p_wilcox=wilcoxon(all_sample_means,all_control_means)
-        f2.write( 'Wilcoxon stat for sample vs controls means whole period:'+str(float(t_wilcox))+ '   p='+str(float(p_wilcox))+'\n')
+        t_wilcox,p_wilcox=wilcoxon(all_sample_means,all_global_means)
+        f2.write( 'Wilcoxon stat for sample vs globals means whole period:'+str(float(t_wilcox))+ '   p='+str(float(p_wilcox))+'\n')
 
 
 
@@ -283,45 +357,49 @@ class MainProgram:
         #################
         # - extracts bin values
         # - write bin values to file
-        bin_array, sample_counts, control_counts, likelihood_ratios, p_samples, p_controls, p_likelihood_ratios,minimum_controls = stm.generate_bin_values(self.dataframe, self.controls_dataframe, population_data, max_for_uninhabited)
-        wrm.write_bin_table(f2, bin_array, sample_counts, control_counts, likelihood_ratios, p_samples, p_controls, p_likelihood_ratios,minimum_controls)
+        bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_likelihood_ratios,minimum_globals = stm.generate_bin_values(self.dataframe, self.globals_dataframe, population_data, max_for_uninhabited)
+        wrm.write_bin_table(f2, bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, likelihood_ratios, p_samples, p_globals, p_likelihood_ratios,minimum_globals)
         
 
         ##################################
         # Generate graphs and statistics #
         ##################################
         # - plots likelihood ratios and sites graphs
-        stm.generate_stats_for_likelihood_ratio(bin_array, likelihood_ratios, sample_counts, control_counts, p_likelihood_ratios, p_samples, p_controls, f2, new_path, directory)
+        stm.generate_stats_for_ratios(bin_array, likelihood_ratios, sample_counts, global_counts, p_likelihood_ratios, p_samples, p_globals, f2, "p Likelihood Ratio", new_path, directory)
+
+        stm.generate_stats_for_ratios(bin_array, likelihood_ratios, sample_counts, global_counts, odds_ratios, p_samples, p_globals, f2, "Odds Ratio", new_path, directory, lower_cis=lower_cis, upper_cis=upper_cis)
 
         # - plots p_graphs and write statistics (binomial and wilcoxon)
-        threshold_binomial, threshold, threshold_success_count, threshold_trial_count, threshold_samples, threshold_controls = stm.generate_p_threshold_and_binomial(p_samples, p_controls, bin_array)
-        plm.plot_p_graphs(bin_array, p_samples, p_controls, threshold, directory, new_path)
+        threshold_binomial, threshold, threshold_success_count, threshold_trial_count, threshold_samples, threshold_globals = stm.generate_p_threshold_and_binomial(p_samples, p_globals, bin_array)
+        plm.plot_p_graphs(bin_array, p_samples, p_globals, threshold, directory, new_path)
 
-        t_threshold_wilcoxon, p_threshold_wilcoxon = wilcoxon(threshold_controls, threshold_samples)
+        t_threshold_wilcoxon, p_threshold_wilcoxon = wilcoxon(threshold_globals, threshold_samples)
 
         wrm.write_label(f2, "Statistics for threshold bins")
         f2.write("Threshold: " + str(threshold))
         stats_header_labels = ["Number of successes", "Number of targets", "pBinomial"]
         stats_header_values = [threshold_success_count, threshold_trial_count, threshold_binomial]
         wrm.write_information(f2, stats_header_labels, stats_header_values, "   ")
-        f2.write( 'Wilcoxon stat for pControls vs pSamples:'+str(float(t_threshold_wilcoxon))+ '   p='+str(float(p_threshold_wilcoxon))+'\n')
+        f2.write( 'Wilcoxon stat for pglobals vs pSamples:'+str(float(t_threshold_wilcoxon))+ '   p='+str(float(p_threshold_wilcoxon))+'\n')
 
 
         # - plots growth coefficients
         plm.plot_growth_coefficient_boxplot(growth_coefficients, new_path)
 
-        # - plots targets and controls on a map
-        plm.plot_targets_on_map(self.dataframe, self.controls_dataframe, new_path, directory)
+        # - plots targets and globals on a map
+        plm.plot_targets_on_map(self.dataframe, self.globals_dataframe, new_path, directory)
 
-
-        plm.plot_densities_on_map_by_range(population_data, 5700, 5800, 75, 44000)
         f2.close()
 
-        return "Generated results."
+        if(is_confounder_analysis):
+            print("returning CA")
+            return bin_array, sample_counts, global_counts, control_counts, odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_likelihood_ratios
+        else:
+            return "Generated results."
 
 
-def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", controls="All", date_window=1500, user_max_for_uninhabited=-1, clustering_on = False, critical_distance=0, filter_date_before=-1, filter_not_direct=False, filter_not_figurative=False, filter_not_controversial = False, perform_cross_validation=False, number_of_kfolds = 100,  min_date_window=0, critical_time=10000, filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False):
-  # Note: current setting of minimum_controls is overwritten in stats_module
+def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", globals="All", date_window=1500, user_max_for_uninhabited=-1, clustering_on = False, critical_distance=0, filter_date_before=-1, filter_not_direct=False, filter_not_figurative=False, filter_not_controversial = False, perform_cross_validation=False, number_of_kfolds = 100,  min_date_window=0, critical_time=10000, filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False):
+  # Note: current setting of minimum_globals is overwritten in stats_module
   # Why is population_data_name set to eriksson - I think this is default
     mp = MainProgram()
     base_path = mp.get_base_path()
@@ -350,11 +428,11 @@ def run_experiment(results_path, target_list_file, output_directory, population_
     mp.set_clustering(clustering_on)
     mp.set_critical_distance(critical_distance)
     mp.set_critical_time(critical_time)
-    mp.set_controls(controls)
+    mp.set_globals(globals)
     if processed_targets:
-        target_list, dataframe, controls_dataframe = tam.load_processed_targets(results_path, output_directory)
+        target_list, dataframe, globals_dataframe = tam.load_processed_targets(results_path, output_directory)
         mp.set_target_list(target_list)
-        mp.set_dataframe(dataframe, controls_dataframe)
+        mp.set_dataframe(dataframe, globals_dataframe)
     else:
         filters_applied = ""
         target_list = tam.read_target_list_from_csv(base_path+"/targets/" + target_list_file)
