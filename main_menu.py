@@ -20,7 +20,7 @@ class Driver:
 		print('')
 		self.print_label('Population analysis tool v. 0.1 by Richard Walker')
 		user_option = 0
-		while user_option != '10':
+		while user_option != '11':
 			target_list = self.main_program.get_current_target_list()
 			population_data = self.main_program.get_population_data()
 			dataframe_loaded = self.main_program.get_dataframe_loaded()
@@ -44,8 +44,9 @@ class Driver:
 			print('6)    Clear processed targets')
 			print('7)    Generate results')
 			print('8)    Generate confounder analysis')
-			print('9)    Add new population data source')
-			print('10)   Exit')
+			print('9)    Generate random weighted analysis')
+			print('10)    Add new population data source')
+			print('11)   Exit')
 			random.seed(2002)
 			user_option = raw_input("Choose an option: ")
 			if user_option=='1':
@@ -58,7 +59,9 @@ class Driver:
 				self.set_parameters()
 			elif user_option=='5':
 				time = self.get_number("Input time: ", 0, 150000)
-				self.main_program.plot_population(time)
+				for population_data_source in population_data:
+					if population_data_source.is_active:
+						self.main_program.plot_population_by_time(population_data_source, time)
 			elif user_option=='6':
 				user_option = ""
 				while user_option != 'y' and user_option != 'n':
@@ -78,8 +81,14 @@ class Driver:
 						report = self.main_program.generate_confounder_analysis(population_data_source, target_list, base_path, directory)
 						print(report)
 			elif user_option=='9':
+				for population_data_source in population_data:
+					if population_data_source.is_active:
+						directory=raw_input("Insert directory name: ")
+						report = self.main_program.generate_reweighted_data(population_data_source, target_list, base_path, directory)
+						print(report)	
+			elif user_option=='10':
 				self.add_population_data()
-			elif user_option!='10':
+			elif user_option!='11':
 				print("Invalid option. Try again.")
 
 	def define_target_list(self, some_target_list):
@@ -119,7 +128,7 @@ class Driver:
 
 		new_list = deepcopy(some_target_list)
 		user_option = ""
-		while user_option != '9' and user_option != '10':
+		while user_option != '10' and user_option != '11':
 			filters_applied = self.main_program.get_filters_applied()
 
 			self.print_target_list(new_list)
@@ -130,14 +139,15 @@ class Driver:
 			print("\n------")
 			print("1) Exclude targets more recent than...")
 			print("2) Exclude targets with indirect measurements")
-			print("3) Exclude non-figurative targets")
-			print("4) Exclude targets with controversial measurements")
-			print("5) Filter targets by date range")
-			print("6) Filter targets by latitude range")
-			print("7) Turn clustering ON")
-			print("8) Turn clustering OFF")
-			print("9) Cancel")
-			print("10) Save and exit")
+			print("3) Only include targets with exact age")
+			print("4) Exclude non-figurative targets")
+			print("5) Exclude targets with controversial measurements")
+			print("6) Filter targets by date range")
+			print("7) Filter targets by latitude range")
+			print("8) Turn clustering ON")
+			print("9) Turn clustering OFF")
+			print("10) Cancel")
+			print("11) Save and exit")
 
 			user_option = raw_input("Choose an option: ")
 			if user_option=='1':
@@ -146,25 +156,27 @@ class Driver:
 			elif user_option=='2':
 				new_list, filters_applied = tam.filter_targets_for_not_direct(new_list, filters_applied)
 			elif user_option=='3':
-				new_list, filters_applied = tam.filter_targets_for_not_figurative(new_list, filters_applied)
+				new_list, filters_applied = tam.filter_targets_for_not_exact_age(new_list, filters_applied)
 			elif user_option=='4':
-				new_list, filters_applied = tam.filter_targets_for_not_controversial(new_list, filters_applied)
+				new_list, filters_applied = tam.filter_targets_for_not_figurative(new_list, filters_applied)
 			elif user_option=='5':
+				new_list, filters_applied = tam.filter_targets_for_not_controversial(new_list, filters_applied)
+			elif user_option=='6':
 				minimum_date = self.get_number("Insert minimum date: ", 0, 150000)
 				maximum_date = self.get_number("Insert maximum date: ", 0, 150000)
 				new_list, filters_applied = tam.filter_targets_for_date(new_list, minimum_date, maximum_date, filters_applied)
-			elif user_option=='6':
+			elif user_option=='7':
 				minimum_latitude = self.get_number("Insert minimum latitude: ", -90, 90)
 				maximum_latitude = self.get_number("Insert maximum latitude: ", -90, 90)
 				new_list, filters_applied = tam.filter_targets_for_latitude(new_list, minimum_latitude, maximum_latitude, filters_applied)
-			elif user_option=='7':
+			elif user_option=='8':
 				critical_distance = self.get_number("Insert critical distance: ", 1, 1000)
 				critical_time = self.get_number("Insert critical time: ", 1, 150000)
 				clustering = True
-			elif user_option=='8':
+			elif user_option=='9':
 				clustering = False
 				critical_distance = 0
-			elif user_option=='10':
+			elif user_option=='11':
 				self.main_program.set_clustering(clustering)
 				self.main_program.set_critical_distance(critical_distance)
 				self.main_program.set_critical_time(critical_time)
@@ -200,13 +212,17 @@ class Driver:
 
 	def set_parameters(self):
 		user_option = ""
-		while user_option != '8':
+		while user_option != '12':
 			self.print_label("Set Parameters")
 			date_window = self.main_program.get_date_window()
 			mfu = self.main_program.get_user_max_for_uninhabited()
 			default_mfu = self.main_program.get_default_mfu()
 			perform_cv = self.main_program.get_perform_cross_validation()
 			num_kfolds = self.main_program.get_number_of_kfolds()
+			min_lat = self.main_program.get_min_lat();
+			max_lat = self.main_program.get_max_lat();
+			min_date = self.main_program.get_min_date();
+			max_date = self.main_program.get_max_date();
 			globals = self.main_program.get_globals()
 			print("")
 			print("1) Set active population data")
@@ -216,7 +232,11 @@ class Driver:
 			print("5) Toggle perform cross validation: " + str(perform_cv))
 			print("6) Set folds for cross validation: " + str(num_kfolds))
 			print("7) Define globals range: " + str(globals))
-			print("8) Save and exit")
+			print("8) Set minimum latitude for globals: " + str(min_lat))
+			print("9) Set maximum latitude for globals: " + str(max_lat) )
+			print("10) Set minimum date for globals: " + str(min_date))
+			print("11) Set maximum date for globals: " + str(max_date))
+			print("12) Save and exit")
 			user_option = raw_input("Choose an option: ")
 			if user_option=='1':
 				self.toggle_population_data()
@@ -252,7 +272,15 @@ class Driver:
 					self.main_program.set_globals("Trial Latitudes 2")
 				elif globals_option == 6:
 					self.main_program.set_globals("No Empty Lats")
-			elif user_option!='9':
+			elif user_option=='8':
+				self.main_program.set_min_lat(self.get_number("Insert minimum latitude: ", -90, 90))
+			elif user_option=='9':
+				self.main_program.set_max_lat(self.get_number("Insert maximum latitude: ", -90, 90))
+			elif user_option=='10':
+				self.main_program.set_min_date(self.get_number("Insert minimum date: ", 0, 1000000))
+			elif user_option=='11':
+				self.main_program.set_max_date(self.get_number("Insert maximum date: ", 0, 1000000))
+			elif user_option!='12':
 				print("Invalid option. Try again.")
 
 

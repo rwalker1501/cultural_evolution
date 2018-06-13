@@ -42,7 +42,8 @@ class MainProgram:
         self.target_list=[]
         self.dataframe_loaded = False
         self.dataframe = pd.DataFrame()
-        self.globals = "No Empty Lats"
+        self.globals = "All"
+        # self.globals = "No Empty Lats"
         self.globals_dataframe = pd.DataFrame()
         self.clustering_on=False
         self.critical_distance=0
@@ -54,7 +55,20 @@ class MainProgram:
         self.default_mfu = True
         self.min_date_window = 0
         self.critical_time = 10000
+        self.max_lat = 55;
+        self.min_lat = -35;
+        self.max_date = 45000;
+        self.min_date = 0;
         
+
+    def set_max_lat(self, value):
+        self.max_lat = value;
+    def set_min_lat(self, value):
+        self.min_lat = value;
+    def set_max_date(self, value):
+        self.max_date = value;
+    def set_min_date(self, value):
+        self.min_date = value;
 
     def set_critical_time(self, critical_time):
         self.critical_time = critical_time
@@ -113,6 +127,15 @@ class MainProgram:
     def set_minimum_globals(self, minimum_globals):
         self.minimum_globals = minimum_globals
 
+    def get_max_lat(self):
+        return self.max_lat;
+    def get_min_lat(self):
+        return self.min_lat;
+    def get_max_date(self):
+        return self.max_date;
+    def get_min_date(self):
+        return self.min_date;
+
     def get_clustering(self):
         return self.clustering_on
 
@@ -163,6 +186,28 @@ class MainProgram:
 
     def plot_population(self, time):
         plm.plot_densities_on_map_by_time(self.population_data_sources[1], time)
+
+    def plot_population_by_time(self, population_data, time):
+        name = population_data.name
+        time_multiplier = population_data.time_multiplier
+        print(time)
+        if  time % time_multiplier != 0:
+            # get next value divisible by time_multiplier
+            # For example: 
+            #   time_multiplier = 25
+            #   date_to = 20
+            #   time = 20 + (25 - 20) = 25
+            print(time_multiplier)
+            time = time + (time_multiplier - time % time_multiplier)
+            print(time)
+
+        print("Getting map...")
+        print("Time: " + str(time))
+        print("Source: " + name)
+        plm.plot_densities_on_map_by_time(population_data, time)
+
+    def plot_min_densities_in_time_range(self, population_data, time_from, time_to, min_density):
+        plm.plot_min_densities_in_time_range(population_data, time_from, time_to, min_density)
                 
     def read_target_list(self, filename):
         new_list=tam.read_target_list_from_csv(filename)
@@ -182,9 +227,140 @@ class MainProgram:
         new_population_data = pdm.load_population_data_source(name, binary_path, info_path)
         self.population_data_sources.append(new_population_data)
 
+    def generate_reweighted_data(self, population_data, original_target_list, base_path, directory):
+
+        results_path = os.path.join(base_path, "results")
+        if not os.path.exists(results_path):
+            os.makedirs(results_path)
+
+        new_path = os.path.join(results_path, directory)
+        if not os.path.exists(new_path):
+            os.makedirs(new_path)
+
+        clustered_target_list, self.dataframe, self.globals_dataframe = tam.process_targets(self.base_path, population_data, original_target_list, self.dataframe, self.globals_dataframe, self.globals, self.dataframe_loaded, self.clustering_on, self.date_window, self.critical_distance, self.critical_time, directory, self.min_date_window, self.min_lat, self.max_lat, self.min_date, self.max_date)
+
+        columns = ["period", "latitude"];
+
+        for column in columns:
+            results_directory = directory + "_" + column + "_results.csv";
+            results_filename = os.path.join(new_path, results_directory);
+            results_file = open(results_filename, 'w');
+
+            unique_keys = []
+            if column == "period":
+                unique_keys = self.dataframe.period.unique();
+            elif column == "latitude":
+                unique_keys = self.dataframe.latitude.unique();
+            else:
+                return ("Invalid column: " + column);
+
+            for x in range(0, 10):
+                # Generate random values per unique key
+                base_random_values = np.random.uniform(1,5,[1,len(unique_keys)])[0];
+
+                # Normalize random values
+                random_values_sum = sum(base_random_values)
+                random_values = base_random_values/random_values_sum
+
+                # Create dictionary
+                my_dict = dict(zip(unique_keys, random_values))
+
+                # Reweighting per key
+                dataframe = self.dataframe[self.dataframe.type=='s'];
+                globals_dataframe = self.globals_dataframe
+
+                bin_size = population_data.bin_size
+                max_population = population_data.max_population
+                # minimum_bin=max_for_uninhabited
+                minimum_bin = 0
+                bins_to_omit=int(minimum_bin/bin_size)
+
+                ######################
+                # Create bin columns #
+                ######################
+                # creating bins according to density of the row
+
+                # main dataframe
+                dataframe['bin_index'] = (dataframe.density/bin_size)-bins_to_omit
+                dataframe['bin_index'] = dataframe.bin_index.astype(int)
+                dataframe = dataframe[dataframe.bin_index >= 0]
+                dataframe['bin'] = dataframe.bin_index*bin_size+minimum_bin
+
+                # globals dataframe
+                globals_dataframe['bin_index'] = (globals_dataframe.density/bin_size)-bins_to_omit
+                globals_dataframe['bin_index'] = globals_dataframe.bin_index.astype(int)
+                globals_dataframe['bin'] = globals_dataframe.bin_index*bin_size+minimum_bin
+
+                # create bin array
+                num_bins = int((max_population-minimum_bin)/bin_size)
+                bin_array = [minimum_bin+bin_size*i for i in range(0, num_bins)]
+
+                #############################
+                # Create multiplier columns #
+                #############################
+
+                dataframe['multiplier'] = dataframe[column].map(my_dict);
+                globals_dataframe['multiplier'] = dataframe[column].map(my_dict);
+
+
+                dataframe['m_sample'] = dataframe['contribution'].groupby(dataframe['bin']).transform('sum')*dataframe['multiplier']
+                dataframe['sample_count'] = dataframe['m_sample'].groupby(dataframe['bin']).transform('sum')
+
+                globals_dataframe['m_global'] = globals_dataframe['density'].groupby(globals_dataframe['bin']).transform('count')*globals_dataframe['multiplier']
+                globals_dataframe['global_count'] = globals_dataframe['m_global'].groupby(globals_dataframe['bin']).transform('sum')
+
+                temp_df = globals_dataframe.groupby('bin').first().reset_index()
+                temp_global_counts = temp_df['global_count'].values
+                g_bin_array = temp_df['bin'].values;
+                extra_bins = len(bin_array) - len(g_bin_array)
+                if extra_bins > 0:
+                    g_bin_array = np.concatenate((g_bin_array, [0 for i in range(0, extra_bins)]))
+
+                temp_df = dataframe.groupby('bin').first().reset_index()
+                temp_sample_counts = temp_df['sample_count'].values;
+                s_bin_array = temp_df['bin'].values
+                extra_bins = len(bin_array) - len(s_bin_array)
+                if extra_bins > 0:
+                    s_bin_array = np.concatenate((s_bin_array, [0 for i in range(0, extra_bins)]))
+
+                s = 0;
+                g = 0;
+                global_counts = []
+                sample_counts = []
+                for i in range(0, len(bin_array)):
+                    if g_bin_array[i-g] != bin_array[i]:
+                        global_counts.append(0);
+                        g += 1;
+                    else:
+                        global_counts.append(temp_global_counts[i-g])
+
+                    if s_bin_array[i-s] != bin_array[i]:
+                        sample_counts.append(0);
+                        s += 1;
+                    else:
+                        sample_counts.append(temp_sample_counts[i-s])
+
+                control_counts = np.array(global_counts)-np.array(sample_counts);
+
+                odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, upper_cis, lower_cis = stm.generate_or_mh_ci_stats(sample_counts, global_counts, control_counts);
+
+                results_identifier = directory + "_" + column + "_" + str(x);
+                plm.plot_odds_ratio(bin_array, odds_ratios, 0, [], [], lower_cis, upper_cis, results_identifier, "Odds Ratio", new_path);
+
+                label = column.title() + " " + str(x);
+                wrm.write_random_weighting_table(results_file, label, unique_keys, base_random_values, random_values, bin_array, odds_ratios);
+
+            results_file.close();
+
     def generate_confounder_analysis(self, population_data, original_target_list, base_path, directory):
+
+        # Regular analysis
+        bin_array, sample_counts, global_counts, control_counts, orig_odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_likelihood_ratios = self.generate_results(population_data, original_target_list, base_path, directory+"_base", True)
+
+
         # Date analysis
-        minimum_date, maximum_date = tam.get_min_max_date_of_targets(original_target_list);
+        minimum_date = self.min_date;
+        maximum_date = self.max_date;
 
         date_bands = dict();
         date_keys = []
@@ -210,7 +386,8 @@ class MainProgram:
         
         # Latitude analysis
 
-        minimum_lat, maximum_lat = tam.get_min_max_latitude_of_targets(original_target_list);
+        minimum_lat = self.min_lat;
+        maximum_lat = self.max_lat;
 
         latitude_bands = dict();
         latitude_keys = [];
@@ -253,6 +430,9 @@ class MainProgram:
         wrm.write_confounder_analysis_table(a_file, "Latitude Confounder Analysis", latitude_bands, latitude_keys, lat_or_MHs, lat_MH_stats, lat_MH_ps);
         wrm.write_confounder_analysis_table(a_file, "Date Confounder Analysis", date_bands, date_keys, date_or_MHs, date_MH_stats, date_MH_ps);
         a_file.close();
+
+        plm.plot_crude_or_vs_mh_or(bin_array, orig_odds_ratios, lat_or_MHs, directory+"_latitude", new_path)
+        plm.plot_crude_or_vs_mh_or(bin_array, orig_odds_ratios, date_or_MHs, directory+"_date", new_path)
 
         return "Generated Results";
 
@@ -315,7 +495,7 @@ class MainProgram:
         #   - clusters targets and returns 2D array of targets grouped in clusters
         #   - If dataframe has not been loaded (through load processed targets), extracts dataframe and saves it.
         #   - dataframe: contains all locations and population densities in the population data that is relevant to the target list
-        clustered_target_list, self.dataframe, self.globals_dataframe = tam.process_targets(self.base_path, population_data, original_target_list, self.dataframe, self.globals_dataframe, self.globals, self.dataframe_loaded, self.clustering_on, self.date_window, self.critical_distance, self.critical_time, directory, self.min_date_window)
+        clustered_target_list, self.dataframe, self.globals_dataframe = tam.process_targets(self.base_path, population_data, original_target_list, self.dataframe, self.globals_dataframe, self.globals, self.dataframe_loaded, self.clustering_on, self.date_window, self.critical_distance, self.critical_time, directory, self.min_date_window, self.min_lat, self.max_lat, self.min_date, self.max_date)
 
         if self.dataframe.empty:
             f2.write("No Geographic Points Fall in Target Areas")
@@ -328,7 +508,7 @@ class MainProgram:
         # - gets statistics (means, growth coefficients) of dataframe
         # - filters target list/dataframe by removing clusters with 0 sample means 
         all_sample_means, all_global_means, growth_coefficients, samples_gt_globals, n_targets_gt_0, self.dataframe = stm.process_dataframe(self.dataframe, max_for_uninhabited)
-
+       
         ########################################
         # Write filtered clustered target list #
         ########################################
@@ -351,7 +531,6 @@ class MainProgram:
         f2.write( 'Wilcoxon stat for sample vs globals means whole period:'+str(float(t_wilcox))+ '   p='+str(float(p_wilcox))+'\n')
 
 
-
         #################
         # Generate bins #
         #################
@@ -365,7 +544,7 @@ class MainProgram:
         # Generate graphs and statistics #
         ##################################
         # - plots likelihood ratios and sites graphs
-        stm.generate_stats_for_ratios(bin_array, likelihood_ratios, sample_counts, global_counts, p_likelihood_ratios, p_samples, p_globals, f2, "p Likelihood Ratio", new_path, directory)
+        # stm.generate_stats_for_ratios(bin_array, likelihood_ratios, sample_counts, global_counts, p_likelihood_ratios, p_samples, p_globals, f2, "p Likelihood Ratio", new_path, directory)
 
         stm.generate_stats_for_ratios(bin_array, likelihood_ratios, sample_counts, global_counts, odds_ratios, p_samples, p_globals, f2, "Odds Ratio", new_path, directory, lower_cis=lower_cis, upper_cis=upper_cis)
 
@@ -382,12 +561,9 @@ class MainProgram:
         wrm.write_information(f2, stats_header_labels, stats_header_values, "   ")
         f2.write( 'Wilcoxon stat for pglobals vs pSamples:'+str(float(t_threshold_wilcoxon))+ '   p='+str(float(p_threshold_wilcoxon))+'\n')
 
-
-        # - plots growth coefficients
-        plm.plot_growth_coefficient_boxplot(growth_coefficients, new_path)
-
         # - plots targets and globals on a map
         plm.plot_targets_on_map(self.dataframe, self.globals_dataframe, new_path, directory)
+
 
         f2.close()
 
@@ -397,8 +573,52 @@ class MainProgram:
         else:
             return "Generated results."
 
+def plot_population_by_time(population_data_name, time):
+    mp = MainProgram()
+    base_path = mp.get_base_path()
+    pop_data_path = os.path.join(base_path, "population_data")
+    if population_data_name == "Eriksson":
+        eriksson_binary_path = os.path.join(pop_data_path, "eriksson.npz") #base_path+'/population_data/eriksson.npz'
+        eriksson_info_path = os.path.join(pop_data_path, "eriksson_info.txt") #base_path+'/population_data/eriksson_info.txt'
+        population_data = pdm.load_population_data_source("Eriksson", eriksson_binary_path, eriksson_info_path)
+    else:
+        tim_fn= os.path.join(pop_data_path, "timmermann.npz") #base_path+'population_data/timmermann.npz'
+        data=np.load(tim_fn)
+        lats_ncf=data['lats_ncf']
+        lons_ncf=data['lons_ncf']
+        ts_ncf=data['ts_ncf']
+        dens_ncf=data['dens_ncf']
 
-def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", globals="All", date_window=1500, user_max_for_uninhabited=-1, clustering_on = False, critical_distance=0, filter_date_before=-1, filter_not_direct=False, filter_not_figurative=False, filter_not_controversial = False, perform_cross_validation=False, number_of_kfolds = 100,  min_date_window=0, critical_time=10000, filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False):
+        tim_info_path = os.path.join(pop_data_path, "timmermann_info.txt") #base_path+'/population_data/timmermann_info.txt'
+        time_likelihood_ratio, bin_size, max_population, max_for_uninhabited, is_active, ascending_time = pdm.read_population_data_info(tim_info_path)
+        population_data = PopulationData("Timmermann", is_active, lats_ncf, lons_ncf, ts_ncf, dens_ncf, time_likelihood_ratio, bin_size, max_population, max_for_uninhabited, ascending_time)
+
+    mp.plot_population_by_time(population_data, time);
+
+def plot_min_densities_in_time_range(population_data_name, time_from, time_to, min_density):
+    mp = MainProgram()
+    base_path = mp.get_base_path()
+    pop_data_path = os.path.join(base_path, "population_data")
+    if population_data_name == "Eriksson":
+        eriksson_binary_path = os.path.join(pop_data_path, "eriksson.npz") #base_path+'/population_data/eriksson.npz'
+        eriksson_info_path = os.path.join(pop_data_path, "eriksson_info.txt") #base_path+'/population_data/eriksson_info.txt'
+        population_data = pdm.load_population_data_source("Eriksson", eriksson_binary_path, eriksson_info_path)
+    else:
+        tim_fn= os.path.join(pop_data_path, "timmermann.npz") #base_path+'population_data/timmermann.npz'
+        data=np.load(tim_fn)
+        lats_ncf=data['lats_ncf']
+        lons_ncf=data['lons_ncf']
+        ts_ncf=data['ts_ncf']
+        dens_ncf=data['dens_ncf']
+
+        tim_info_path = os.path.join(pop_data_path, "timmermann_info.txt") #base_path+'/population_data/timmermann_info.txt'
+        time_likelihood_ratio, bin_size, max_population, max_for_uninhabited, is_active, ascending_time = pdm.read_population_data_info(tim_info_path)
+        population_data = PopulationData("Timmermann", is_active, lats_ncf, lons_ncf, ts_ncf, dens_ncf, time_likelihood_ratio, bin_size, max_population, max_for_uninhabited, ascending_time)
+
+    mp.plot_min_densities_in_time_range(population_data, time_from, time_to, min_density);
+
+
+def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", the_globals="All", date_window=1500, user_max_for_uninhabited=-1, clustering_on = False, critical_distance=0, filter_date_before=-1, filter_not_direct=False, filter_not_exact=False, filter_not_figurative=False, filter_not_controversial = False, perform_cross_validation=False, number_of_kfolds = 100,  min_date_window=0, critical_time=10000, filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False, is_confounder_analysis=False):
   # Note: current setting of minimum_globals is overwritten in stats_module
   # Why is population_data_name set to eriksson - I think this is default
     mp = MainProgram()
@@ -428,7 +648,7 @@ def run_experiment(results_path, target_list_file, output_directory, population_
     mp.set_clustering(clustering_on)
     mp.set_critical_distance(critical_distance)
     mp.set_critical_time(critical_time)
-    mp.set_globals(globals)
+    mp.set_globals(the_globals)
     if processed_targets:
         target_list, dataframe, globals_dataframe = tam.load_processed_targets(results_path, output_directory)
         mp.set_target_list(target_list)
@@ -442,6 +662,8 @@ def run_experiment(results_path, target_list_file, output_directory, population_
             target_list, filters_applied = tam.filter_targets_for_date_before(target_list, filter_date_before, filters_applied)
         if filter_not_direct:
             target_list, filters_applied = tam.filter_targets_for_not_direct(target_list, filters_applied)
+        if filter_not_exact:
+            target_list, filters_applied = tam.filter_targets_for_not_exact_age(target_list, filters_applied)
         if filter_not_figurative:
             target_list, filters_applied = tam.filter_targets_for_not_figurative(target_list, filters_applied)
         if filter_not_controversial:
@@ -458,5 +680,8 @@ def run_experiment(results_path, target_list_file, output_directory, population_
     #     mp.set_minimum_likelihood_ratio(minimum_likelihood_ratio)
 
     
+    if is_confounder_analysis:
+        return mp.generate_confounder_analysis(population_data, target_list, results_path, output_directory)
+    else:
+        return mp.generate_results(population_data, target_list, results_path, output_directory, False)
 
-    return mp.generate_results(population_data, target_list, results_path, output_directory)

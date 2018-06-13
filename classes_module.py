@@ -13,7 +13,7 @@ Created on Mon Feb 20 11:18:02 2017
 #==============================================================================
          
 class Target():
-    def __init__(self,orig_lat, orig_lon,lat_nw,lon_nw,lat_se,lon_se,location,date_from, date_to, country,date_of_reference,is_direct,calibrated,kind,figurative,source,is_controversial,cluster_id):
+    def __init__(self,orig_lat, orig_lon,lat_nw,lon_nw,lat_se,lon_se,location,date_from, date_to, country,is_direct,calibrated,kind,figurative,source,is_controversial, age_estimation, cluster_id):
         self.location=location
         self.lat_nw=lat_nw
         self.lon_nw=lon_nw
@@ -24,13 +24,13 @@ class Target():
         self.date_from=date_from
         self.date_to=date_to
         self.country=country
-        self.date_of_reference=date_of_reference
         self.is_direct=is_direct
         self.calibrated=calibrated
         self.kind=kind
         self.figurative=figurative
         self.source=source
         self.is_controversial=is_controversial
+        self.age_estimation = age_estimation;
         self.cluster_id=cluster_id
 
         

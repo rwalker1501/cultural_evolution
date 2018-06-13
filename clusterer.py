@@ -70,7 +70,7 @@ class ClusterAnalysis:
         # sort targets by cluster id
         sorted_target_list=sorted(new_target_list,key=lambda an_id: an_id.cluster_id) 
         for target in sorted_target_list:
-            print("cluster_id:",target.cluster_id, target.location)
+            print(str(target.cluster_id) + "\t" + str(target.location) + "\t" + str(target.date_from) + "\t" + str(target.orig_lat) + "\t" + str(target.orig_lon));
 
         return sorted_target_list
 

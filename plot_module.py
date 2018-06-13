@@ -10,6 +10,20 @@ from mpl_toolkits.basemap import Basemap
 # import seaborn
 
     
+def plot_crude_or_vs_mh_or(bin_array, crude_or, mh_or, identifier, file_path):
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+
+    ax.plot(bin_array, crude_or, color='blue', label="Crude OR");
+    ax.plot(bin_array, mh_or, color='coral', label="MH OR");
+    plt.ylabel("OR")
+    plt.xlabel("Population density")
+    plt.gca().set_ylim(0, 7)
+
+    plt.legend(title= "Legend")
+    fig.savefig(os.path.join(file_path, str(identifier) + "_crude_vs_mh.png"))
+    plt.close()
+
 def plot_time_clusters(time, labels):
     n = np.array(labels).max() + 1
     colors = cm.rainbow(np.linspace(0,1,n))
@@ -100,13 +114,13 @@ def plot_odds_ratio(bins, actual_ratios, lambda_tau, linear_predicted_ratios, th
             y_cis_upper.append(upper);
 
     ax.errorbar(bins, actual_ratios, yerr=[y_cis_lower, y_cis_upper], fmt="o", capsize=3)
-    ax.axvline(lambda_tau, color='k', linestyle='--')
+    # ax.axvline(lambda_tau, color='k', linestyle='--')
     ax.axhline(1, color='k', linestyle='--')
-    linear = ax.plot(bins, linear_predicted_ratios, 'b', label="linear");
-    threshold = ax.plot(bins, threshold_predicted_ratios, 'g', label="threshold");
+    # linear = ax.plot(bins, linear_predicted_ratios, 'b', label="linear");
+    # threshold = ax.plot(bins, threshold_predicted_ratios, 'g', label="threshold");
     plt.ylabel(label)
     plt.xlabel("Population density")
-    plt.gca().set_ylim(bottom=0)
+    plt.gca().set_ylim(0, 7)
 
     label = label.lower();
     label = label.replace(" ", "_");
@@ -150,8 +164,10 @@ def plot_p_graphs(bins, p_samples, p_controls, threshold, identifier, file_path)
     ax = fig.add_subplot(111)
     # ax.set_title(title)
     ax.plot(bins,p_samples,'b', label="samples")
-    ax.plot(bins, p_controls,'r',label="controls")
-    ax.axvline(threshold, color='k', linestyle='--')
+    ax.plot(bins, p_controls,'r',label="globals")
+    # ax.axvline(threshold, color='k', linestyle='--')
+
+    plt.gca().set_ylim(0, 0.25)
 
     # text = "Threshold: " + str(threshold) + "\nSuccesses: " + str(success) + "\n Trials: " + str(trials) + "\nBinomial: " + str(binomial)
     
@@ -191,24 +207,34 @@ def plot_targets_on_map(dataframe, controls_dataframe, dir_path, directory):
     my_map.drawparallels(np.arange(-90, 90, 30))
 
 
-    grouped_dataframe = dataframe[dataframe.type=='s'].groupby("cluster_id").first()
-    lats = grouped_dataframe['latitude'].values
-    lons = grouped_dataframe['longitude'].values
+    # grouped_dataframe = dataframe[dataframe.type=='s'].groupby("cluster_id").first()
+    grouped_dataframe = dataframe[dataframe.type=='s']
+    dir_exact_lats = grouped_dataframe[(grouped_dataframe.is_dir == True) & (grouped_dataframe.is_exact == True)]['latitude'].values
+    dir_exact_lons = grouped_dataframe[(grouped_dataframe.is_dir == True) & (grouped_dataframe.is_exact == True)]['longitude'].values
+    not_dir_exact_lats = grouped_dataframe[~((grouped_dataframe.is_dir == True) & (grouped_dataframe.is_exact == True))]['latitude'].values
+    not_dir_exact_lons = grouped_dataframe[~((grouped_dataframe.is_dir == True) & (grouped_dataframe.is_exact == True))]['longitude'].values
+
 
 
     controls_lats = controls_dataframe['latitude'].values
     controls_lons = controls_dataframe['longitude'].values
 
 
-    x,y = my_map(lons, lats)
+    t_x,t_y = my_map(dir_exact_lons, dir_exact_lats)
+    f_x,f_y = my_map(not_dir_exact_lons, not_dir_exact_lats)
     c_x, c_y = my_map(controls_lons, controls_lats)
-    my_map.plot(c_x, c_y, 'ro', markersize=3)
-    my_map.plot(x, y, 'go', markersize=3)
-
+    my_map.plot(c_x, c_y, 'ro', markersize=3, label="globals")
+    my_map.plot(t_x, t_y, 'yo', markersize=3, label="dir and exact")
+    my_map.plot(f_x, f_y, 'bo', markersize=3, label="not dir and exact")
+    
+    fontP = FontProperties()
+    fontP.set_size('small')
+    plt.legend(title="Legend", loc='lower center', prop=fontP, ncol=3)
     plt.savefig(os.path.join(dir_path, directory + "_target_on_map.png"))
     plt.close()
 
 def plot_densities_on_map_by_time(population_data, time):
+    plt.figure(figsize=(14,8))
     my_map = Basemap(projection='robin', lat_0=57, lon_0=-135,
     resolution = 'l', area_thresh = 1000.0,
     llcrnrlon=-136.25, llcrnrlat=56,
@@ -216,7 +242,7 @@ def plot_densities_on_map_by_time(population_data, time):
      
     my_map.drawcoastlines()
     my_map.drawcountries()
-    my_map.fillcontinents(color='lightgray')
+    my_map.fillcontinents(color='lightgray', zorder=0)
     my_map.drawmapboundary()
      
     my_map.drawmeridians(np.arange(0, 360, 30))
@@ -238,11 +264,72 @@ def plot_densities_on_map_by_time(population_data, time):
             lons.append(population_data.lon_array[i])
             dens.append(density)
 
+    cmap = cm.get_cmap('jet')
+
+    dens = np.array(dens).astype(float)/6000;
     x,y = my_map(lons, lats)
-    my_map.plot(x, y, 'go', markersize=10)
+    rgba = cmap(dens);
 
-    plt.show()
+    # white = np.array([[1,1,1, 0] for i in range(0, len(dens))])
+    # vector = white - rgba
+    # temp_rgba = rgba + vector*0.4; 
+    # rgba[:, :-1] = temp_rgba[:, 0:3]
 
+    # print(rgba)
+
+
+    ax = my_map.scatter(x, y, marker='o', c=rgba, s=3, zorder=1)
+
+
+    sm = cm.ScalarMappable(cmap=cmap)
+    sm.set_array([])
+    sm.set_clim([0, 6000])
+    plt.colorbar(sm, orientation='horizontal', pad=0.03, aspect=50)
+
+    plt.title('Densities on Map: ' + population_data.name + " " + str(time) + "BP")
+
+    plt.savefig("densitites_on_map_" + population_data.name + "_" + str(time) + "BP.png");
+    plt.close();
+
+def plot_min_densities_in_time_range(population_data, time_from, time_to, min_density):
+    my_map = Basemap(projection='robin', lat_0=57, lon_0=-135,
+    resolution = 'l', area_thresh = 1000.0,
+    llcrnrlon=-136.25, llcrnrlat=56,
+    urcrnrlon=-134.25, urcrnrlat=57.75)
+     
+    my_map.drawcoastlines()
+    my_map.drawcountries()
+    my_map.fillcontinents(color='lightgray')
+    my_map.drawmapboundary()
+     
+    my_map.drawmeridians(np.arange(0, 360, 30))
+    my_map.drawparallels(np.arange(-90, 90, 30))
+
+    time_indices = []
+    for i in range(0, len(population_data.time_array)):
+        time = population_data.time_array[i]*population_data.time_multiplier
+        if time <= time_from and time >= time_to:
+            time_indices.append(i)
+
+    temp_time_densities = []
+    for time_index in time_indices:
+        temp_time_densities.append(population_data.density_array[time_index]);
+
+    densities = np.mean(np.array(temp_time_densities), axis = 0);
+
+    lons = []
+    lats = []
+
+    for i in range(0, len(densities)):
+        if densities[i] >= min_density:
+            lats.append(population_data.lat_array[i])
+            lons.append(population_data.lon_array[i])
+
+    x,y = my_map(lons, lats)
+    my_map.plot(x, y, 'ro', markersize=5)
+
+    plt.savefig("high_densitites_on_map_time_range" + str(time_to) + "-" + str(time_from));
+    plt.close();
 
 def plot_densities_on_map_by_range(population_data, min_density, max_density, start_time, end_time):
     my_map = Basemap(projection='robin', lat_0=57, lon_0=-135,

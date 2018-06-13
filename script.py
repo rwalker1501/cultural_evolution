@@ -15,6 +15,7 @@ import main_module as mm
 # critical_distance=1
 # filter_date_before=-1
 # filter_not_direct=False
+# filter_not_exact=False;
 # filter_not_figurative=False
 # filter_not_controversial = False
 # perform_cross_validation=False

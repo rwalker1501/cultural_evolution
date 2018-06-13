@@ -1,3 +1,5 @@
+import numpy as np
+
 def write_label(a_file, label):
     for i in range(0, len(label)+8):
         a_file.write('*')
@@ -9,7 +11,7 @@ def write_label(a_file, label):
 
 def write_headers(a_file, headers, delimiter):
     for i in range(0, len(headers)):
-        a_file.write(headers[i])
+        a_file.write(str(headers[i]))
         if i != len(headers)-1:
             a_file.write(delimiter)
     a_file.write('\n')
@@ -63,6 +65,31 @@ def write_confounder_analysis_table(a_file, label, dictionary, keys, or_MHs, MH_
         a_file.write(str(MH_stat_ps[i]) + "\n");
 
 
+def write_random_weighting_table(a_file, label, column_keys, column_weights, column_weights_normalized, bin_array, odds_ratios):
+    write_label(a_file, "Keys and Weights For " + label);
+    a_file.write("Number of Keys: " + str(len(column_keys)) + "\n");
+
+    column_weights_normalized = np.round(column_weights_normalized, 6)
+
+    column_keys = column_keys.tolist()
+    column_weights = column_weights.tolist();
+    column_weights_normalized = column_weights_normalized.tolist();
+
+    column_keys.insert(0, "KEYS");
+    column_weights.insert(0, "WEIGHTS");
+    column_weights_normalized.insert(0, "NORMALIZED_WEIGHTS");
+
+    write_headers(a_file, column_keys, ";");
+    write_headers(a_file, column_weights, ";");
+    write_headers(a_file, column_weights_normalized, ";");
+
+    write_label(a_file, "Bins and Odds Ratios For " + label);
+    headers = ['bin', 'odds_ratio'];
+    write_headers(a_file, headers, ";");
+
+    for i in range(0, len(bin_array)):
+        a_file.write(str(bin_array[i]) + ";");
+        a_file.write(str(odds_ratios[i]) + "\n");
 
 
 
@@ -85,7 +112,7 @@ def write_target(a_file, target, date_window):
     a_file.write(str(float(target.orig_lat))+';')
     a_file.write(str(float(target.orig_lon))+';')
     a_file.write(str(int(target.date_from))+';')
-    a_file.write(str(int(target.date_from+date_window)))
+    a_file.write(str(int(target.date_to)))
     a_file.write('\n')
 
 def write_target_table(a_file, targetList, date_window):
