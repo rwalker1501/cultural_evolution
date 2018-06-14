@@ -42,8 +42,8 @@ import main_module as mm
 #--------#
 base_path = os.getcwd()
 
-Figure 1A: map of all sites and controls. Use a different colour (green) for sites where we have "direct" and "exact age" compared to all other sites
-Fig 2A: pGraph for world, Eriksson
+# Figure 1A: map of all sites and controls. Use a different colour (green) for sites where we have "direct" and "exact age" compared to all other sites
+# Fig 2A: pGraph for world, Eriksson
 # Fig 2B: OR graph for world, Eriksson
 mm.run_experiment(base_path, "rpv10", "rpv10");
 
