@@ -71,7 +71,6 @@ def write_random_weighting_table(a_file, label, column_keys, column_weights, col
 
     column_weights_normalized = np.round(column_weights_normalized, 6)
 
-    column_keys = column_keys.tolist()
     column_weights = column_weights.tolist();
     column_weights_normalized = column_weights_normalized.tolist();
 
@@ -168,25 +167,26 @@ def write_cluster_table(a_file, dataframe, growth_coefficients):
 #             a_file.write("\n")   #I was getting an unexplained CR on every two lines - think this is responsible.
 # =============================================================================
 
-def write_bin_table(a_file, bin_array, sample_counts, the_global_counts, control_counts, odds_ratios, lower_cis, upper_cis, likelihood_ratios, p_samples, p_the_globals, p_likelihood_ratios,minimum_the_globals):
+def write_bin_table(a_file, bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, likelihood_ratios, p_samples, p_globals, p_controls, p_likelihood_ratios,minimum_globals):
 
-    print 'minimum the_globals in write_bin_table=',str(minimum_the_globals)
-    write_label(a_file, "Distribution of values for samples and the_globals - Minimum-the_globals="+str(minimum_the_globals))
+    print 'minimum globals in write_bin_table=',str(minimum_globals)
+    write_label(a_file, "Distribution of values for samples and globals - Minimum_globals="+str(minimum_globals))
 
-    columns = ['Bin value', 'Samples', 'Globals', 'Controls', 'Odds Ratios', 'Lower CIs', 'Upper CIs', 'Likelihood Ratios', 'pSamples', 'pGlobals', 'p Likelihood Ratios']
+    columns = ['Bin value', 'Samples', 'Globals', 'Controls', 'Odds Ratios', 'Lower CIs', 'Upper CIs', 'Likelihood Ratios', 'pSamples', 'pGlobals', 'pControls' 'p Likelihood Ratios']
     write_headers(a_file,columns,";")
 
     for i in range(0, len(bin_array)):
         a_file.write(str(bin_array[i]) + ';')
         a_file.write(str(sample_counts[i]) + ';')
-        a_file.write(str(the_global_counts[i]) + ';')
+        a_file.write(str(global_counts[i]) + ';')
         a_file.write(str(control_counts[i]) + ';')
         a_file.write(str(odds_ratios[i]) + ';')
         a_file.write(str(lower_cis[i]) + ';')
         a_file.write(str(upper_cis[i]) + ';')
         a_file.write(str(likelihood_ratios[i]) + ';')
         a_file.write(str(p_samples[i]) + ';')
-        a_file.write(str(p_the_globals[i]) + ";")
+        a_file.write(str(p_globals[i]) + ";")
+        a_file.write(str(p_controls[i]) + ';')
         a_file.write(str(p_likelihood_ratios[i]))
         a_file.write("\n")
 

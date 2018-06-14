@@ -1,5 +1,6 @@
 import os
 import csv
+import re
 import numpy as np
 import pandas as pd
 from os import listdir
@@ -512,8 +513,8 @@ def read_target_list_from_csv(filename):
         for row in my_reader:
             location=row[0]
             location = location.replace('\n', ' ').replace('\r', '') 
-            lat=float(row[1].replace('\'', '').replace('\xe5\xa1', ''))
-            lon=float(row[2].replace('\'', '').replace('\xe5\xa1', ''))
+            lat=float(re.sub("[^0-9.-]", "", row[1]))
+            lon=float(re.sub("[^0-9.-]", "", row[2]))
             if lon<0:
                 lon=lon+360
             # date_to=None
@@ -521,14 +522,14 @@ def read_target_list_from_csv(filename):
             lon_nw=lon-2
             lat_se=lat-1
             lon_se=lon+2
-            date_from = int(row[3].replace('\'', '').replace(',', ''));
+            date_from = int(re.sub("[^0-9.-]", "", row[3]));
             date_to = date_from;
             if row[4] == "Modern":
                 date_to = 0;
             elif row[4] == "Single sample" or len(row[4]) == 0:
                 date_to = date_from;
             else:
-                date_to = int(row[4].replace('\'', '').replace(',', ''))
+                date_to = int(re.sub("[^0-9.-]", "", row[4]))
 
             country=row[5]
             is_direct="Yes" if row[6]=="Direct" else "No"

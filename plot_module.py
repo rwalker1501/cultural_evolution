@@ -94,7 +94,7 @@ def plot_ratio(bins, actual_ratios, lambda_tau, linear_predicted_ratios, thresho
     fig.savefig(os.path.join(file_path, str(identifier) + "_" + label + ".png"))
     plt.close()
 
-def plot_odds_ratio(bins, actual_ratios, lambda_tau, linear_predicted_ratios, threshold_predicted_ratios, lower_cis, upper_cis, identifier, label, file_path):
+def plot_odds_ratio(bins, actual_ratios, lambda_tau, linear_predicted_ratios, threshold_predicted_ratios, lower_cis, upper_cis, max_xaxis, identifier, label, file_path):
     fig = plt.figure()
     ax = fig.add_subplot(111)
 
@@ -121,6 +121,7 @@ def plot_odds_ratio(bins, actual_ratios, lambda_tau, linear_predicted_ratios, th
     plt.ylabel(label)
     plt.xlabel("Population density")
     plt.gca().set_ylim(0, 7)
+    plt.gca().set_xlim(0, max_xaxis)
 
     label = label.lower();
     label = label.replace(" ", "_");
@@ -164,7 +165,7 @@ def plot_p_graphs(bins, p_samples, p_controls, threshold, identifier, file_path)
     ax = fig.add_subplot(111)
     # ax.set_title(title)
     ax.plot(bins,p_samples,'b', label="samples")
-    ax.plot(bins, p_controls,'r',label="globals")
+    ax.plot(bins, p_controls,'r',label="controls")
     # ax.axvline(threshold, color='k', linestyle='--')
 
     plt.gca().set_ylim(0, 0.25)
@@ -286,7 +287,7 @@ def plot_densities_on_map_by_time(population_data, time):
     sm.set_clim([0, 6000])
     plt.colorbar(sm, orientation='horizontal', pad=0.03, aspect=50)
 
-    plt.title('Densities on Map: ' + population_data.name + " " + str(time) + "BP")
+    # plt.title('Densities on Map: ' + population_data.name + " " + str(time) + "BP")
 
     plt.savefig("densitites_on_map_" + population_data.name + "_" + str(time) + "BP.png");
     plt.close();

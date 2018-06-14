@@ -23,6 +23,7 @@ from sklearn.model_selection import RepeatedKFold
 from datetime import date
 from classes_module import Target, PopulationData
 from datetime import datetime
+import math
 
 pd.options.mode.chained_assignment = None 
 
@@ -247,27 +248,46 @@ class MainProgram:
             results_file = open(results_filename, 'w');
 
             unique_keys = []
+            min_val = 0
+            max_val = 15000
+            interval = 10
             if column == "period":
                 unique_keys = self.dataframe.period.unique();
+                min_val = self.min_date
+                max_val = self.max_date
+                interval = 10000
             elif column == "latitude":
                 unique_keys = self.dataframe.latitude.unique();
+                min_val = self.min_lat
+                max_val = self.max_lat
+                interval = 10
             else:
                 return ("Invalid column: " + column);
 
             for x in range(0, 10):
-                # Generate random values per unique key
-                base_random_values = np.random.uniform(1,5,[1,len(unique_keys)])[0];
+
+                length = int(math.ceil((max_val - min_val)/float(interval)))
+
+
+                ranges = [max_val-interval*i for i in range(0, length)]
+                ranges.append(min_val);
+                ranges.reverse()
+
+                # Generate random values
+                base_random_values = np.random.uniform(1,5,[1,length])[0];
 
                 # Normalize random values
                 random_values_sum = sum(base_random_values)
                 random_values = base_random_values/random_values_sum
 
-                # Create dictionary
-                my_dict = dict(zip(unique_keys, random_values))
 
                 # Reweighting per key
                 dataframe = self.dataframe[self.dataframe.type=='s'];
                 globals_dataframe = self.globals_dataframe
+
+                dataframe['multiplier'] = pd.cut(dataframe[column], bins=ranges, labels=random_values, include_lowest=True);
+                globals_dataframe['multiplier'] = pd.cut(dataframe[column], bins=ranges, labels=random_values, include_lowest=True);
+
 
                 bin_size = population_data.bin_size
                 max_population = population_data.max_population
@@ -291,17 +311,9 @@ class MainProgram:
                 globals_dataframe['bin_index'] = globals_dataframe.bin_index.astype(int)
                 globals_dataframe['bin'] = globals_dataframe.bin_index*bin_size+minimum_bin
 
-                # create bin array
-                num_bins = int((max_population-minimum_bin)/bin_size)
-                bin_array = [minimum_bin+bin_size*i for i in range(0, num_bins)]
-
-                #############################
-                # Create multiplier columns #
-                #############################
-
-                dataframe['multiplier'] = dataframe[column].map(my_dict);
-                globals_dataframe['multiplier'] = dataframe[column].map(my_dict);
-
+                bin_array = [minimum_bin+bin_size*i for i in range(0, int(max_population/bin_size) + 1)]
+                if bin_array[-1] != max_population:
+                    bin_array.append(max_population);
 
                 dataframe['m_sample'] = dataframe['contribution'].groupby(dataframe['bin']).transform('sum')*dataframe['multiplier']
                 dataframe['sample_count'] = dataframe['m_sample'].groupby(dataframe['bin']).transform('sum')
@@ -344,18 +356,32 @@ class MainProgram:
 
                 odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, upper_cis, lower_cis = stm.generate_or_mh_ci_stats(sample_counts, global_counts, control_counts);
 
+                trimmed_bin_array = []
+                trimmed_ratios = []
+                trimmed_lower_cis = []
+                trimmed_upper_cis = []
+                for i in range(0, len(odds_ratios)):
+                    if odds_ratios[i] != "NA":
+                        trimmed_bin_array.append(bin_array[i])
+                        trimmed_ratios.append(odds_ratios[i])
+                        trimmed_lower_cis.append(lower_cis[i])
+                        trimmed_upper_cis.append(upper_cis[i])
+
                 results_identifier = directory + "_" + column + "_" + str(x);
-                plm.plot_odds_ratio(bin_array, odds_ratios, 0, [], [], lower_cis, upper_cis, results_identifier, "Odds Ratio", new_path);
+                plm.plot_odds_ratio(trimmed_bin_array, trimmed_ratios, 0, [], [], trimmed_lower_cis, trimmed_upper_cis, max_population-bin_size*2, results_identifier, "Odds Ratio", new_path);
 
                 label = column.title() + " " + str(x);
-                wrm.write_random_weighting_table(results_file, label, unique_keys, base_random_values, random_values, bin_array, odds_ratios);
+                wrm.write_random_weighting_table(results_file, label, ranges, base_random_values, random_values, bin_array, odds_ratios);
 
             results_file.close();
 
     def generate_confounder_analysis(self, population_data, original_target_list, base_path, directory):
 
+
+        df_loaded = self.dataframe_loaded;
+
         # Regular analysis
-        bin_array, sample_counts, global_counts, control_counts, orig_odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_likelihood_ratios = self.generate_results(population_data, original_target_list, base_path, directory+"_base", True)
+        dataframe, globals_dataframe, bin_array, sample_counts, global_counts, control_counts, orig_odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_likelihood_ratios = self.generate_results(population_data, original_target_list, base_path, directory+"_base", True)
 
 
         # Date analysis
@@ -369,16 +395,26 @@ class MainProgram:
         while(True):
             if end_date < minimum_date:
                 end_date = minimum_date;
+
             new_dir = "date_" + str(start_date) + "-" + str(end_date) + "_" + directory;
             new_target_list, f = tam.filter_targets_for_date(original_target_list, end_date, start_date, "");
-            if len(new_target_list) > 1:
-                try:
-                    bin_array, sample_counts, global_counts, control_counts, odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_likelihood_ratios = self.generate_results(population_data, new_target_list, base_path, new_dir, True);
-                    label = str(int(start_date)) + " to " + str(int(end_date))
-                    date_keys.append(label);
-                    date_bands[label] = [bin_array, sample_counts, global_counts, control_counts, odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs]
-                except:
-                    print("No Geographic Points Fall in Target Areas");
+
+            new_df = dataframe[(dataframe.period <= start_date) & (dataframe.period >= end_date)]
+            new_gdf = globals_dataframe[(globals_dataframe.period <= start_date) & (globals_dataframe.period >= end_date)]
+
+            self.dataframe = new_df;
+            self.globals_dataframe = new_gdf;
+            self.dataframe_loaded = True;
+
+            try:
+                df, gdf, bin_array, sample_counts, global_counts, control_counts, odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_likelihood_ratios = self.generate_results(population_data, new_target_list, base_path, new_dir, True)
+
+                label = str(int(start_date)) + " to " + str(int(end_date))
+                date_keys.append(label);
+                date_bands[label] = [bin_array, sample_counts, global_counts, control_counts, odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs]
+            except ValueError:
+                print("No Geographic Points Fall in this area")
+
             if end_date == minimum_date:
                 break;
             start_date = end_date
@@ -398,19 +434,28 @@ class MainProgram:
                 end_lat = minimum_lat;
             new_dir = "lat_" + str(int(start_lat)) + "-" + str(int(end_lat)) + "_" + directory;
             new_target_list, f = tam.filter_targets_for_latitude(original_target_list, end_lat, start_lat, "");
-            if len(new_target_list) > 1:
-                try:
-                    bin_array, sample_counts, global_counts, control_counts, odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_likelihood_ratios = self.generate_results(population_data, new_target_list, base_path, new_dir, True);
-                    label = str(int(start_lat)) + " to " + str(int(end_lat))
-                    latitude_keys.append(label)
-                    latitude_bands[label] = [bin_array, sample_counts, global_counts, control_counts, odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs]
-                except:
-                    print("No Geographic Points Fall in Target Areas")
+            
+            new_df = dataframe[(dataframe.latitude <= start_lat) & (dataframe.latitude >= end_lat)]
+            new_gdf = globals_dataframe[(globals_dataframe.latitude <= start_lat) & (globals_dataframe.latitude >= end_lat)]
+
+            self.dataframe = new_df;
+            self.globals_dataframe = new_gdf;
+            self.dataframe_loaded = True;
+
+            try:
+                df, gdf, bin_array, sample_counts, global_counts, control_counts, odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_likelihood_ratios = self.generate_results(population_data, new_target_list, base_path, new_dir, True)
+
+                label = str(int(start_lat)) + " to " + str(int(end_lat))
+                latitude_keys.append(label)
+                latitude_bands[label] = [bin_array, sample_counts, global_counts, control_counts, odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs]
+            except ValueError:
+                print("No Geographic Points Fall in this area")
                 
             if end_lat == minimum_lat:
                 break;
             start_lat = end_lat
             end_lat -= 10;
+
 
         results_path = os.path.join(base_path, "results")
         if not os.path.exists(results_path):
@@ -419,6 +464,7 @@ class MainProgram:
         new_path = os.path.join(results_path, directory)
         if not os.path.exists(new_path):
             os.makedirs(new_path)
+        
         results_filename= os.path.join(new_path, directory + "_results.csv") 
 
         print("Confounder Analysis Results: " + results_filename)
@@ -433,6 +479,8 @@ class MainProgram:
 
         plm.plot_crude_or_vs_mh_or(bin_array, orig_odds_ratios, lat_or_MHs, directory+"_latitude", new_path)
         plm.plot_crude_or_vs_mh_or(bin_array, orig_odds_ratios, date_or_MHs, directory+"_date", new_path)
+
+        self.dataframe_loaded = df_loaded
 
         return "Generated Results";
 
@@ -536,8 +584,8 @@ class MainProgram:
         #################
         # - extracts bin values
         # - write bin values to file
-        bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_likelihood_ratios,minimum_globals = stm.generate_bin_values(self.dataframe, self.globals_dataframe, population_data, max_for_uninhabited)
-        wrm.write_bin_table(f2, bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, likelihood_ratios, p_samples, p_globals, p_likelihood_ratios,minimum_globals)
+        bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_controls, p_likelihood_ratios,minimum_globals = stm.generate_bin_values(self.dataframe, self.globals_dataframe, population_data)
+        wrm.write_bin_table(f2, bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, likelihood_ratios, p_samples, p_globals, p_controls, p_likelihood_ratios,minimum_globals)
         
 
         ##################################
@@ -546,20 +594,20 @@ class MainProgram:
         # - plots likelihood ratios and sites graphs
         # stm.generate_stats_for_ratios(bin_array, likelihood_ratios, sample_counts, global_counts, p_likelihood_ratios, p_samples, p_globals, f2, "p Likelihood Ratio", new_path, directory)
 
-        stm.generate_stats_for_ratios(bin_array, likelihood_ratios, sample_counts, global_counts, odds_ratios, p_samples, p_globals, f2, "Odds Ratio", new_path, directory, lower_cis=lower_cis, upper_cis=upper_cis)
+        stm.generate_stats_for_ratios(bin_array, likelihood_ratios, sample_counts, global_counts, odds_ratios, p_samples, p_globals, f2, "Odds Ratio", new_path, directory, (population_data.max_population-population_data.bin_size*2), lower_cis=lower_cis, upper_cis=upper_cis)
 
         # - plots p_graphs and write statistics (binomial and wilcoxon)
-        threshold_binomial, threshold, threshold_success_count, threshold_trial_count, threshold_samples, threshold_globals = stm.generate_p_threshold_and_binomial(p_samples, p_globals, bin_array)
-        plm.plot_p_graphs(bin_array, p_samples, p_globals, threshold, directory, new_path)
+        threshold_binomial, threshold, threshold_success_count, threshold_trial_count, threshold_samples, threshold_controls = stm.generate_p_threshold_and_binomial(p_samples, p_controls, bin_array)
+        plm.plot_p_graphs(bin_array, p_samples, p_controls, threshold, directory, new_path)
 
-        t_threshold_wilcoxon, p_threshold_wilcoxon = wilcoxon(threshold_globals, threshold_samples)
+        t_threshold_wilcoxon, p_threshold_wilcoxon = wilcoxon(threshold_controls, threshold_samples)
 
         wrm.write_label(f2, "Statistics for threshold bins")
         f2.write("Threshold: " + str(threshold))
         stats_header_labels = ["Number of successes", "Number of targets", "pBinomial"]
         stats_header_values = [threshold_success_count, threshold_trial_count, threshold_binomial]
         wrm.write_information(f2, stats_header_labels, stats_header_values, "   ")
-        f2.write( 'Wilcoxon stat for pglobals vs pSamples:'+str(float(t_threshold_wilcoxon))+ '   p='+str(float(p_threshold_wilcoxon))+'\n')
+        f2.write( 'Wilcoxon stat for pControls vs pSamples:'+str(float(t_threshold_wilcoxon))+ '   p='+str(float(p_threshold_wilcoxon))+'\n')
 
         # - plots targets and globals on a map
         plm.plot_targets_on_map(self.dataframe, self.globals_dataframe, new_path, directory)
@@ -569,7 +617,7 @@ class MainProgram:
 
         if(is_confounder_analysis):
             print("returning CA")
-            return bin_array, sample_counts, global_counts, control_counts, odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_likelihood_ratios
+            return self.dataframe, self.globals_dataframe, bin_array, sample_counts, global_counts, control_counts, odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_likelihood_ratios
         else:
             return "Generated results."
 

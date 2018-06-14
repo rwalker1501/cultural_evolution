@@ -94,7 +94,7 @@ def compute_growth_coefficient(times, populations):
 
 
 
-def generate_bin_values(dataframe, globals_dataframe, population_data, max_for_uninhabited):
+def generate_bin_values(dataframe, globals_dataframe, population_data):
     bin_size = population_data.bin_size
     max_population = population_data.max_population
     # minimum_bin=max_for_uninhabited
@@ -187,22 +187,21 @@ def generate_bin_values(dataframe, globals_dataframe, population_data, max_for_u
             p_global = float(current_global_count)/total_globals
         p_globals.append(p_global)
 
-
-        p_likelihood_ratio = -1
-        if p_global > 0:
-            p_likelihood_ratio = float(p_sample)/p_global
-
-        # print(current_global_count)
-        # print(minimum_globals)            
-        if current_global_count <= minimum_globals:
-            p_likelihood_ratio = "NA"
-        p_likelihood_ratios.append(p_likelihood_ratio)
-
         current_bin += bin_size
 
     odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, upper_cis, lower_cis = generate_or_mh_ci_stats(sample_counts, global_counts, control_counts);
 
-    return bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_likelihood_ratios,minimum_globals
+    p_controls = (np.array(control_counts)/sum(control_counts)).tolist();
+
+    for i in range(0, len(bin_array)):
+        p_sample = p_samples[i]
+        p_control = p_controls[i]
+        p_likelihood_ratio = -1
+        if p_control > 0:
+            p_likelihood_ratio = float(p_sample)/p_control
+        p_likelihood_ratios.append(p_likelihood_ratio)
+
+    return bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_controls, p_likelihood_ratios, minimum_globals
 
 def generate_or_mh_ci_stats(sample_counts, global_counts, control_counts):
     odds_ratios = [];
@@ -222,7 +221,7 @@ def generate_or_mh_ci_stats(sample_counts, global_counts, control_counts):
         current_global_count = global_counts[i];
         current_control_count = control_counts[i];
         
-        odds_ratio = -1;
+        odds_ratio = float('nan');
         if total_samples > 0 and total_controls > 0:
             odds_ratio = float((current_sample_count/current_control_count)/((total_samples - current_sample_count)/(total_controls - current_control_count)));
         # if current_global_count <= minimum_globals:
@@ -231,7 +230,7 @@ def generate_or_mh_ci_stats(sample_counts, global_counts, control_counts):
 
         upper_ci = "NA";
         lower_ci = "NA";
-        if odds_ratio != "NA" and current_sample_count > 0 and current_control_count > 0:
+        if not math.isnan(odds_ratio) and current_sample_count > 0 and current_control_count > 0:
             ci_a = math.exp(math.log(odds_ratio) + 1.96*math.sqrt(1/current_sample_count + 1/(total_samples-current_sample_count) + 1/current_control_count + 1/(total_controls-current_control_count)));
             ci_b = math.exp(math.log(odds_ratio) - 1.96*math.sqrt(1/current_sample_count + 1/(total_samples-current_sample_count) + 1/current_control_count + 1/(total_controls-current_control_count)));
             if ci_a > ci_b:
@@ -313,31 +312,41 @@ def get_confounder_analysis_values(keys, values):
 
 
 
-def trim_values(bins, likelihood_ratios, n_samples, n_globals, p_likelihood_ratios, p_samples, p_globals, lower_cis, upper_cis):
-    # minimum_value = np.percentile(n_globals, removed_percentile)
+def trim_values(bins, likelihood_ratios, n_samples, n_globals, ratios, p_samples, p_globals, lower_cis, upper_cis):
+    
+    # trimmed_bins = bins
+    # trimmed_likelihood_ratios = likelihood_ratios
+    # trimmed_n_samples = n_samples
+    # trimmed_n_globals = n_globals
+    # trimmed_p_likelihood_ratios = p_likelihood_ratios
+    # trimmed_p_samples = p_samples
+    # trimmed_p_globals = p_globals
+    # trimmed_lower_cis = lower_cis;
+    # trimmed_upper_cis = upper_cis;
+
     trimmed_bins = []
     trimmed_likelihood_ratios = []
     trimmed_n_samples = []
     trimmed_n_globals = []
-    trimmed_p_likelihood_ratios = []
+    trimmed_ratios = []
     trimmed_p_samples = []
     trimmed_p_globals = []
     trimmed_lower_cis = [];
     trimmed_upper_cis = [];
     for x in range(0, len(bins)):
-        if upper_cis[x] != "NA" and lower_cis != "NA" and float(upper_cis[x]) - float(lower_cis[x]) < 1:
+        if not math.isnan(ratios[x]):
             trimmed_bins.append(bins[x])
             trimmed_likelihood_ratios.append(likelihood_ratios[x])
             trimmed_n_samples.append(n_samples[x])
             trimmed_n_globals.append(n_globals[x])
-            trimmed_p_likelihood_ratios.append(p_likelihood_ratios[x])
+            trimmed_ratios.append(ratios[x])
             trimmed_p_samples.append(p_samples[x])
             trimmed_p_globals.append(p_globals[x])
             if len(lower_cis) > 0:
                 trimmed_lower_cis.append(lower_cis[x]);
                 trimmed_upper_cis.append(upper_cis[x]);
 
-    return trimmed_bins, trimmed_likelihood_ratios, trimmed_n_samples, trimmed_n_globals, trimmed_p_likelihood_ratios, trimmed_p_samples, trimmed_p_globals, trimmed_lower_cis, trimmed_upper_cis
+    return trimmed_bins, trimmed_likelihood_ratios, trimmed_n_samples, trimmed_n_globals, trimmed_ratios, trimmed_p_samples, trimmed_p_globals, trimmed_lower_cis, trimmed_upper_cis
 
 def divide_graph(bins, samples, the_globals, p_likelihood_ratios, divider):
     left_samples_array = []
@@ -387,7 +396,7 @@ def compute_divided_graph_ratio(left_samples_array, left_globals_array, right_sa
 
     return left_p_likelihood_ratio, right_p_likelihood_ratio
 
-def generate_stats_for_ratios(bins,likelihood_ratios,n_samples,n_globals, ratios, p_samples, p_globals, a_file, label, file_path, directory, lower_cis = [], upper_cis = []): 
+def generate_stats_for_ratios(bins,likelihood_ratios,n_samples,n_globals, ratios, p_samples, p_globals, a_file, label, file_path, directory, max_xaxis, lower_cis = [], upper_cis = []): 
 
     ###############
     # Trim Arrays #
@@ -395,6 +404,7 @@ def generate_stats_for_ratios(bins,likelihood_ratios,n_samples,n_globals, ratios
     # trimmed arrays: values where globals <= minimum_globals
 
     trimmed_bins, trimmed_likelihood_ratios, trimmed_n_samples, trimmed_n_globals, trimmed_ratios, trimmed_p_samples, trimmed_p_globals, trimmed_lower_cis, trimmed_upper_cis = trim_values(bins, likelihood_ratios, n_samples, n_globals, ratios, p_samples, p_globals, lower_cis, upper_cis)
+
 
     ################################
     # Fitting and Comparing Models #
@@ -438,7 +448,6 @@ def generate_stats_for_ratios(bins,likelihood_ratios,n_samples,n_globals, ratios
 
     left_ratio, right_ratio = compute_divided_graph_ratio(left_samples_array, left_globals_array, right_samples_array, right_globals_array)
 
-
     ###############
     # Plot graphs #
     ###############
@@ -446,9 +455,9 @@ def generate_stats_for_ratios(bins,likelihood_ratios,n_samples,n_globals, ratios
 
     # plm.plot_likelihood_ratio(trimmed_bins, trimmed_p_likelihood_ratios, threshold_threshold, threshold_predicted_p_likelihood_ratios, "threshold", directory, file_path)
     if label == "Odds Ratio":
-        plm.plot_odds_ratio(trimmed_bins, trimmed_ratios, 0, linear_predicted_ratios, threshold_predicted_ratios, trimmed_lower_cis, trimmed_upper_cis, directory, label, file_path)
+        plm.plot_odds_ratio(trimmed_bins, trimmed_ratios, 0, linear_predicted_ratios, threshold_predicted_ratios, trimmed_lower_cis, trimmed_upper_cis, max_xaxis, directory, label, file_path)
     else:
-        plm.plot_ratio(trimmed_bins, trimmed_ratios, 0, linear_predicted_ratios, threshold_predicted_ratios, directory, label, file_path)
+        plm.plot_ratio(trimmed_bins, trimmed_ratios, 0, linear_predicted_ratios, threshold_predicted_ratios,max_xaxis, directory, label, file_path)
 
 
 
