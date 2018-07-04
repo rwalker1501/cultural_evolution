@@ -179,9 +179,11 @@ def extract_dataframe(population_data, target_list, date_window):
                 ############################################
                 # Loop from date_to to date_from of target #
                 ############################################
-                date_from = target.date_from + date_window
-                date_to = target.date_to
-
+           #     date_from = target.date_from + date_window
+           #     date_to = target.date_to
+           #     this used to loop through whole thing - now I have corrected it only to do the earliest date in system
+                date_from=target.date_from
+                date_to=target.date_from
                 time = date_to
                 if smallest_time > time:
                     time = smallest_time
