@@ -176,11 +176,12 @@ def extract_dataframe(population_data, target_list, date_window):
             for target in cluster:
 
 
-                ############################################
-                # Loop from date_to to date_from of target #
-                ############################################
+                ###################################################
+                # Loop from date_from to date_from + dw of target #
+                ###################################################
                 date_from = target.date_from + date_window
-                date_to = target.date_to
+                # date_to = target.date_to
+                date_to = target.date_from
 
                 time = date_to
                 if smallest_time > time:
@@ -280,6 +281,12 @@ def load_globals_for_all(population_data, target_list, date_window, min_lat, max
     maximum_latitude = max_lat
     minimum_date = min_date
     maximum_date = max_date
+
+    
+    # Using date_from to date_from+dw
+    date_window = maximum_date - minimum_date
+    maximum_date = minimum_date
+
     # ######################################
     # # Getting the minimum/maximum values #
     # ######################################
@@ -294,7 +301,7 @@ def load_globals_for_all(population_data, target_list, date_window, min_lat, max
     #         minimum_date = target.date_from
     # minimum_latitude = int(round(minimum_latitude))
     # maximum_latitude = int(round(maximum_latitude)) 
-    maximum_date=maximum_date+date_window
+    # maximum_date=maximum_date+date_window
     print('minimum date=', minimum_date)
     print('maximum date=',maximum_date)
     print('minimum latitude=', minimum_latitude)
@@ -325,6 +332,11 @@ def load_bin_globals_for_australia(population_data, target_list, date_window, mi
     # minimum_latitude = 500
     minimum_date = min_date
     maximum_date = max_date
+    
+    # Using date_from to date_from+dw
+    date_window = maximum_date - minimum_date
+    maximum_date = minimum_date
+
     ######################################
     # Getting the minimum/maximum values #
     ######################################
@@ -364,6 +376,12 @@ def load_bin_globals_for_francespain(population_data, target_list, date_window, 
     minimum_latitude = 500
     minimum_date = min_date
     maximum_date = max_date
+
+
+    # Using date_from to date_from+dw
+    date_window = maximum_date - minimum_date
+    maximum_date = minimum_date
+
     # ######################################
     # # Getting the minimum/maximum values #
     # ######################################

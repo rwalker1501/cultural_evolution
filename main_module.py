@@ -48,7 +48,7 @@ class MainProgram:
         self.globals_dataframe = pd.DataFrame()
         self.clustering_on=False
         self.critical_distance=0
-        self.date_window=1500
+        self.date_window=1000
         self.number_of_kfolds = 10
         self.minimum_likelihood_ratio = 0
         self.perform_cross_validation = False
@@ -56,9 +56,9 @@ class MainProgram:
         self.default_mfu = True
         self.min_date_window = 0
         self.critical_time = 10000
-        self.max_lat = 55;
-        self.min_lat = -35;
-        self.max_date = 45000;
+        self.max_lat = 60;
+        self.min_lat = -40;
+        self.max_date = 50000;
         self.min_date = 0;
         
 
@@ -280,13 +280,14 @@ class MainProgram:
                 random_values_sum = sum(base_random_values)
                 random_values = base_random_values/random_values_sum
 
-
                 # Reweighting per key
                 dataframe = self.dataframe[self.dataframe.type=='s'];
                 globals_dataframe = self.globals_dataframe
 
-                dataframe['multiplier'] = pd.cut(dataframe[column], bins=ranges, labels=random_values, include_lowest=True);
-                globals_dataframe['multiplier'] = pd.cut(dataframe[column], bins=ranges, labels=random_values, include_lowest=True);
+                dataframe['multiplier'] = pd.cut(dataframe[column], bins=ranges, labels=random_values, include_lowest=True).astype(float);
+                globals_dataframe['multiplier'] = pd.cut(dataframe[column], bins=ranges, labels=random_values, include_lowest=True).astype(float);
+
+                print(dataframe[dataframe.multiplier.isnull()])
 
 
                 bin_size = population_data.bin_size
@@ -666,7 +667,7 @@ def plot_min_densities_in_time_range(population_data_name, time_from, time_to, m
     mp.plot_min_densities_in_time_range(population_data, time_from, time_to, min_density);
 
 
-def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", the_globals="All", date_window=1500, user_max_for_uninhabited=-1, clustering_on = False, critical_distance=0, filter_date_before=-1, filter_not_direct=False, filter_not_exact=False, filter_not_figurative=False, filter_not_controversial = False, perform_cross_validation=False, number_of_kfolds = 100,  min_date_window=0, critical_time=10000, filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False, is_confounder_analysis=False):
+def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", the_globals="All", date_window=1000, user_max_for_uninhabited=-1, clustering_on = False, critical_distance=0, filter_date_before=-1, filter_not_direct=False, filter_not_exact=False, filter_not_figurative=False, filter_not_controversial = False, perform_cross_validation=False, number_of_kfolds = 100,  min_date_window=0, critical_time=10000, filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False, is_confounder_analysis=False):
   # Note: current setting of minimum_globals is overwritten in stats_module
   # Why is population_data_name set to eriksson - I think this is default
     mp = MainProgram()
