@@ -128,7 +128,6 @@ def extract_dataframe(population_data, target_list, date_window):
     time_multiplier = population_data.time_multiplier
     smallest_time = min(time_np)*time_multiplier
 
-
     ############################
     # Create Time Dictionaries #
     ############################

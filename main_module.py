@@ -456,33 +456,35 @@ class MainProgram:
                 break;
             start_lat = end_lat
             end_lat -= 10;
+# I have eliminated generation of confounder table - this should allow analysis to go forward
 
-
-        results_path = os.path.join(base_path, "results")
-        if not os.path.exists(results_path):
-            os.makedirs(results_path)
-
-        new_path = os.path.join(results_path, directory)
-        if not os.path.exists(new_path):
-            os.makedirs(new_path)
-        
-        results_filename= os.path.join(new_path, directory + "_results.csv") 
-
-        print("Confounder Analysis Results: " + results_filename)
-        a_file = open(results_filename, 'w');
-
-        lat_or_MHs, lat_MH_stats, lat_MH_ps = stm.get_confounder_analysis_values(latitude_keys, latitude_bands)
-        date_or_MHs, date_MH_stats, date_MH_ps = stm.get_confounder_analysis_values(date_keys, date_bands)
-
-        wrm.write_confounder_analysis_table(a_file, "Latitude Confounder Analysis", latitude_bands, latitude_keys, lat_or_MHs, lat_MH_stats, lat_MH_ps);
-        wrm.write_confounder_analysis_table(a_file, "Date Confounder Analysis", date_bands, date_keys, date_or_MHs, date_MH_stats, date_MH_ps);
-        a_file.close();
-
-        plm.plot_crude_or_vs_mh_or(bin_array, orig_odds_ratios, lat_or_MHs, directory+"_latitude", new_path)
-        plm.plot_crude_or_vs_mh_or(bin_array, orig_odds_ratios, date_or_MHs, directory+"_date", new_path)
-
-        self.dataframe_loaded = df_loaded
-
+# =============================================================================
+#         results_path = os.path.join(base_path, "results")
+#         if not os.path.exists(results_path):
+#             os.makedirs(results_path)
+# 
+#         new_path = os.path.join(results_path, directory)
+#         if not os.path.exists(new_path):
+#             os.makedirs(new_path)
+#         
+#         results_filename= os.path.join(new_path, directory + "_results.csv") 
+# 
+#         print("Confounder Analysis Results: " + results_filename)
+#         a_file = open(results_filename, 'w');
+# 
+#         lat_or_MHs, lat_MH_stats, lat_MH_ps = stm.get_confounder_analysis_values(latitude_keys, latitude_bands)
+#         date_or_MHs, date_MH_stats, date_MH_ps = stm.get_confounder_analysis_values(date_keys, date_bands)
+# 
+#         wrm.write_confounder_analysis_table(a_file, "Latitude Confounder Analysis", latitude_bands, latitude_keys, lat_or_MHs, lat_MH_stats, lat_MH_ps);
+#         wrm.write_confounder_analysis_table(a_file, "Date Confounder Analysis", date_bands, date_keys, date_or_MHs, date_MH_stats, date_MH_ps);
+#         a_file.close();
+# 
+#         plm.plot_crude_or_vs_mh_or(bin_array, orig_odds_ratios, lat_or_MHs, directory+"_latitude", new_path)
+#         plm.plot_crude_or_vs_mh_or(bin_array, orig_odds_ratios, date_or_MHs, directory+"_date", new_path)
+# 
+#         self.dataframe_loaded = df_loaded
+# 
+# =============================================================================
         return "Generated Results";
 
     def generate_results(self, population_data, original_target_list, base_path, directory, is_confounder_analysis):
@@ -669,8 +671,7 @@ def plot_min_densities_in_time_range(population_data_name, time_from, time_to, m
 
 
 def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", the_globals="All", date_window=50, user_max_for_uninhabited=1, clustering_on = False, critical_distance=0, filter_date_before=-1, filter_not_direct=False, filter_not_exact=False, filter_not_figurative=False, filter_not_controversial = False, perform_cross_validation=False, number_of_kfolds = 100,  min_date_window=0, critical_time=10000, filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False, is_confounder_analysis=False):
-  # Note: current setting of minimum_globals is overwritten in stats_module
-  # Why is population_data_name set to eriksson - I think this is default
+  # Note: current setting of minimum_globals is overwritten in stats_modulegenera
     mp = MainProgram()
     base_path = mp.get_base_path()
     pop_data_path = os.path.join(base_path, "population_data")
