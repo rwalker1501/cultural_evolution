@@ -231,8 +231,10 @@ def generate_or_mh_ci_stats(sample_counts, global_counts, control_counts):
         upper_ci = "NA";
         lower_ci = "NA";
         if not math.isnan(odds_ratio) and current_sample_count > 0 and current_control_count > 0:
-            ci_a = math.exp(math.log(odds_ratio) + 1.96*math.sqrt(1/current_sample_count + 1/(total_samples-current_sample_count) + 1/current_control_count + 1/(total_controls-current_control_count)));
-            ci_b = math.exp(math.log(odds_ratio) - 1.96*math.sqrt(1/current_sample_count + 1/(total_samples-current_sample_count) + 1/current_control_count + 1/(total_controls-current_control_count)));
+            ci_a=0
+            ci_b=0
+          #   ci_a = math.exp(math.log(odds_ratio) + 1.96*math.sqrt(1/current_sample_count + 1/(total_samples-current_sample_count) + 1/current_control_count + 1/(total_controls-current_control_count)));
+          #   ci_b = math.exp(math.log(odds_ratio) - 1.96*math.sqrt(1/current_sample_count + 1/(total_samples-current_sample_count) + 1/current_control_count + 1/(total_controls-current_control_count)));
             if ci_a > ci_b:
                 upper_ci = ci_a;
                 lower_ci = ci_b;
@@ -247,16 +249,19 @@ def generate_or_mh_ci_stats(sample_counts, global_counts, control_counts):
         top_test_MH = -1;
         bottom_test_MH = -1;
         if total_globals > 0:
-            top_MH = (current_sample_count*(total_controls-current_control_count))/total_globals;
-            bottom_MH = (current_control_count*(total_samples-current_sample_count))/total_globals;
+            top_MH=0
+            bottom_MH=0
+            #top_MH = (current_sample_count*(total_controls-current_control_count))/total_globals;
+            #bottom_MH = (current_control_count*(total_samples-current_sample_count))/total_globals;
             # (samples-(globals*totalSamples)/totalGlobals)^2
-            top_test_MH = current_sample_count-((current_global_count*total_samples)/total_globals)
+            #top_test_MH = current_sample_count-((current_global_count*total_samples)/total_globals)
+            top_test_MH = 0
             # (totalSamples*totalControls*globals*(totalGlobals-globals)/(totalGlobals^2*(totalGlobals-1)
-            a = float(total_samples)/float(total_globals)
-            b = float(total_controls)/float(total_globals)
-            c = float(current_global_count)
-            d = float(total_globals-current_global_count)/float(total_globals-1)
-            bottom_test_MH = a*b*c*d;
+           # a = float(total_samples)/float(total_globals)
+           # b = float(total_controls)/float(total_globals)
+           # c = float(current_global_count)
+           # d = float(total_globals-current_global_count)/float(total_globals-1)
+            bottom_test_MH =0
         top_MHs.append(top_MH);
         bottom_MHs.append(bottom_MH)
         top_test_MHs.append(top_test_MH);

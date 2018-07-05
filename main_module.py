@@ -48,11 +48,11 @@ class MainProgram:
         self.globals_dataframe = pd.DataFrame()
         self.clustering_on=False
         self.critical_distance=0
-        self.date_window=1000
+        self.date_window=50
         self.number_of_kfolds = 10
         self.minimum_likelihood_ratio = 0
         self.perform_cross_validation = False
-        self.user_max_for_uninhabited = 1000
+        self.user_max_for_uninhabited = 1
         self.default_mfu = True
         self.min_date_window = 0
         self.critical_time = 10000
@@ -599,7 +599,8 @@ class MainProgram:
 
         # - plots p_graphs and write statistics (binomial and wilcoxon)
         threshold_binomial, threshold, threshold_success_count, threshold_trial_count, threshold_samples, threshold_controls = stm.generate_p_threshold_and_binomial(p_samples, p_controls, bin_array)
-        plm.plot_p_graphs(bin_array, p_samples, p_controls, threshold, directory, new_path)
+        plm.plot_p_graphs(bin_array, p_samples, p_globals, threshold, directory, new_path)
+        plm.plot_cumulative_p_graphs(bin_array, p_samples, p_globals, threshold, directory, new_path)
 
         t_threshold_wilcoxon, p_threshold_wilcoxon = wilcoxon(threshold_controls, threshold_samples)
 
@@ -667,7 +668,7 @@ def plot_min_densities_in_time_range(population_data_name, time_from, time_to, m
     mp.plot_min_densities_in_time_range(population_data, time_from, time_to, min_density);
 
 
-def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", the_globals="All", date_window=1000, user_max_for_uninhabited=-1, clustering_on = False, critical_distance=0, filter_date_before=-1, filter_not_direct=False, filter_not_exact=False, filter_not_figurative=False, filter_not_controversial = False, perform_cross_validation=False, number_of_kfolds = 100,  min_date_window=0, critical_time=10000, filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False, is_confounder_analysis=False):
+def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", the_globals="All", date_window=50, user_max_for_uninhabited=1, clustering_on = False, critical_distance=0, filter_date_before=-1, filter_not_direct=False, filter_not_exact=False, filter_not_figurative=False, filter_not_controversial = False, perform_cross_validation=False, number_of_kfolds = 100,  min_date_window=0, critical_time=10000, filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False, is_confounder_analysis=False):
   # Note: current setting of minimum_globals is overwritten in stats_module
   # Why is population_data_name set to eriksson - I think this is default
     mp = MainProgram()

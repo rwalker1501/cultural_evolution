@@ -112,10 +112,12 @@ def plot_odds_ratio(bins, actual_ratios, lambda_tau, linear_predicted_ratios, th
             upper = upper_ci - ratio;
             y_cis_lower.append(lower);
             y_cis_upper.append(upper);
-
-    ax.errorbar(bins, actual_ratios, yerr=[y_cis_lower, y_cis_upper], fmt="o", capsize=3)
+    # have commented out error bars
+    #ax.errorbar(bins, actual_ratios, yerr=[y_cis_lower, y_cis_upper], fmt="o", capsize=3)
+    # Got rid of threshold line
+    plt.plot(bins,actual_ratios,'bo')
     # ax.axvline(lambda_tau, color='k', linestyle='--')
-    ax.axhline(1, color='k', linestyle='--')
+    # ax.axhline(1, color='k', linestyle='--')
     # linear = ax.plot(bins, linear_predicted_ratios, 'b', label="linear");
     # threshold = ax.plot(bins, threshold_predicted_ratios, 'g', label="threshold");
     plt.ylabel(label)
@@ -127,7 +129,6 @@ def plot_odds_ratio(bins, actual_ratios, lambda_tau, linear_predicted_ratios, th
     label = label.replace(" ", "_");
     fig.savefig(os.path.join(file_path, str(identifier) + "_" + label + ".png"))
     plt.close()
-
 
 
 # def plot_likelihood_ratio(bins, actual_multipliers, lambda_tau, predicted_multipliers, label, identifier, file_path):
@@ -160,23 +161,51 @@ def plot_sites_graph(bins, actual_sites, predicted_sites, label, identifier, tit
     fig.savefig(os.path.join(file_path, str(identifier) + "_" + label + "_sites.png"))
     plt.close()
 
-def plot_p_graphs(bins, p_samples, p_controls, threshold, identifier, file_path):
+def plot_p_graphs(bins, p_samples, p_globals, threshold, identifier, file_path):
     fig = plt.figure()
     ax = fig.add_subplot(111)
     # ax.set_title(title)
-    ax.plot(bins,p_samples,'b', label="samples")
-    ax.plot(bins, p_controls,'r',label="controls")
+    ax.plot(bins,p_samples,'b', label="Samples")
+    ax.plot(bins, p_globals,'r',label="Globals")
     # ax.axvline(threshold, color='k', linestyle='--')
 
     plt.gca().set_ylim(0, 0.25)
 
     # text = "Threshold: " + str(threshold) + "\nSuccesses: " + str(success) + "\n Trials: " + str(trials) + "\nBinomial: " + str(binomial)
     
-    plt.ylabel("p")
+    plt.ylabel("Relative detection frequency")
     plt.xlabel("Population density")
     plt.legend(title= "Legend")
     # plt.text(2, 2, text, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
     fig.savefig(os.path.join(file_path, str(identifier) + "_p_graph.png"))
+    plt.close()
+    
+def plot_cumulative_p_graphs(bins, p_samples, p_globals, threshold, identifier, file_path):
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    # ax.set_title(title)
+    cum_samples=0
+    cum_p_samples=[]
+    for a_p_Sample in p_samples:
+        cum_samples=cum_samples+a_p_Sample
+        cum_p_samples.append(cum_samples)
+    cum_globals=0
+    cum_p_globals=[]
+    for a_p_globals in p_globals:
+        cum_globals=cum_globals+a_p_globals
+        cum_p_globals.append(cum_globals)
+    ax.plot(bins,cum_p_samples,'b', label="Samples")
+    ax.plot(bins, cum_p_globals,'r',label="Globals")
+    # ax.axvline(threshold, color='k', linestyle='--')
+    plt.gca().set_ylim(0, 1.0)
+
+    # text = "Threshold: " + str(threshold) + "\nSuccesses: " + str(success) + "\n Trials: " + str(trials) + "\nBinomial: " + str(binomial)
+    
+    plt.ylabel("Cumulated Relative detection frequency")
+    plt.xlabel("Population density")
+    plt.legend(title= "Legend")
+    # plt.text(2, 2, text, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
+    fig.savefig(os.path.join(file_path, str(identifier) + "cum_p_graph.png"))
     plt.close()
 
 def plot_growth_coefficient_boxplot(data, file_path):
