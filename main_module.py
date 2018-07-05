@@ -601,6 +601,7 @@ class MainProgram:
 
         # - plots p_graphs and write statistics (binomial and wilcoxon)
         threshold_binomial, threshold, threshold_success_count, threshold_trial_count, threshold_samples, threshold_controls = stm.generate_p_threshold_and_binomial(p_samples, p_controls, bin_array)
+       # logit_results=stm.fitToLogit(bin_array, sample_counts, global_counts)
         plm.plot_p_graphs(bin_array, p_samples, p_globals, threshold, directory, new_path)
         plm.plot_cumulative_p_graphs(bin_array, p_samples, p_globals, threshold, directory, new_path)
 

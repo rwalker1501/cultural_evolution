@@ -2,12 +2,14 @@ import numpy as np
 import math
 import plot_module as plm
 import matplotlib.pyplot as plt
+import statsmodels.api as sm
 from classes_module import Target, PopulationData
 from scipy.optimize import curve_fit
 from scipy import stats;
 from scipy.stats import linregress, chisquare, binom_test, levene
 from sklearn.metrics import r2_score
 from sklearn.model_selection import RepeatedKFold
+
 
 
 def process_dataframe(data, max_for_uninhabited):
@@ -92,7 +94,30 @@ def compute_growth_coefficient(times, populations):
     else:
         return -1.
 
-
+def fit_to_logit(bins, sample_counts, global_counts):
+    bins=sm.add_constant(bins, prepend=False)
+    print "bins"
+    for i in range(0,5):
+        aRecord=bins[i]
+        for j in range(0,len(aRecord)):
+            print bins[j]," "
+        print "\nl"
+    sample_globals=[]
+    for i in range(0,len(sample_counts)):
+         # I add 0.000001 to all counts to make fit work - temporary fix for bug in statsModels
+        sample_globals.append([sample_counts[i]+0.000001,global_counts[i]+0.000001])
+    glm_binom = sm.GLM(sample_globals, bins, family=sm.families.Binomial())
+    res = glm_binom.fit()
+    print(res.summary())
+    return(res)
+    
+def generate_logit_predictions(bins,params):
+    predictions=[]
+    for a_Bin in bins:
+        a_prediction=(math.exp(params[1]+params[0]*a_Bin))/(1+(math.exp(params[1]+params[0]*a_Bin)))
+        predictions.append(a_prediction)
+    return(predictions)
+    
 
 def generate_bin_values(dataframe, globals_dataframe, population_data):
     bin_size = population_data.bin_size
@@ -139,7 +164,7 @@ def generate_bin_values(dataframe, globals_dataframe, population_data):
 
     p_for_filter=float(total_samples/total_globals)
     q_for_filter=1-p_for_filter
-    # compute min globals necessary to get confidence of 0.95 on likelihood ratio with range of 0.0025
+    # compute min globals necessary to get confidence of 0.95 on likelihood ratio with range of 0.0025 - this is questionnable
     top_term=1.96**2*p_for_filter*q_for_filter/0.001**2
     bottom_term=1+((1.96**2)*p_for_filter*q_for_filter)/(0.001**2*total_globals)
     minimum_globals=int(top_term/bottom_term)
@@ -459,8 +484,12 @@ def generate_stats_for_ratios(bins,likelihood_ratios,n_samples,n_globals, ratios
     # plm.plot_likelihood_ratio(trimmed_bins, trimmed_p_likelihood_ratios, 0, linear_predicted_p_likelihood_ratios, "linear", directory, file_path)
 
     # plm.plot_likelihood_ratio(trimmed_bins, trimmed_p_likelihood_ratios, threshold_threshold, threshold_predicted_p_likelihood_ratios, "threshold", directory, file_path)
+    logit_results=fit_to_logit(bins, n_samples, n_globals)
+    predictions=generate_logit_predictions(bins,logit_results.params)
     if label == "Odds Ratio":
-        plm.plot_odds_ratio(trimmed_bins, trimmed_ratios, 0, linear_predicted_ratios, threshold_predicted_ratios, trimmed_lower_cis, trimmed_upper_cis, max_xaxis, directory, label, file_path)
+  #      plm.plot_odds_ratio(trimmed_bins, trimmed_ratios, predictions, 0, linear_predicted_ratios, threshold_predicted_ratios, trimmed_lower_cis, trimmed_upper_cis, max_xaxis, directory, label, file_path)
+  #   Still need to trim predictions and fix label
+        plm.plot_detection_frequencies (trimmed_bins, trimmed_likelihood_ratios, predictions,  max_xaxis, directory, label, file_path)
     else:
         plm.plot_ratio(trimmed_bins, trimmed_ratios, 0, linear_predicted_ratios, threshold_predicted_ratios,max_xaxis, directory, label, file_path)
 

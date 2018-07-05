@@ -94,7 +94,7 @@ def plot_ratio(bins, actual_ratios, lambda_tau, linear_predicted_ratios, thresho
     fig.savefig(os.path.join(file_path, str(identifier) + "_" + label + ".png"))
     plt.close()
 
-def plot_odds_ratio(bins, actual_ratios, lambda_tau, linear_predicted_ratios, threshold_predicted_ratios, lower_cis, upper_cis, max_xaxis, identifier, label, file_path):
+def plot_odds_ratio(bins, actual_ratios, predictions,lambda_tau, linear_predicted_ratios, threshold_predicted_ratios, lower_cis, upper_cis, max_xaxis, identifier, label, file_path):
     fig = plt.figure()
     ax = fig.add_subplot(111)
 
@@ -125,6 +125,34 @@ def plot_odds_ratio(bins, actual_ratios, lambda_tau, linear_predicted_ratios, th
     plt.gca().set_ylim(0, 7)
     plt.gca().set_xlim(0, max_xaxis)
 
+    label = label.lower();
+    label = label.replace(" ", "_");
+    fig.savefig(os.path.join(file_path, str(identifier) + "_" + label + ".png"))
+    plt.close()
+    
+    
+def plot_detection_frequencies (bins, actual_ratios, predictions, max_xaxis, identifier, label, file_path):
+    fig = plt.figure()
+
+# =============================================================================
+#     for i in range(0, len(bins)):
+#         ratio = actual_ratios[i];
+# =============================================================================
+    plt.plot(bins,actual_ratios,'bo')
+    plt.plot(bins,predictions,'r')
+    # ax.axvline(lambda_tau, color='k', linestyle='--')
+    # ax.axhline(1, color='k', linestyle='--')
+    # linear = ax.plot(bins, linear_predicted_ratios, 'b', label="linear");
+    # threshold = ax.plot(bins, threshold_predicted_ratios, 'g', label="threshold");
+    plt.ylabel(label)
+    plt.xlabel("Population density")
+    plt.gca().set_xlim(0, max_xaxis)
+    #max yaxis needs to be set dynamically
+    y_lim1=max(actual_ratios)
+    y_lim2=max(predictions)
+    y_lim=max(y_lim1,y_lim2)
+    # not currently succeeding in fixing these dynamically
+    plt.gca().set_ylim(0,y_lim)
     label = label.lower();
     label = label.replace(" ", "_");
     fig.savefig(os.path.join(file_path, str(identifier) + "_" + label + ".png"))
