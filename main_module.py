@@ -16,7 +16,7 @@ import pandas as pd
 from os import listdir
 from os.path import isfile, join
 from copy import deepcopy
-from scipy.stats import binom_test,wilcoxon,linregress
+from scipy.stats import binom_test,wilcoxon,linregress,ks_2samp
 from scipy.optimize import curve_fit
 from sklearn.metrics import r2_score
 from sklearn.model_selection import RepeatedKFold
@@ -567,6 +567,17 @@ class MainProgram:
         wrm.write_cluster_table(f2, self.dataframe, growth_coefficients)
 
         # plm.plot_confounder_likelihood_ratio(self.dataframe, original_target_list)
+        
+        #################
+        # Generate bins #
+        #################
+        # - extracts bin values
+        # - write bin values to file
+        bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_controls, p_likelihood_ratios,minimum_globals = stm.generate_bin_values(self.dataframe, self.globals_dataframe, population_data)
+        wrm.write_bin_table(f2, bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, likelihood_ratios, p_samples, p_globals, p_controls, p_likelihood_ratios,minimum_globals)
+       
+        
+        
         ################################
         # Compute and write statistics #
         ################################
@@ -582,38 +593,81 @@ class MainProgram:
         f2.write( 'Wilcoxon stat for sample vs globals means whole period:'+str(float(t_wilcox))+ '   p='+str(float(p_wilcox))+'\n')
 
 
-        #################
-        # Generate bins #
-        #################
-        # - extracts bin values
-        # - write bin values to file
-        bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_controls, p_likelihood_ratios,minimum_globals = stm.generate_bin_values(self.dataframe, self.globals_dataframe, population_data)
-        wrm.write_bin_table(f2, bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, likelihood_ratios, p_samples, p_globals, p_controls, p_likelihood_ratios,minimum_globals)
-        
-
         ##################################
+        #Only include data with non-zero values in statistical tests#
+        ###################################
+        trimmed_bin_array=[]
+        trimmed_p_samples=[]
+        trimmed_p_globals=[]
+        trimmed_sample_counts=[]
+        trimmed_global_counts=[]
+        trimmed_likelihood_ratios=[]
+        for i in range(0, len(bin_array)):
+            if global_counts>0:
+                trimmed_bin_array.append(bin_array[i])
+                trimmed_p_samples.append(p_samples[i])
+                trimmed_p_globals.append(p_globals[i])
+                trimmed_sample_counts.append(sample_counts[i])
+                trimmed_global_counts.append(global_counts[i])
+                trimmed_likelihood_ratios.append(likelihood_ratios[i])
+
+        #######################
+        # Test distributions are different
+        #######################
+        t_wilcox,p_wilcox=wilcoxon(trimmed_p_samples,trimmed_p_globals)
+        f2.write( 'Wilcoxon stat for samples vs globals with full controls:'+str(float(t_wilcox))+ '   p='+str(float(p_wilcox))+'\n')
+        ks_d,ks_p=ks_2samp(trimmed_p_samples,trimmed_p_globals)
+        f2.write( 'KS test  for samples vs globals with full controls:'+str(float(ks_d))+ '   p='+str(float(ks_p))+'\n')
+        
+        #################
+        # Fit data to logit curve #
+        #################
+        logit_results=stm.fit_to_logit(trimmed_bin_array, trimmed_sample_counts, trimmed_global_counts)
+        logit_predictions=stm.generate_logit_predictions(trimmed_bin_array,logit_results.params)
+       
+        ##################################
+        # Detect and display threshold #
+        #################
+        
+        threshold,successes,trials,p_threshold, below_curve, p_below_curve=stm.detect_threshold(trimmed_bin_array, trimmed_sample_counts,trimmed_global_counts)
+        wrm.write_label(f2,"Threshold analysis"+'\n')
+        f2.write('Threshold: '+str(threshold)+'\n')
+        f2.write('Successes: '+str(successes)+'\n')
+        f2.write('Trials: '+str(trials)+'\n')
+        f2.write('p: '+str(p_threshold)+'\n')
+        f2.write('below_curve: '+str(below_curve)+'\n')
+        f2.write('p_below_curve: '+str(p_below_curve)+'\n')
+        
+        
+        
         # Generate graphs and statistics #
         ##################################
         # - plots likelihood ratios and sites graphs
         # stm.generate_stats_for_ratios(bin_array, likelihood_ratios, sample_counts, global_counts, p_likelihood_ratios, p_samples, p_globals, f2, "p Likelihood Ratio", new_path, directory)
-
-        stm.generate_stats_for_ratios(bin_array, likelihood_ratios, sample_counts, global_counts, odds_ratios, p_samples, p_globals, f2, "Odds Ratio", new_path, directory, (population_data.max_population-population_data.bin_size*2), lower_cis=lower_cis, upper_cis=upper_cis)
+         # would like to get rid of this routine
+        #stm.generate_stats_for_ratios(bin_array, likelihood_ratios, sample_counts, global_counts, odds_ratios, p_samples, p_globals, f2, "Odds Ratio", new_path, directory, (population_data.max_population-population_data.bin_size*2), lower_cis=lower_cis, upper_cis=upper_cis)
 
         # - plots p_graphs and write statistics (binomial and wilcoxon)
-        threshold_binomial, threshold, threshold_success_count, threshold_trial_count, threshold_samples, threshold_controls = stm.generate_p_threshold_and_binomial(p_samples, p_controls, bin_array)
+        #threshold_binomial, threshold, threshold_success_count, threshold_trial_count, threshold_samples, threshold_controls = stm.generate_p_threshold_and_binomial(p_samples, p_controls, bin_array)
        # logit_results=stm.fitToLogit(bin_array, sample_counts, global_counts)
-        plm.plot_p_graphs(bin_array, p_samples, p_globals, threshold, directory, new_path)
-        plm.plot_cumulative_p_graphs(bin_array, p_samples, p_globals, threshold, directory, new_path)
-
-        t_threshold_wilcoxon, p_threshold_wilcoxon = wilcoxon(threshold_controls, threshold_samples)
-
-        wrm.write_label(f2, "Statistics for threshold bins")
-        f2.write("Threshold: " + str(threshold))
-        stats_header_labels = ["Number of successes", "Number of targets", "pBinomial"]
-        stats_header_values = [threshold_success_count, threshold_trial_count, threshold_binomial]
-        wrm.write_information(f2, stats_header_labels, stats_header_values, "   ")
-        f2.write( 'Wilcoxon stat for pControls vs pSamples:'+str(float(t_threshold_wilcoxon))+ '   p='+str(float(p_threshold_wilcoxon))+'\n')
-
+        plm.plot_p_graphs(trimmed_bin_array, trimmed_p_samples, trimmed_p_globals, directory, new_path)
+        plm.plot_cumulative_p_graphs(trimmed_bin_array, trimmed_p_samples, trimmed_p_globals, directory, new_path)
+        plm.plot_detection_frequencies (trimmed_bin_array, trimmed_likelihood_ratios, logit_predictions,  population_data.max_population-population_data.bin_size*2, directory, "detection_frequencies", new_path)
+        wrm.write_label(f2,"Logistic fit"+'\n')
+        f2.write("Intercept: "+str(logit_results.params[1])+'\n')
+        f2.write("Coefficient: "+str(logit_results.params[0])+'\n')
+        f2.write("AIC: "+str(logit_results.aic)+'\n')
+        f2.write("Pearson Chi2: "+str(logit_results.pearson_chi2)+'\n')
+# =============================================================================
+#         t_threshold_wilcoxon, p_threshold_wilcoxon = wilcoxon(threshold_controls, threshold_samples)
+#         wrm.write_label(f2, "Statistics for threshold bins")
+#         f2.write("Threshold: " + str(threshold))
+#         stats_header_labels = ["Number of successes", "Number of targets", "pBinomial"]
+#         stats_header_values = [threshold_success_count, threshold_trial_count, threshold_binomial]
+#         wrm.write_information(f2, stats_header_labels, stats_header_values, "   ")
+#         f2.write( 'Wilcoxon stat for pControls vs pSamples:'+str(float(t_threshold_wilcoxon))+ '   p='+str(float(p_threshold_wilcoxon))+'\n')
+# 
+# =============================================================================
         # - plots targets and globals on a map
         plm.plot_targets_on_map(self.dataframe, self.globals_dataframe, new_path, directory)
 

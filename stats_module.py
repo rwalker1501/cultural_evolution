@@ -93,6 +93,49 @@ def compute_growth_coefficient(times, populations):
         return slope 
     else:
         return -1.
+    
+def detect_threshold(bins,n_samples,n_globals):
+    cum_samples_list=[]
+    cum_globals_list=[]
+    cum_samples=0
+    cum_globals=0
+    print 'In detect threshold'
+    for i in range(0,len(bins)):
+        cum_samples=cum_samples+n_samples[i]
+        cum_globals=cum_globals+n_globals[i]
+        cum_samples_list.append(cum_samples)
+        cum_globals_list.append(cum_globals)
+    total_samples=cum_samples_list[len(bins)-1]
+    total_globals=cum_globals_list[len(bins)-1]
+    print 'total_samples: ',str(total_samples)
+    print 'total_globals: ', str(total_globals)
+    p_sample=total_samples/total_globals
+    min_p=1
+    below_curve=0
+    print 'p_sample: ',str(p_sample)
+    for i in range(0,len(bins)):
+        p=stats.binom_test(cum_samples_list[i],cum_globals_list[i],p_sample)
+        print 'Threshold: ',str(bins[i]), 'samples: ',str(cum_samples_list[i]),' globals: ',str(cum_globals_list[i]),'p: ',str(p),'p_samples',str(cum_samples_list[i]/float(total_samples)),'p_globals: ',str(cum_globals_list[i]/float(total_globals))
+        if p<min_p:
+            min_p=p
+            threshold=bins[i]
+            successes=cum_samples_list[i]
+            trials=cum_globals_list[i]
+        if cum_samples_list[i]/float(total_samples)<cum_globals_list[i]/float(total_globals):
+            below_curve=below_curve+1
+    p_below_curve=stats.binom_test(below_curve,len(bins))
+    print "Threshold: ",str(threshold)
+    print "Successes: ",str(successes)
+    print "Trials: ", str(trials)
+    print "p: ", str(min_p)
+    print "below_curve: ",str(below_curve)
+    print "p_below_curve: ",str(p_below_curve)
+    return(threshold,successes,trials,min_p,below_curve,p_below_curve)
+    
+        
+        
+            
+            
 
 def fit_to_logit(bins, sample_counts, global_counts):
     bins=sm.add_constant(bins, prepend=False)
@@ -426,96 +469,98 @@ def compute_divided_graph_ratio(left_samples_array, left_globals_array, right_sa
 
     return left_p_likelihood_ratio, right_p_likelihood_ratio
 
-def generate_stats_for_ratios(bins,likelihood_ratios,n_samples,n_globals, ratios, p_samples, p_globals, a_file, label, file_path, directory, max_xaxis, lower_cis = [], upper_cis = []): 
-
-    ###############
-    # Trim Arrays #
-    ###############
-    # trimmed arrays: values where globals <= minimum_globals
-
-    trimmed_bins, trimmed_likelihood_ratios, trimmed_n_samples, trimmed_n_globals, trimmed_ratios, trimmed_p_samples, trimmed_p_globals, trimmed_lower_cis, trimmed_upper_cis = trim_values(bins, likelihood_ratios, n_samples, n_globals, ratios, p_samples, p_globals, lower_cis, upper_cis)
-
-
-    ################################
-    # Fitting and Comparing Models #
-    ################################
-
-    # linear with no intercept
-    linear_parameters, p_cov =linear_fit(trimmed_bins,trimmed_ratios)
-    linear_slope=linear_parameters[0]
-    print "linear_slope=", linear_slope
-    linear_predicted_ratios =linear_model(trimmed_bins,linear_slope)
-
-    # threshold
-    threshold_parameters,p_cov=threshold_fit(trimmed_bins,trimmed_ratios)
-    threshold_threshold=threshold_parameters[0]
-    threshold_gamma=threshold_parameters[1]
-    threshold_slope=threshold_parameters[2]
-    threshold_predicted_ratios = threshold_model(trimmed_bins, threshold_threshold, threshold_gamma,threshold_slope)
-
-    r2_linear = r2_score(trimmed_ratios, linear_predicted_ratios)
-    r2_threshold = r2_score(trimmed_ratios, threshold_predicted_ratios)
-
-    chi_linear, p = chisquare(linear_predicted_ratios, trimmed_ratios)
-    chi_threshold, p = chisquare(threshold_predicted_ratios, trimmed_ratios)
-
-    ########################
-    # Computing Statistics #
-    ########################
-    # - Divide graph by lambda_tau
-    #   - get value for lambda_tau 
-    #   - get arrays left and right of lambda_tau
-    # - get variances of arrays
-    # - get levene score of arrays
-
-
-    lambda_tau = threshold_threshold
-
-    left_samples_array, left_globals_array, left_p_array, right_samples_array, right_globals_array, right_p_array = divide_graph(trimmed_bins, trimmed_n_samples, trimmed_n_globals, trimmed_ratios, lambda_tau)
-
-    left_variance, right_variance, lev_stat, lev_p = compute_divided_graph_variance(left_p_array, right_p_array)
-
-
-    left_ratio, right_ratio = compute_divided_graph_ratio(left_samples_array, left_globals_array, right_samples_array, right_globals_array)
-
-    ###############
-    # Plot graphs #
-    ###############
-    # plm.plot_likelihood_ratio(trimmed_bins, trimmed_p_likelihood_ratios, 0, linear_predicted_p_likelihood_ratios, "linear", directory, file_path)
-
-    # plm.plot_likelihood_ratio(trimmed_bins, trimmed_p_likelihood_ratios, threshold_threshold, threshold_predicted_p_likelihood_ratios, "threshold", directory, file_path)
-    logit_results=fit_to_logit(bins, n_samples, n_globals)
-    predictions=generate_logit_predictions(bins,logit_results.params)
-    if label == "Odds Ratio":
-  #      plm.plot_odds_ratio(trimmed_bins, trimmed_ratios, predictions, 0, linear_predicted_ratios, threshold_predicted_ratios, trimmed_lower_cis, trimmed_upper_cis, max_xaxis, directory, label, file_path)
-  #   Still need to trim predictions and fix label
-        plm.plot_detection_frequencies (trimmed_bins, trimmed_likelihood_ratios, predictions,  max_xaxis, directory, label, file_path)
-    else:
-        plm.plot_ratio(trimmed_bins, trimmed_ratios, 0, linear_predicted_ratios, threshold_predicted_ratios,max_xaxis, directory, label, file_path)
-
-
-
-
-    ############################
-    # Write Statistics to File #
-    ############################
-    
-    a_file.write('**************************' +'\n')
-    a_file.write('curve fitting: ' + label +'\n')
-    a_file.write('**************************' +'\n')
-    a_file.write('LMS linear model for multiplier:'+"{:8.7f}".format(lms(trimmed_ratios,linear_predicted_ratios))+'\n')
-    a_file.write('LMS threshold model for multiplier:'+"{:8.7f}".format(lms(trimmed_ratios,threshold_predicted_ratios))+'\n')
-    a_file.write('Coefficients for linear fit: slope=' + str(linear_slope) + "\n")
-    a_file.write('Coefficients for threshold fit: gamma='+str(threshold_gamma)+' threshold=' + str(lambda_tau) + ' slope=' + str(threshold_slope) + '\n')
-    a_file.write("r2_threshold: " + str(r2_threshold) + "  r2_linear: " + str(r2_linear) + "\n")
-    a_file.write("chi_threshold: " + str(chi_threshold) + "  chi_linear: " + str(chi_linear) + "\n")
-
-    a_file.write('*************************' +'\n')
-    a_file.write('Divided Graph Statistics'+'\n')
-    a_file.write('*************************' +'\n')
-    a_file.write('Variance (lambda_tau as divider): left=' + str(left_variance) + "  right=" + str(right_variance) + "  levene_stat=" + str(lev_stat) + " levene_p=" + str(lev_p) + "\n")
-    a_file.write('ratio (lambda_tau as divider): left=' + str(left_ratio) + "  right=" + str(right_ratio) + "\n")
-
+# =============================================================================
+# def generate_stats_for_ratios(bins,likelihood_ratios,n_samples,n_globals, ratios, p_samples, p_globals, a_file, label, file_path, directory, max_xaxis, lower_cis = [], upper_cis = []): 
+#     # There is a lot of code here we don't use
+#     ###############
+#     # Trim Arrays #
+#     ###############
+#     # trimmed arrays: values where globals <= minimum_globals
+# 
+#     trimmed_bins, trimmed_likelihood_ratios, trimmed_n_samples, trimmed_n_globals, trimmed_ratios, trimmed_p_samples, trimmed_p_globals, trimmed_lower_cis, trimmed_upper_cis = trim_values(bins, likelihood_ratios, n_samples, n_globals, ratios, p_samples, p_globals, lower_cis, upper_cis)
+# 
+# 
+#     ################################
+#     # Fitting and Comparing Models #
+#     ################################
+# 
+#     # linear with no intercept
+#     linear_parameters, p_cov =linear_fit(trimmed_bins,trimmed_ratios)
+#     linear_slope=linear_parameters[0]
+#     print "linear_slope=", linear_slope
+#     linear_predicted_ratios =linear_model(trimmed_bins,linear_slope)
+# 
+#     # threshold
+#     threshold_parameters,p_cov=threshold_fit(trimmed_bins,trimmed_ratios)
+#     threshold_threshold=threshold_parameters[0]
+#     threshold_gamma=threshold_parameters[1]
+#     threshold_slope=threshold_parameters[2]
+#     threshold_predicted_ratios = threshold_model(trimmed_bins, threshold_threshold, threshold_gamma,threshold_slope)
+# 
+#     r2_linear = r2_score(trimmed_ratios, linear_predicted_ratios)
+#     r2_threshold = r2_score(trimmed_ratios, threshold_predicted_ratios)
+# 
+#     chi_linear, p = chisquare(linear_predicted_ratios, trimmed_ratios)
+#     chi_threshold, p = chisquare(threshold_predicted_ratios, trimmed_ratios)
+# 
+#     ########################
+#     # Computing Statistics #
+#     ########################
+#     # - Divide graph by lambda_tau
+#     #   - get value for lambda_tau 
+#     #   - get arrays left and right of lambda_tau
+#     # - get variances of arrays
+#     # - get levene score of arrays
+# 
+# 
+#     lambda_tau = threshold_threshold
+# 
+#     left_samples_array, left_globals_array, left_p_array, right_samples_array, right_globals_array, right_p_array = divide_graph(trimmed_bins, trimmed_n_samples, trimmed_n_globals, trimmed_ratios, lambda_tau)
+# 
+#     left_variance, right_variance, lev_stat, lev_p = compute_divided_graph_variance(left_p_array, right_p_array)
+# 
+# 
+#     left_ratio, right_ratio = compute_divided_graph_ratio(left_samples_array, left_globals_array, right_samples_array, right_globals_array)
+# 
+#     ###############
+#     # Plot graphs #
+#     ###############
+#     # plm.plot_likelihood_ratio(trimmed_bins, trimmed_p_likelihood_ratios, 0, linear_predicted_p_likelihood_ratios, "linear", directory, file_path)
+# 
+#     # plm.plot_likelihood_ratio(trimmed_bins, trimmed_p_likelihood_ratios, threshold_threshold, threshold_predicted_p_likelihood_ratios, "threshold", directory, file_path)
+#     logit_results=fit_to_logit(bins, n_samples, n_globals)
+#     predictions=generate_logit_predictions(bins,logit_results.params)
+#     if label == "Odds Ratio":
+#   #      plm.plot_odds_ratio(trimmed_bins, trimmed_ratios, predictions, 0, linear_predicted_ratios, threshold_predicted_ratios, trimmed_lower_cis, trimmed_upper_cis, max_xaxis, directory, label, file_path)
+#   #   Still need to trim predictions and fix label
+#         plm.plot_detection_frequencies (trimmed_bins, trimmed_likelihood_ratios, predictions,  max_xaxis, directory, label, file_path)
+#     else:
+#         plm.plot_ratio(trimmed_bins, trimmed_ratios, 0, linear_predicted_ratios, threshold_predicted_ratios,max_xaxis, directory, label, file_path)
+# 
+# 
+# 
+# 
+#     ############################
+#     # Write Statistics to File #
+#     ############################
+#     
+#     a_file.write('**************************' +'\n')
+#     a_file.write('curve fitting: ' + label +'\n')
+#     a_file.write('**************************' +'\n')
+#     a_file.write('LMS linear model for multiplier:'+"{:8.7f}".format(lms(trimmed_ratios,linear_predicted_ratios))+'\n')
+#     a_file.write('LMS threshold model for multiplier:'+"{:8.7f}".format(lms(trimmed_ratios,threshold_predicted_ratios))+'\n')
+#     a_file.write('Coefficients for linear fit: slope=' + str(linear_slope) + "\n")
+#     a_file.write('Coefficients for threshold fit: gamma='+str(threshold_gamma)+' threshold=' + str(lambda_tau) + ' slope=' + str(threshold_slope) + '\n')
+#     a_file.write("r2_threshold: " + str(r2_threshold) + "  r2_linear: " + str(r2_linear) + "\n")
+#     a_file.write("chi_threshold: " + str(chi_threshold) + "  chi_linear: " + str(chi_linear) + "\n")
+# 
+#     a_file.write('*************************' +'\n')
+#     a_file.write('Divided Graph Statistics'+'\n')
+#     a_file.write('*************************' +'\n')
+#     a_file.write('Variance (lambda_tau as divider): left=' + str(left_variance) + "  right=" + str(right_variance) + "  levene_stat=" + str(lev_stat) + " levene_p=" + str(lev_p) + "\n")
+#     a_file.write('ratio (lambda_tau as divider): left=' + str(left_ratio) + "  right=" + str(right_ratio) + "\n")
+# 
+# =============================================================================
 
 def generate_p_threshold_and_binomial(p_samples, p_globals, bin_array):
     binomial = 100

@@ -189,7 +189,7 @@ def plot_sites_graph(bins, actual_sites, predicted_sites, label, identifier, tit
     fig.savefig(os.path.join(file_path, str(identifier) + "_" + label + "_sites.png"))
     plt.close()
 
-def plot_p_graphs(bins, p_samples, p_globals, threshold, identifier, file_path):
+def plot_p_graphs(bins, p_samples, p_globals, identifier, file_path):
     fig = plt.figure()
     ax = fig.add_subplot(111)
     # ax.set_title(title)
@@ -208,7 +208,7 @@ def plot_p_graphs(bins, p_samples, p_globals, threshold, identifier, file_path):
     fig.savefig(os.path.join(file_path, str(identifier) + "_p_graph.png"))
     plt.close()
     
-def plot_cumulative_p_graphs(bins, p_samples, p_globals, threshold, identifier, file_path):
+def plot_cumulative_p_graphs(bins, p_samples, p_globals, identifier, file_path):
     fig = plt.figure()
     ax = fig.add_subplot(111)
     # ax.set_title(title)
