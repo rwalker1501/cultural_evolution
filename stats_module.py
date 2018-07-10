@@ -3,10 +3,11 @@ import math
 import plot_module as plm
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
+import write_module as wrm
 from classes_module import Target, PopulationData
 from scipy.optimize import curve_fit
 from scipy import stats;
-from scipy.stats import linregress, chisquare, binom_test, levene
+from scipy.stats import linregress, chisquare, binom_test, levene,wilcoxon,ks_2samp
 from sklearn.metrics import r2_score
 from sklearn.model_selection import RepeatedKFold
 
@@ -99,7 +100,7 @@ def detect_threshold(bins,n_samples,n_globals):
     cum_globals_list=[]
     cum_samples=0
     cum_globals=0
-    print 'In detect threshold'
+ #   print 'In detect threshold'
     for i in range(0,len(bins)):
         cum_samples=cum_samples+n_samples[i]
         cum_globals=cum_globals+n_globals[i]
@@ -112,10 +113,10 @@ def detect_threshold(bins,n_samples,n_globals):
     p_sample=total_samples/total_globals
     min_p=1
     below_curve=0
-    print 'p_sample: ',str(p_sample)
+#    print 'p_sample: ',str(p_sample)
     for i in range(0,len(bins)):
         p=stats.binom_test(cum_samples_list[i],cum_globals_list[i],p_sample)
-        print 'Threshold: ',str(bins[i]), 'samples: ',str(cum_samples_list[i]),' globals: ',str(cum_globals_list[i]),'p: ',str(p),'p_samples',str(cum_samples_list[i]/float(total_samples)),'p_globals: ',str(cum_globals_list[i]/float(total_globals))
+ #       print 'Threshold: ',str(bins[i]), 'samples: ',str(cum_samples_list[i]),' globals: ',str(cum_globals_list[i]),'p: ',str(p),'p_samples',str(cum_samples_list[i]/float(total_samples)),'p_globals: ',str(cum_globals_list[i]/float(total_globals))
         if p<min_p:
             min_p=p
             threshold=bins[i]
@@ -124,12 +125,12 @@ def detect_threshold(bins,n_samples,n_globals):
         if cum_samples_list[i]/float(total_samples)<cum_globals_list[i]/float(total_globals):
             below_curve=below_curve+1
     p_below_curve=stats.binom_test(below_curve,len(bins))
-    print "Threshold: ",str(threshold)
-    print "Successes: ",str(successes)
-    print "Trials: ", str(trials)
-    print "p: ", str(min_p)
-    print "below_curve: ",str(below_curve)
-    print "p_below_curve: ",str(p_below_curve)
+#    print "Threshold: ",str(threshold)
+#    print "Successes: ",str(successes)
+#    print "Trials: ", str(trials)
+#    print "p: ", str(min_p)
+#    print "below_curve: ",str(below_curve)
+#    print "p_below_curve: ",str(p_below_curve)
     return(threshold,successes,trials,min_p,below_curve,p_below_curve)
     
         
@@ -687,3 +688,128 @@ def threshold_model(x,threshold,gamma,beta):
 #             results.append(result)
 #     return(results)
 # =============================================================================
+    
+def write_results(aFile,aDirectory, aPath,dataframe, globals_dataframe,population_data, min_globals, min_p):
+    
+    bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_controls, p_likelihood_ratios,minimum_globals = generate_bin_values(dataframe, globals_dataframe, population_data)
+    wrm.write_bin_table(aFile, bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, likelihood_ratios, p_samples, p_globals, p_controls, p_likelihood_ratios,minimum_globals)
+   
+    
+    ################################
+    # Compute and write statistics #
+    ################################
+    # - binomial test
+    # - wilcoxon
+    wrm.write_label(aFile, "Statistics")
+    #p_binomial=binom_test(samples_gt_globals,n_targets_gt_0,0.5)
+    #stats_header_labels = ["Number of successes", "Number of targets", "pBinomial"]
+    #stats_header_values = [samples_gt_globals, n_targets_gt_0, p_binomial]
+    #wrm.write_information(aFile, stats_header_labels, stats_header_values, "   ")
+
+    #t_wilcox,p_wilcox=wilcoxon(all_sample_means,all_global_means)
+    #f2.write( 'Wilcoxon stat for sample vs globals means whole period:'+str(float(t_wilcox))+ '   p='+str(float(p_wilcox))+'\n')
+
+
+    ##################################
+    #Only include data with non-zero values in statistical tests#
+    ###################################
+    trimmed_bin_array=[]
+    trimmed_p_samples=[]
+    trimmed_p_globals=[]
+    trimmed_sample_counts=[]
+    trimmed_global_counts=[]
+    trimmed_likelihood_ratios=[]
+    for i in range(0, len(bin_array)):
+        if global_counts>min_globals:
+            trimmed_bin_array.append(bin_array[i])
+            trimmed_p_samples.append(p_samples[i])
+            trimmed_p_globals.append(p_globals[i])
+            trimmed_sample_counts.append(sample_counts[i])
+            trimmed_global_counts.append(global_counts[i])
+            trimmed_likelihood_ratios.append(likelihood_ratios[i])
+    #######################
+    # Test distributions match qualitative predictions from model
+    #######################
+    tests_passed=0
+    #######################
+    # Test distributions are different
+    #######################
+    t_wilcox,p_wilcox=wilcoxon(trimmed_p_samples,trimmed_p_globals)
+    aFile.write( 'Wilcoxon stat for samples vs globals with full controls:'+str(float(t_wilcox))+ '   p='+str(float(p_wilcox))+'\n')
+    ks_d,ks_p=ks_2samp(trimmed_p_samples,trimmed_p_globals)
+    aFile.write( 'KS test  for samples vs globals with full controls:'+str(float(ks_d))+ '   p='+str(float(ks_p))+'\n')
+    if ks_p<min_p:
+        aFile.write('The two distribitions are significantly different p<0.001'+'\n')
+        tests_passed=tests_passed+1
+        
+    ##################################
+    # Detect and display threshold and below curve #
+    ##################################
+    
+    threshold,successes,trials,p_threshold, below_curve, p_below_curve=detect_threshold(trimmed_bin_array, trimmed_sample_counts,trimmed_global_counts)
+    wrm.write_label(aFile,"Threshold analysis"+'\n')
+    aFile.write('Threshold: '+str(threshold)+'\n')
+    aFile.write('Successes: '+str(successes)+'\n')
+    aFile.write('Trials: '+str(trials)+'\n')
+    aFile.write('p: '+str(p_threshold)+'\n')
+    aFile.write('below_curve: '+str(below_curve)+'\n')
+    aFile.write('p_below_curve: '+str(p_below_curve)+'\n')
+    if p_threshold<min_p:
+        aFile.write('There is a significant threshold effect'+'\n')
+        tests_passed=tests_passed+1
+    if p_below_curve<min_p:
+        aFile.write('Samples_curve is significantly below globals curve '+'\n')
+        tests_passed=tests_passed+1
+    
+    
+    #################
+    # Fit data to logit curve #
+    #################
+    logit_results=fit_to_logit(trimmed_bin_array, trimmed_sample_counts, trimmed_global_counts)
+    logit_predictions=generate_logit_predictions(trimmed_bin_array,logit_results.params)
+   
+   
+    
+    
+    # Generate graphs and statistics #
+    ##################################
+    # - plots likelihood ratios and sites graphs
+    # stm.generate_stats_for_ratios(bin_array, likelihood_ratios, sample_counts, global_counts, p_likelihood_ratios, p_samples, p_globals, f2, "p Likelihood Ratio", new_path, directory)
+     # would like to get rid of this routine
+    #stm.generate_stats_for_ratios(bin_array, likelihood_ratios, sample_counts, global_counts, odds_ratios, p_samples, p_globals, f2, "Odds Ratio", new_path, directory, (population_data.max_population-population_data.bin_size*2), lower_cis=lower_cis, upper_cis=upper_cis)
+
+    # - plots p_graphs and write statistics (binomial and wilcoxon)
+    #threshold_binomial, threshold, threshold_success_count, threshold_trial_count, threshold_samples, threshold_controls = stm.generate_p_threshold_and_binomial(p_samples, p_controls, bin_array)
+   # logit_results=stm.fitToLogit(bin_array, sample_counts, global_counts)
+    plm.plot_p_graphs(trimmed_bin_array, trimmed_p_samples, trimmed_p_globals, aDirectory, aPath)
+    plm.plot_cumulative_p_graphs(trimmed_bin_array, trimmed_p_samples, trimmed_p_globals, aDirectory, aPath)
+    plm.plot_detection_frequencies (trimmed_bin_array, trimmed_likelihood_ratios, logit_predictions,  population_data.max_population-population_data.bin_size*2, aDirectory, "detection_frequencies", aPath)
+    wrm.write_label(aFile,"Logistic fit"+'\n')
+    aFile.write("Intercept: "+str(logit_results.params[1])+'\n')
+    aFile.write("Coefficient: "+str(logit_results.params[0])+'\n')
+    aFile.write("AIC: "+str(logit_results.aic)+'\n')
+    aFile.write("Pearson Chi2: "+str(logit_results.pearson_chi2)+'\n')
+# =============================================================================
+#         t_threshold_wilcoxon, p_threshold_wilcoxon = wilcoxon(threshold_controls, threshold_samples)
+#         wrm.write_label(f2, "Statistics for threshold bins")
+#         f2.write("Threshold: " + str(threshold))
+#         stats_header_labels = ["Number of successes", "Number of targets", "pBinomial"]
+#         stats_header_values = [threshold_success_count, threshold_trial_count, threshold_binomial]
+#         wrm.write_information(f2, stats_header_labels, stats_header_values, "   ")
+#         f2.write( 'Wilcoxon stat for pControls vs pSamples:'+str(float(t_threshold_wilcoxon))+ '   p='+str(float(p_threshold_wilcoxon))+'\n')
+# 
+# =============================================================================
+    # - plots targets and globals on a map
+    plm.plot_targets_on_map(dataframe, globals_dataframe, aPath, aDirectory)
+
+
+    
+
+   # if(is_confounder_analysis):
+   #     print("returning CA")
+   #     return self.dataframe, self.globals_dataframe, bin_array, sample_counts, global_counts, control_counts, odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_likelihood_ratios, tests_passed
+   # else:
+   #     return "Generated results", tests_passed
+   
+    
+    

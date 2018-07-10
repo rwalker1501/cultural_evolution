@@ -60,6 +60,9 @@ class MainProgram:
         self.min_lat = -40;
         self.max_date = 50000;
         self.min_date = 0;
+        self.min_globals=100 #this is (currently abitrary) value for min number of globals in a valid bin)
+        self.min_p=0.001 #this is (currently abitrary) min p value for qualitative tests of match to model)
+        self.reweighting=False
         
 
     def set_max_lat(self, value):
@@ -264,7 +267,7 @@ class MainProgram:
             else:
                 return ("Invalid column: " + column);
 
-            for x in range(0, 10):
+            for x in range(0, 2): #temporarily do just 2 data tests
 
                 length = int(math.ceil((max_val - min_val)/float(interval)))
 
@@ -321,60 +324,53 @@ class MainProgram:
 
                 globals_dataframe['m_global'] = globals_dataframe['density'].groupby(globals_dataframe['bin']).transform('count')*globals_dataframe['multiplier']
                 globals_dataframe['global_count'] = globals_dataframe['m_global'].groupby(globals_dataframe['bin']).transform('sum')
-
-                temp_df = globals_dataframe.groupby('bin').first().reset_index()
-                temp_global_counts = temp_df['global_count'].values
-                g_bin_array = temp_df['bin'].values;
-                extra_bins = len(bin_array) - len(g_bin_array)
-                if extra_bins > 0:
-                    g_bin_array = np.concatenate((g_bin_array, [0 for i in range(0, extra_bins)]))
-
-                temp_df = dataframe.groupby('bin').first().reset_index()
-                temp_sample_counts = temp_df['sample_count'].values;
-                s_bin_array = temp_df['bin'].values
-                extra_bins = len(bin_array) - len(s_bin_array)
-                if extra_bins > 0:
-                    s_bin_array = np.concatenate((s_bin_array, [0 for i in range(0, extra_bins)]))
-
-                s = 0;
-                g = 0;
-                global_counts = []
-                sample_counts = []
-                for i in range(0, len(bin_array)):
-                    if g_bin_array[i-g] != bin_array[i]:
-                        global_counts.append(0);
-                        g += 1;
-                    else:
-                        global_counts.append(temp_global_counts[i-g])
-
-                    if s_bin_array[i-s] != bin_array[i]:
-                        sample_counts.append(0);
-                        s += 1;
-                    else:
-                        sample_counts.append(temp_sample_counts[i-s])
-
-                control_counts = np.array(global_counts)-np.array(sample_counts);
-
-                odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, upper_cis, lower_cis = stm.generate_or_mh_ci_stats(sample_counts, global_counts, control_counts);
-
-                trimmed_bin_array = []
-                trimmed_ratios = []
-                trimmed_lower_cis = []
-                trimmed_upper_cis = []
-                for i in range(0, len(odds_ratios)):
-                    if odds_ratios[i] != "NA":
-                        trimmed_bin_array.append(bin_array[i])
-                        trimmed_ratios.append(odds_ratios[i])
-                        trimmed_lower_cis.append(lower_cis[i])
-                        trimmed_upper_cis.append(upper_cis[i])
-
-                results_identifier = directory + "_" + column + "_" + str(x);
-                plm.plot_odds_ratio(trimmed_bin_array, trimmed_ratios, 0, [], [], trimmed_lower_cis, trimmed_upper_cis, max_population-bin_size*2, results_identifier, "Odds Ratio", new_path);
-
-                label = column.title() + " " + str(x);
-                wrm.write_random_weighting_table(results_file, label, ranges, base_random_values, random_values, bin_array, odds_ratios);
-
-            results_file.close();
+                stm.write_results(results_file,results_directory,results_path,self.dataframe, self.globals_dataframe, population_data,self.min_globals, self.min_p)
+                
+# =============================================================================
+#                 
+# 
+#                 temp_df = globals_dataframe.groupby('bin').first().reset_index()
+#                 temp_global_counts = temp_df['global_count'].values
+#                 g_bin_array = temp_df['bin'].values;
+#                 extra_bins = len(bin_array) - len(g_bin_array)
+#                 if extra_bins > 0:
+#                     g_bin_array = np.concatenate((g_bin_array, [0 for i in range(0, extra_bins)]))
+# 
+#                 temp_df = dataframe.groupby('bin').first().reset_index()
+#                 temp_sample_counts = temp_df['sample_count'].values;
+#                 s_bin_array = temp_df['bin'].values
+#                 extra_bins = len(bin_array) - len(s_bin_array)
+#                 if extra_bins > 0:
+#                     s_bin_array = np.concatenate((s_bin_array, [0 for i in range(0, extra_bins)]))
+# 
+#                 s = 0;
+#                 g = 0;
+#                 global_counts = []
+#                 sample_counts = []
+#                 for i in range(0, len(bin_array)):
+#                     if g_bin_array[i-g] != bin_array[i]:
+#                         global_counts.append(0);
+#                         g += 1;
+#                     else:
+#                         global_counts.append(temp_global_counts[i-g])
+# 
+#                     if s_bin_array[i-s] != bin_array[i]:
+#                         sample_counts.append(0);
+#                         s += 1;
+#                     else:
+#                         sample_counts.append(temp_sample_counts[i-s])
+# 
+#                 control_counts = np.array(global_counts)-np.array(sample_counts);
+#                 generate_bin_values()
+#                 odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, upper_cis, lower_cis = stm.generate_or_mh_ci_stats(sample_counts, global_counts, control_counts);
+#                 results_identifier = directory + "_" + column + "_" + str(x);
+#    #             plm.plot_odds_ratio(trimmed_bin_array, trimmed_ratios, 0, [], [], trimmed_lower_cis, trimmed_upper_cis, max_population-bin_size*2, results_identifier, "Odds Ratio", new_path);
+# 
+#                 label = column.title() + " " + str(x);
+#                 wrm.write_random_weighting_table(results_file, label, ranges, base_random_values, random_values, bin_array, odds_ratios);
+# 
+# =============================================================================
+            results_file.close()
 
     def generate_confounder_analysis(self, population_data, original_target_list, base_path, directory):
 
@@ -486,6 +482,8 @@ class MainProgram:
 # 
 # =============================================================================
         return "Generated Results";
+    
+   
 
     def generate_results(self, population_data, original_target_list, base_path, directory, is_confounder_analysis):
 
@@ -573,112 +571,131 @@ class MainProgram:
         #################
         # - extracts bin values
         # - write bin values to file
-        bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_controls, p_likelihood_ratios,minimum_globals = stm.generate_bin_values(self.dataframe, self.globals_dataframe, population_data)
-        wrm.write_bin_table(f2, bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, likelihood_ratios, p_samples, p_globals, p_controls, p_likelihood_ratios,minimum_globals)
+        stm.write_results(f2,directory,new_path,self.dataframe, self.globals_dataframe, population_data,self.min_globals, self.min_p)
+        #bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_controls, p_likelihood_ratios,minimum_globals = stm.generate_bin_values(self.dataframe, self.globals_dataframe, population_data)
+       # wrm.write_bin_table(f2, bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, likelihood_ratios, p_samples, p_globals, p_controls, p_likelihood_ratios,minimum_globals)
        
-        
-        
-        ################################
-        # Compute and write statistics #
-        ################################
-        # - binomial test
-        # - wilcoxon
-        wrm.write_label(f2, "Statistics")
-        p_binomial=binom_test(samples_gt_globals,n_targets_gt_0,0.5)
-        stats_header_labels = ["Number of successes", "Number of targets", "pBinomial"]
-        stats_header_values = [samples_gt_globals, n_targets_gt_0, p_binomial]
-        wrm.write_information(f2, stats_header_labels, stats_header_values, "   ")
-
-        t_wilcox,p_wilcox=wilcoxon(all_sample_means,all_global_means)
-        f2.write( 'Wilcoxon stat for sample vs globals means whole period:'+str(float(t_wilcox))+ '   p='+str(float(p_wilcox))+'\n')
-
-
-        ##################################
-        #Only include data with non-zero values in statistical tests#
-        ###################################
-        trimmed_bin_array=[]
-        trimmed_p_samples=[]
-        trimmed_p_globals=[]
-        trimmed_sample_counts=[]
-        trimmed_global_counts=[]
-        trimmed_likelihood_ratios=[]
-        for i in range(0, len(bin_array)):
-            if global_counts>0:
-                trimmed_bin_array.append(bin_array[i])
-                trimmed_p_samples.append(p_samples[i])
-                trimmed_p_globals.append(p_globals[i])
-                trimmed_sample_counts.append(sample_counts[i])
-                trimmed_global_counts.append(global_counts[i])
-                trimmed_likelihood_ratios.append(likelihood_ratios[i])
-
-        #######################
-        # Test distributions are different
-        #######################
-        t_wilcox,p_wilcox=wilcoxon(trimmed_p_samples,trimmed_p_globals)
-        f2.write( 'Wilcoxon stat for samples vs globals with full controls:'+str(float(t_wilcox))+ '   p='+str(float(p_wilcox))+'\n')
-        ks_d,ks_p=ks_2samp(trimmed_p_samples,trimmed_p_globals)
-        f2.write( 'KS test  for samples vs globals with full controls:'+str(float(ks_d))+ '   p='+str(float(ks_p))+'\n')
-        
-        #################
-        # Fit data to logit curve #
-        #################
-        logit_results=stm.fit_to_logit(trimmed_bin_array, trimmed_sample_counts, trimmed_global_counts)
-        logit_predictions=stm.generate_logit_predictions(trimmed_bin_array,logit_results.params)
-       
-        ##################################
-        # Detect and display threshold #
-        #################
-        
-        threshold,successes,trials,p_threshold, below_curve, p_below_curve=stm.detect_threshold(trimmed_bin_array, trimmed_sample_counts,trimmed_global_counts)
-        wrm.write_label(f2,"Threshold analysis"+'\n')
-        f2.write('Threshold: '+str(threshold)+'\n')
-        f2.write('Successes: '+str(successes)+'\n')
-        f2.write('Trials: '+str(trials)+'\n')
-        f2.write('p: '+str(p_threshold)+'\n')
-        f2.write('below_curve: '+str(below_curve)+'\n')
-        f2.write('p_below_curve: '+str(p_below_curve)+'\n')
-        
-        
-        
-        # Generate graphs and statistics #
-        ##################################
-        # - plots likelihood ratios and sites graphs
-        # stm.generate_stats_for_ratios(bin_array, likelihood_ratios, sample_counts, global_counts, p_likelihood_ratios, p_samples, p_globals, f2, "p Likelihood Ratio", new_path, directory)
-         # would like to get rid of this routine
-        #stm.generate_stats_for_ratios(bin_array, likelihood_ratios, sample_counts, global_counts, odds_ratios, p_samples, p_globals, f2, "Odds Ratio", new_path, directory, (population_data.max_population-population_data.bin_size*2), lower_cis=lower_cis, upper_cis=upper_cis)
-
-        # - plots p_graphs and write statistics (binomial and wilcoxon)
-        #threshold_binomial, threshold, threshold_success_count, threshold_trial_count, threshold_samples, threshold_controls = stm.generate_p_threshold_and_binomial(p_samples, p_controls, bin_array)
-       # logit_results=stm.fitToLogit(bin_array, sample_counts, global_counts)
-        plm.plot_p_graphs(trimmed_bin_array, trimmed_p_samples, trimmed_p_globals, directory, new_path)
-        plm.plot_cumulative_p_graphs(trimmed_bin_array, trimmed_p_samples, trimmed_p_globals, directory, new_path)
-        plm.plot_detection_frequencies (trimmed_bin_array, trimmed_likelihood_ratios, logit_predictions,  population_data.max_population-population_data.bin_size*2, directory, "detection_frequencies", new_path)
-        wrm.write_label(f2,"Logistic fit"+'\n')
-        f2.write("Intercept: "+str(logit_results.params[1])+'\n')
-        f2.write("Coefficient: "+str(logit_results.params[0])+'\n')
-        f2.write("AIC: "+str(logit_results.aic)+'\n')
-        f2.write("Pearson Chi2: "+str(logit_results.pearson_chi2)+'\n')
 # =============================================================================
-#         t_threshold_wilcoxon, p_threshold_wilcoxon = wilcoxon(threshold_controls, threshold_samples)
-#         wrm.write_label(f2, "Statistics for threshold bins")
-#         f2.write("Threshold: " + str(threshold))
+#         
+#     
+#         ################################
+#         # Compute and write statistics #
+#         ################################
+#         # - binomial test
+#         # - wilcoxon
+#         wrm.write_label(f2, "Statistics")
+#         p_binomial=binom_test(samples_gt_globals,n_targets_gt_0,0.5)
 #         stats_header_labels = ["Number of successes", "Number of targets", "pBinomial"]
-#         stats_header_values = [threshold_success_count, threshold_trial_count, threshold_binomial]
+#         stats_header_values = [samples_gt_globals, n_targets_gt_0, p_binomial]
 #         wrm.write_information(f2, stats_header_labels, stats_header_values, "   ")
-#         f2.write( 'Wilcoxon stat for pControls vs pSamples:'+str(float(t_threshold_wilcoxon))+ '   p='+str(float(p_threshold_wilcoxon))+'\n')
+# 
+#         t_wilcox,p_wilcox=wilcoxon(all_sample_means,all_global_means)
+#         f2.write( 'Wilcoxon stat for sample vs globals means whole period:'+str(float(t_wilcox))+ '   p='+str(float(p_wilcox))+'\n')
+# 
+# 
+#         ##################################
+#         #Only include data with non-zero values in statistical tests#
+#         ###################################
+#         trimmed_bin_array=[]
+#         trimmed_p_samples=[]
+#         trimmed_p_globals=[]
+#         trimmed_sample_counts=[]
+#         trimmed_global_counts=[]
+#         trimmed_likelihood_ratios=[]
+#         for i in range(0, len(bin_array)):
+#             if global_counts>self.min_globals:
+#                 trimmed_bin_array.append(bin_array[i])
+#                 trimmed_p_samples.append(p_samples[i])
+#                 trimmed_p_globals.append(p_globals[i])
+#                 trimmed_sample_counts.append(sample_counts[i])
+#                 trimmed_global_counts.append(global_counts[i])
+#                 trimmed_likelihood_ratios.append(likelihood_ratios[i])
+#         #######################
+#         # Test distributions match qualitative predictions from model
+#         #######################
+#         tests_passed=0
+#         #######################
+#         # Test distributions are different
+#         #######################
+#         t_wilcox,p_wilcox=wilcoxon(trimmed_p_samples,trimmed_p_globals)
+#         f2.write( 'Wilcoxon stat for samples vs globals with full controls:'+str(float(t_wilcox))+ '   p='+str(float(p_wilcox))+'\n')
+#         ks_d,ks_p=ks_2samp(trimmed_p_samples,trimmed_p_globals)
+#         f2.write( 'KS test  for samples vs globals with full controls:'+str(float(ks_d))+ '   p='+str(float(ks_p))+'\n')
+#         if ks_p<self.min_p:
+#             f2.write('The two distribitions are significantly different p<0.001'+'\n')
+#             tests_passed=tests_passed+1
+#             
+#         ##################################
+#         # Detect and display threshold and below curve #
+#         ##################################
+#         
+#         threshold,successes,trials,p_threshold, below_curve, p_below_curve=stm.detect_threshold(trimmed_bin_array, trimmed_sample_counts,trimmed_global_counts)
+#         wrm.write_label(f2,"Threshold analysis"+'\n')
+#         f2.write('Threshold: '+str(threshold)+'\n')
+#         f2.write('Successes: '+str(successes)+'\n')
+#         f2.write('Trials: '+str(trials)+'\n')
+#         f2.write('p: '+str(p_threshold)+'\n')
+#         f2.write('below_curve: '+str(below_curve)+'\n')
+#         f2.write('p_below_curve: '+str(p_below_curve)+'\n')
+#         if p_threshold<self.min_p:
+#             f2.write('There is a significant threshold effect'+'\n')
+#             tests_passed=tests_passed+1
+#         if p_below_curve<self.min_p:
+#             f2.write('Samples_curve is significantly below globals curve '+'\n')
+#             tests_passed=tests_passed+1
+#         
+#         
+#         #################
+#         # Fit data to logit curve #
+#         #################
+#         logit_results=stm.fit_to_logit(trimmed_bin_array, trimmed_sample_counts, trimmed_global_counts)
+#         logit_predictions=stm.generate_logit_predictions(trimmed_bin_array,logit_results.params)
+#        
+#        
+#         
+#         
+#         # Generate graphs and statistics #
+#         ##################################
+#         # - plots likelihood ratios and sites graphs
+#         # stm.generate_stats_for_ratios(bin_array, likelihood_ratios, sample_counts, global_counts, p_likelihood_ratios, p_samples, p_globals, f2, "p Likelihood Ratio", new_path, directory)
+#          # would like to get rid of this routine
+#         #stm.generate_stats_for_ratios(bin_array, likelihood_ratios, sample_counts, global_counts, odds_ratios, p_samples, p_globals, f2, "Odds Ratio", new_path, directory, (population_data.max_population-population_data.bin_size*2), lower_cis=lower_cis, upper_cis=upper_cis)
+# 
+#         # - plots p_graphs and write statistics (binomial and wilcoxon)
+#         #threshold_binomial, threshold, threshold_success_count, threshold_trial_count, threshold_samples, threshold_controls = stm.generate_p_threshold_and_binomial(p_samples, p_controls, bin_array)
+#        # logit_results=stm.fitToLogit(bin_array, sample_counts, global_counts)
+#         plm.plot_p_graphs(trimmed_bin_array, trimmed_p_samples, trimmed_p_globals, directory, new_path)
+#         plm.plot_cumulative_p_graphs(trimmed_bin_array, trimmed_p_samples, trimmed_p_globals, directory, new_path)
+#         plm.plot_detection_frequencies (trimmed_bin_array, trimmed_likelihood_ratios, logit_predictions,  population_data.max_population-population_data.bin_size*2, directory, "detection_frequencies", new_path)
+#         wrm.write_label(f2,"Logistic fit"+'\n')
+#         f2.write("Intercept: "+str(logit_results.params[1])+'\n')
+#         f2.write("Coefficient: "+str(logit_results.params[0])+'\n')
+#         f2.write("AIC: "+str(logit_results.aic)+'\n')
+#         f2.write("Pearson Chi2: "+str(logit_results.pearson_chi2)+'\n')
+# # =============================================================================
+# #         t_threshold_wilcoxon, p_threshold_wilcoxon = wilcoxon(threshold_controls, threshold_samples)
+# #         wrm.write_label(f2, "Statistics for threshold bins")
+# #         f2.write("Threshold: " + str(threshold))
+# #         stats_header_labels = ["Number of successes", "Number of targets", "pBinomial"]
+# #         stats_header_values = [threshold_success_count, threshold_trial_count, threshold_binomial]
+# #         wrm.write_information(f2, stats_header_labels, stats_header_values, "   ")
+# #         f2.write( 'Wilcoxon stat for pControls vs pSamples:'+str(float(t_threshold_wilcoxon))+ '   p='+str(float(p_threshold_wilcoxon))+'\n')
+# # 
+# # =============================================================================
+#         # - plots targets and globals on a map
+#         plm.plot_targets_on_map(self.dataframe, self.globals_dataframe, new_path, directory)
+# 
+# 
+#         f2.close()
 # 
 # =============================================================================
-        # - plots targets and globals on a map
-        plm.plot_targets_on_map(self.dataframe, self.globals_dataframe, new_path, directory)
-
-
-        f2.close()
-
-        if(is_confounder_analysis):
-            print("returning CA")
-            return self.dataframe, self.globals_dataframe, bin_array, sample_counts, global_counts, control_counts, odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_likelihood_ratios
-        else:
-            return "Generated results."
+#          if(is_confounder_analysis):
+#              print("returning CA")
+#              return self.dataframe, self.globals_dataframe, bin_array, sample_counts, global_counts, control_counts, odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_likelihood_ratios, tests_passed
+#          else:
+#              return "Generated results", tests_passed
+# =============================================================================
+# =============================================================================
 
 def plot_population_by_time(population_data_name, time):
     mp = MainProgram()
@@ -725,7 +742,7 @@ def plot_min_densities_in_time_range(population_data_name, time_from, time_to, m
     mp.plot_min_densities_in_time_range(population_data, time_from, time_to, min_density);
 
 
-def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", the_globals="All", date_window=50, user_max_for_uninhabited=1, clustering_on = False, critical_distance=0, filter_date_before=-1, filter_not_direct=False, filter_not_exact=False, filter_not_figurative=False, filter_not_controversial = False, perform_cross_validation=False, number_of_kfolds = 100,  min_date_window=0, critical_time=10000, filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False, is_confounder_analysis=False):
+def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", the_globals="All", date_window=50, user_max_for_uninhabited=1, clustering_on = False, critical_distance=0, filter_date_before=-1, filter_not_direct=False, filter_not_exact=False, filter_not_figurative=False, filter_not_controversial = False, perform_cross_validation=False, number_of_kfolds = 100,  min_date_window=0, critical_time=10000, filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False, is_confounder_analysis=False,reweighting=False):
   # Note: current setting of minimum_globals is overwritten in stats_modulegenera
     mp = MainProgram()
     base_path = mp.get_base_path()
@@ -785,9 +802,11 @@ def run_experiment(results_path, target_list_file, output_directory, population_
     #     mp.set_number_of_kfolds(number_of_kfolds)
     #     mp.set_minimum_likelihood_ratio(minimum_likelihood_ratio)
 
-    
-    if is_confounder_analysis:
-        return mp.generate_confounder_analysis(population_data, target_list, results_path, output_directory)
-    else:
-        return mp.generate_results(population_data, target_list, results_path, output_directory, False)
+    if not reweighting:
+        if is_confounder_analysis:
+            return mp.generate_confounder_analysis(population_data, target_list, results_path, output_directory)
+        else:
+            return mp.generate_results(population_data, target_list, results_path, output_directory, False)
+    if reweighting:
+       mp.generate_reweighted_data(population_data, target_list, base_path, output_directory)
 
