@@ -61,7 +61,7 @@ class MainProgram:
         self.max_date = 50000;
         self.min_date = 0;
         self.min_globals=100 #this is (currently abitrary) value for min number of globals in a valid bin)
-        self.min_p=0.001 #this is (currently abitrary) min p value for qualitative tests of match to model)
+        self.min_p=0.01 #this is (currently abitrary) min p value for qualitative tests of match to model)
         self.reweighting=False
         
 
@@ -232,7 +232,9 @@ class MainProgram:
         self.population_data_sources.append(new_population_data)
 
     def generate_reweighted_data(self, population_data, original_target_list, base_path, directory):
-
+        test_labels=[]
+        test_results=[]
+        tests_passed_array=[]
         results_path = os.path.join(base_path, "results")
         if not os.path.exists(results_path):
             os.makedirs(results_path)
@@ -244,11 +246,12 @@ class MainProgram:
         clustered_target_list, self.dataframe, self.globals_dataframe = tam.process_targets(self.base_path, population_data, original_target_list, self.dataframe, self.globals_dataframe, self.globals, self.dataframe_loaded, self.clustering_on, self.date_window, self.critical_distance, self.critical_time, directory, self.min_date_window, self.min_lat, self.max_lat, self.min_date, self.max_date)
 
         columns = ["period", "latitude"];
+        
 
         for column in columns:
-            results_directory = directory + "_" + column + "_results.csv";
-            results_filename = os.path.join(new_path, results_directory);
-            results_file = open(results_filename, 'w');
+            results_directory = directory + "_" + column + "_results.csv"; #This is not a directory - needs to be cleaned up
+            test_results_filename = os.path.join(new_path, results_directory);
+            test_results_file = open(test_results_filename, 'w');
 
             unique_keys = []
             min_val = 0
@@ -267,7 +270,7 @@ class MainProgram:
             else:
                 return ("Invalid column: " + column);
 
-            for x in range(0, 2): #temporarily do just 2 data tests
+            for x in range(0, 2): 
 
                 length = int(math.ceil((max_val - min_val)/float(interval)))
 
@@ -324,10 +327,17 @@ class MainProgram:
 
                 globals_dataframe['m_global'] = globals_dataframe['density'].groupby(globals_dataframe['bin']).transform('count')*globals_dataframe['multiplier']
                 globals_dataframe['global_count'] = globals_dataframe['m_global'].groupby(globals_dataframe['bin']).transform('sum')
-                stm.write_results(results_file,results_directory,results_path,self.dataframe, self.globals_dataframe, population_data,self.min_globals, self.min_p)
-                
+                label="Reweighting"
+                identifier=directory + "_" + column + "_" + str(x); #x is the number of the attempt
+                results_filename=os.path.join(new_path,str(identifier) + "_" + label +".csv")   
+                print "results_filename=",results_filename
+                print "path=",new_path
+                results_file=open(results_filename, 'w')
+                tests_passed=stm.write_results(results_file,identifier,new_path,self.dataframe, self.globals_dataframe, population_data,self.min_globals, self.min_p)
+                test_results_file.write(str(x)+";"+str(tests_passed) +"\n")
+
 # =============================================================================
-#                 
+#                 Richard cut this but it probably is necessary - if so the previous write results instruction comes too early                
 # 
 #                 temp_df = globals_dataframe.groupby('bin').first().reset_index()
 #                 temp_global_counts = temp_df['global_count'].values
@@ -370,7 +380,10 @@ class MainProgram:
 #                 wrm.write_random_weighting_table(results_file, label, ranges, base_random_values, random_values, bin_array, odds_ratios);
 # 
 # =============================================================================
+            
+            test_results_file.close()
             results_file.close()
+            
 
     def generate_confounder_analysis(self, population_data, original_target_list, base_path, directory):
 

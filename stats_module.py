@@ -139,20 +139,21 @@ def detect_threshold(bins,n_samples,n_globals):
             
 
 def fit_to_logit(bins, sample_counts, global_counts):
+# This needs to be checked
     bins=sm.add_constant(bins, prepend=False)
-    print "bins"
+ #   print "bins"
     for i in range(0,5):
         aRecord=bins[i]
         for j in range(0,len(aRecord)):
-            print bins[j]," "
-        print "\nl"
+ #           print bins[j]," "
+ #       print "\nl"
     sample_globals=[]
     for i in range(0,len(sample_counts)):
          # I add 0.000001 to all counts to make fit work - temporary fix for bug in statsModels
         sample_globals.append([sample_counts[i]+0.000001,global_counts[i]+0.000001])
     glm_binom = sm.GLM(sample_globals, bins, family=sm.families.Binomial())
     res = glm_binom.fit()
-    print(res.summary())
+    #print(res.summary())
     return(res)
     
 def generate_logit_predictions(bins,params):
@@ -689,7 +690,7 @@ def threshold_model(x,threshold,gamma,beta):
 #     return(results)
 # =============================================================================
     
-def write_results(aFile,aDirectory, aPath,dataframe, globals_dataframe,population_data, min_globals, min_p):
+def write_results(aFile,anIdentifier, aPath,dataframe, globals_dataframe,population_data, min_globals, min_p):
     
     bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_controls, p_likelihood_ratios,minimum_globals = generate_bin_values(dataframe, globals_dataframe, population_data)
     wrm.write_bin_table(aFile, bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, likelihood_ratios, p_samples, p_globals, p_controls, p_likelihood_ratios,minimum_globals)
@@ -781,9 +782,9 @@ def write_results(aFile,aDirectory, aPath,dataframe, globals_dataframe,populatio
     # - plots p_graphs and write statistics (binomial and wilcoxon)
     #threshold_binomial, threshold, threshold_success_count, threshold_trial_count, threshold_samples, threshold_controls = stm.generate_p_threshold_and_binomial(p_samples, p_controls, bin_array)
    # logit_results=stm.fitToLogit(bin_array, sample_counts, global_counts)
-    plm.plot_p_graphs(trimmed_bin_array, trimmed_p_samples, trimmed_p_globals, aDirectory, aPath)
-    plm.plot_cumulative_p_graphs(trimmed_bin_array, trimmed_p_samples, trimmed_p_globals, aDirectory, aPath)
-    plm.plot_detection_frequencies (trimmed_bin_array, trimmed_likelihood_ratios, logit_predictions,  population_data.max_population-population_data.bin_size*2, aDirectory, "detection_frequencies", aPath)
+    plm.plot_p_graphs(trimmed_bin_array, trimmed_p_samples, trimmed_p_globals, anIdentifier, aPath)
+    plm.plot_cumulative_p_graphs(trimmed_bin_array, trimmed_p_samples, trimmed_p_globals, anIdentifier, aPath)
+    plm.plot_detection_frequencies (trimmed_bin_array, trimmed_likelihood_ratios, logit_predictions,  population_data.max_population-population_data.bin_size*2, anIdentifier, "detection_frequencies", aPath)
     wrm.write_label(aFile,"Logistic fit"+'\n')
     aFile.write("Intercept: "+str(logit_results.params[1])+'\n')
     aFile.write("Coefficient: "+str(logit_results.params[0])+'\n')
@@ -800,7 +801,9 @@ def write_results(aFile,aDirectory, aPath,dataframe, globals_dataframe,populatio
 # 
 # =============================================================================
     # - plots targets and globals on a map
-    plm.plot_targets_on_map(dataframe, globals_dataframe, aPath, aDirectory)
+    plm.plot_targets_on_map(dataframe, globals_dataframe, aPath, anIdentifier)
+    print "tests_passed", tests_passed
+    
 
 
     
