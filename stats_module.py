@@ -142,9 +142,9 @@ def fit_to_logit(bins, sample_counts, global_counts):
 # This needs to be checked
     bins=sm.add_constant(bins, prepend=False)
  #   print "bins"
-    for i in range(0,5):
-        aRecord=bins[i]
-        for j in range(0,len(aRecord)):
+ #   for i in range(0,5):
+ #       aRecord=bins[i]
+ #       for j in range(0,len(aRecord)):
  #           print bins[j]," "
  #       print "\nl"
     sample_globals=[]

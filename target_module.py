@@ -64,7 +64,7 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
         # print(new_df[new_df.type == 's'])
         # save dataframe in processed_targets folder
         dataframe_filename = os.path.join(processed_targets_dir, directory + "_dataframe.csv")
-        new_df.to_csv(dataframe_filename, sep=";",quoting="QUOTE_NONNUMERIC") #this is an addition to get file written in good format for excel
+        new_df.to_csv(dataframe_filename, sep=";",quoting=csv.QUOTE_NONNUMERIC) #this is an addition to get file written in good format for excel
         dataframe = new_df
 
 
@@ -318,7 +318,7 @@ def load_bin_globals_for_all(population_data, target_list, date_window, min_lat,
     df = df[df.type=='c']
     del df['location']
     del df['cluster_id']
-    del df['pseudo_type']
+ #   del df['pseudo_type']
     del df['type']
     del df['contribution']
     del df['is_dir'];

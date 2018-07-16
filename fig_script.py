@@ -45,8 +45,8 @@ base_path = os.getcwd()
 # Figure 1A: map of all sites and controls. Use a different colour (green) for sites where we have "direct" and "exact age" compared to all other sites
 # Fig 2A: pGraph for world, Eriksson
 # Fig 2B: OR graph for world, Eriksson
-#mm.run_experiment(base_path, "rpv12", "rpv12",date_window=24);
-mm.run_experiment(base_path, "rpv12", "rpv12",date_window=999,reweighting=True);
+mm.run_experiment(base_path, "rpv12", "rpv12",date_window=24);
+#mm.run_experiment(base_path, "rpv12", "rpv12",date_window=999,reweighting=True);
 
 # # # Fig 1B: map of population densities with Eriksson model at 25000 BP
 #mm.plot_population_by_time("Eriksson", 25000);
