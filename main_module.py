@@ -48,7 +48,7 @@ class MainProgram:
         self.globals_dataframe = pd.DataFrame()
         self.clustering_on=False
         self.critical_distance=0
-        self.date_window=50
+        self.date_window=24
         self.number_of_kfolds = 10
         self.minimum_likelihood_ratio = 0
         self.perform_cross_validation = False
@@ -725,7 +725,7 @@ def plot_min_densities_in_time_range(population_data_name, time_from, time_to, m
     mp.plot_min_densities_in_time_range(population_data, time_from, time_to, min_density);
 
 
-def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", the_globals="All", date_window=50, user_max_for_uninhabited=1, clustering_on = False, critical_distance=0, filter_date_before=-1, filter_not_direct=False, filter_not_exact=False, filter_not_figurative=False, filter_not_controversial = False, perform_cross_validation=False, number_of_kfolds = 100,  min_date_window=0, critical_time=10000, filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False, is_confounder_analysis=False):
+def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", the_globals="All", date_window=24, user_max_for_uninhabited=1, clustering_on = False, critical_distance=0, filter_date_before=-1, filter_not_direct=False, filter_not_exact=False, filter_not_figurative=False, filter_not_controversial = False, perform_cross_validation=False, number_of_kfolds = 100,  min_date_window=0, critical_time=10000, filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False, is_confounder_analysis=False):
   # Note: current setting of minimum_globals is overwritten in stats_modulegenera
     mp = MainProgram()
     base_path = mp.get_base_path()
