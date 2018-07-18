@@ -318,7 +318,7 @@ def load_bin_globals_for_all(population_data, target_list, date_window, min_lat,
     df = df[df.type=='c']
     del df['location']
     del df['cluster_id']
- #   del df['pseudo_type']
+    del df['pseudo_type']
     del df['type']
     del df['contribution']
     del df['is_dir'];
@@ -695,3 +695,25 @@ def get_min_max_latitude_of_targets(target_list):
 def print_target(target, date_window):
     print(target.location,': cluster_id:',target.cluster_id, ' lat_nw:',target.lat_nw,' lon_nw:',target.lon_nw,'lat_se:',target.lat_se,'lon_se:',target.lon_se,'date_from:',target.date_from,'  date_to:',target.date_from+date_window)
     
+
+def generate_merged_dataframe(base_path,directory, dataframe, globals_dataframe):
+    processed_targets_dir = os.path.join(base_path, "processed_targets")
+    merged_df_filename= os.path.join(processed_targets_dir, directory + "_merged_df.csv") 
+    if not os.path.exists(processed_targets_dir):
+        os.makedirs(processed_targets_dir)
+    temp_globals_df = globals_dataframe.copy();
+    temp_targets_df = dataframe.copy();
+    temp_globals_df['type'] = 'g';
+    temp_globals_df['pseudo_type'] = 'b';
+    # remove this line if you want to retain type 'c' (globals/'old controls' per target)
+    temp_targets_df = temp_targets_df[temp_targets_df.type == 's'];
+    del temp_targets_df['location']
+    del temp_targets_df['cluster_id']
+    del temp_targets_df['contribution']
+    del temp_targets_df['is_dir'];
+    del temp_targets_df['is_exact'];
+    to_concat = [temp_globals_df, temp_targets_df]
+    merged_df = pd.concat(to_concat);
+    merged_df.to_csv(merged_df_filename, sep=";")
+    print "merged df filename=",merged_df_filename
+    return merged_df

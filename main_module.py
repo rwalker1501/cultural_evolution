@@ -391,9 +391,18 @@ class MainProgram:
         df_loaded = self.dataframe_loaded;
 
         # Regular analysis
+        if population_data is None:
+            print "Population data is none"
+        if original_target_list is None:
+            print"target list is none"
+        if base_path is None:
+            print "base path is none"
+        if directory is None:
+            print "directory is none"
+        results=self.generate_results(population_data, original_target_list, base_path, directory+"_base", True)
+        if results is None:
+            print "No results from generate_results"
         dataframe, globals_dataframe, bin_array, sample_counts, global_counts, control_counts, orig_odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_likelihood_ratios = self.generate_results(population_data, original_target_list, base_path, directory+"_base", True)
-
-
         # Date analysis
         minimum_date = self.min_date;
         maximum_date = self.max_date;
@@ -560,6 +569,7 @@ class MainProgram:
         clustered_target_list, self.dataframe, self.globals_dataframe = tam.process_targets(self.base_path, population_data, original_target_list, self.dataframe, self.globals_dataframe, self.globals, self.dataframe_loaded, self.clustering_on, self.date_window, self.critical_distance, self.critical_time, directory, self.min_date_window, self.min_lat, self.max_lat, self.min_date, self.max_date)
 
         if self.dataframe.empty:
+            print "No geographic points fall in target area"
             f2.write("No Geographic Points Fall in Target Areas")
             f2.close()
             return "No Geographic Points Fall in Target Areas"
@@ -584,6 +594,7 @@ class MainProgram:
         #################
         # - extracts bin values
         # - write bin values to file
+        tam.generate_merged_dataframe(base_path,directory,self.dataframe,self.globals_dataframe)
         stm.write_results(f2,directory,new_path,self.dataframe, self.globals_dataframe, population_data,self.min_globals, self.min_p)
         #bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_controls, p_likelihood_ratios,minimum_globals = stm.generate_bin_values(self.dataframe, self.globals_dataframe, population_data)
        # wrm.write_bin_table(f2, bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, likelihood_ratios, p_samples, p_globals, p_controls, p_likelihood_ratios,minimum_globals)
@@ -755,7 +766,7 @@ def plot_min_densities_in_time_range(population_data_name, time_from, time_to, m
     mp.plot_min_densities_in_time_range(population_data, time_from, time_to, min_density);
 
 
-def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", the_globals="All", date_window=50, user_max_for_uninhabited=1, clustering_on = False, critical_distance=0, filter_date_before=-1, filter_not_direct=False, filter_not_exact=False, filter_not_figurative=False, filter_not_controversial = False, perform_cross_validation=False, number_of_kfolds = 100,  min_date_window=0, critical_time=10000, filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False, is_confounder_analysis=False,reweighting=False):
+def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", the_globals="All", date_window=24, user_max_for_uninhabited=1, clustering_on = False, critical_distance=0, filter_date_before=-1, filter_not_direct=False, filter_not_exact=False, filter_not_figurative=False, filter_not_controversial = False, perform_cross_validation=False, number_of_kfolds = 100,  min_date_window=0, critical_time=10000, filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False, is_confounder_analysis=False,reweighting=False):
   # Note: current setting of minimum_globals is overwritten in stats_modulegenera
     mp = MainProgram()
     base_path = mp.get_base_path()
