@@ -129,18 +129,19 @@ def write_information(a_file, labels, values, delimiter):
 
 
 def write_cluster_table(a_file, dataframe, growth_coefficients):
-    cluster_headers=["First Location in cluster", "Cluster", "Latitude", "Longitude", "Sample/Global", "Mean Population Density over Period", "N samples over period", "growthCoefficient"]
+    cluster_headers=["First Location in cluster", "Cluster", "Latitude", "Longitude", "Sample/Global", "Median Population Density over Period", "N samples over period", "growthCoefficient"]
     write_headers(a_file, cluster_headers, ';')
 
     ################################
     # Group by cluster id and type #
+    # Modified to report medians instead of means
     ################################
     # - aggregate by mean
+    #new_data = dataframe.groupby(['cluster_id', 'pseudo_type']).mean().reset_index()
     new_data = dataframe.groupby(['cluster_id', 'pseudo_type']).mean().reset_index()
-
     temp_types = new_data['pseudo_type'].values
     cluster_ids = new_data['cluster_id'].values
-    means = new_data['density'].values
+    medians = new_data['density'].values
     # aggregate by sum
     counts = dataframe.groupby(['cluster_id', 'pseudo_type']).sum()['contribution'].values
 
@@ -158,7 +159,7 @@ def write_cluster_table(a_file, dataframe, growth_coefficients):
             a_file.write("Sample;")
         else:
             a_file.write('Global;')
-        a_file.write(str(means[i]) + ";")
+        a_file.write(str(medians[i]) + ";")
         a_file.write(str(counts[i]) + ";")
         a_file.write(str(growth_coefficients[i]))
         a_file.write("\n")

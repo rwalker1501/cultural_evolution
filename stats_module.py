@@ -16,10 +16,11 @@ from sklearn.model_selection import RepeatedKFold
 def process_dataframe(data, max_for_uninhabited):
 
     # print(data)
-    all_sample_means=[]
-    all_global_means=[]
+    all_sample_medians=[]
+    all_global_medians=[]
     growth_coefficients = []
     samples_gt_globals = 0
+    growth_samples_gt_globals=0
     n_targets_gt_0 = 0
 
     max_cluster_id = data['cluster_id'].max()
@@ -37,16 +38,16 @@ def process_dataframe(data, max_for_uninhabited):
         cluster_df = cluster_df[cluster_df.density > max_for_uninhabited]
 
         #########################################
-        # Get the mean for samples and globals #
+        # Get the median for samples and globals #
         #########################################
         # Get every sample in the cluster..
         sample_cluster_df = cluster_df[cluster_df.type == 's']
         # take the mean of these samples
-        sample_mean = sample_cluster_df['density'].mean()
+        sample_median = sample_cluster_df['density'].median()
 
         #if the sample mean is zero we do not consider the sample or the related global
-        if np.isnan(sample_mean): 
-            sample_mean=0
+        if np.isnan(sample_median): 
+            sample_median=0
             # we delete the cluster from the original dataframe
             data = data[data.cluster_id != i]
             continue
@@ -55,12 +56,13 @@ def process_dataframe(data, max_for_uninhabited):
         # Get every global in the cluster..
         global_cluster_df = cluster_df[cluster_df.type == 'c']
         # take the mean of these globals
-        global_mean = global_cluster_df['density'].mean()
-        if np.isnan(global_mean):
-            global_mean=0
-
-        all_sample_means.append(sample_mean)
-        all_global_means.append(global_mean)
+        global_median = global_cluster_df['density'].median()
+        if np.isnan(global_median):
+            global_median=0
+        if sample_median>global_median:
+            samples_gt_globals += 1
+        all_sample_medians.append(sample_median)
+        all_global_medians.append(global_median)
 
 
         ###############################
@@ -76,14 +78,14 @@ def process_dataframe(data, max_for_uninhabited):
         global_populations = global_cluster_df['density'].values
 
         # compute growth coefficients for samples and globals
-        growth_coefficients.append(compute_growth_coefficient(sample_times, sample_populations))
-        growth_coefficients.append(compute_growth_coefficient(global_times, global_populations))
-            
-        if sample_mean>global_mean:
-            samples_gt_globals += 1
-
+        growth_coefficient_samples=compute_growth_coefficient(sample_times, sample_populations)
+        growth_coefficient_globals=compute_growth_coefficient(global_times, global_populations)
+        if growth_coefficient_samples>growth_coefficient_globals:
+           growth_samples_gt_globals+=1   
+        growth_coefficients.append(growth_coefficient_samples)
+        growth_coefficients.append(growth_coefficient_globals)           
     # print(data)
-    return all_sample_means, all_global_means, growth_coefficients, samples_gt_globals, n_targets_gt_0, data
+    return all_sample_medians, all_global_medians, growth_coefficients, samples_gt_globals, n_targets_gt_0, data,growth_samples_gt_globals
 
 def compute_growth_coefficient(times, populations):
     if len(times)>=2:
@@ -205,8 +207,6 @@ def generate_bin_values(dataframe, globals_dataframe, population_data):
     # total globals by counting rows
     total_samples = dataframe[dataframe.type=='s']['contribution'].sum()
     total_globals = globals_dataframe['density'].count()
-
-
     p_for_filter=float(total_samples/total_globals)
     q_for_filter=1-p_for_filter
     # compute min globals necessary to get confidence of 0.95 on likelihood ratio with range of 0.0025 - this is questionnable
@@ -761,7 +761,17 @@ def write_results(aFile,anIdentifier, aPath,dataframe, globals_dataframe,populat
     if p_below_curve<min_p:
         aFile.write('Samples_curve is significantly below globals curve '+'\n')
         tests_passed=tests_passed+1
-    
+    ##################################
+    #  comnpute medians
+    ##################################
+    median_samples=dataframe[dataframe.type=='s']['density'].median()
+    median_globals=globals_dataframe ['density'].median()
+    #########################
+    # Write medians
+    #########################
+    wrm.write_label(aFile,"Medians"+'\n')
+    aFile.write('Median density for sites: '+str(median_samples)+'\n')
+    aFile.write('Median density for globals: '+str(median_globals)+'\n')
     
     #################
     # Fit data to logit curve #

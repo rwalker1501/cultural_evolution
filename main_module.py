@@ -447,7 +447,7 @@ class MainProgram:
         latitude_bands = dict();
         latitude_keys = [];
         start_lat = maximum_lat;
-        end_lat = maximum_lat-10;
+        end_lat = maximum_lat-20;
         while(True):
             if end_lat < minimum_lat:
                 end_lat = minimum_lat;
@@ -473,7 +473,7 @@ class MainProgram:
             if end_lat == minimum_lat:
                 break;
             start_lat = end_lat
-            end_lat -= 10;
+            end_lat -= 20;
 # I have eliminated generation of confounder table - this should allow analysis to go forward
 
 # =============================================================================
@@ -579,14 +579,28 @@ class MainProgram:
         #####################
         # - gets statistics (means, growth coefficients) of dataframe
         # - filters target list/dataframe by removing clusters with 0 sample means 
-        all_sample_means, all_global_means, growth_coefficients, samples_gt_globals, n_targets_gt_0, self.dataframe = stm.process_dataframe(self.dataframe, max_for_uninhabited)
+        # - This is ugly - we report medians in write module and we calculate them again here.
+        all_sample_mediams, all_global_medians, growth_coefficients, samples_gt_globals, n_targets_gt_0, self.dataframe,growth_samples_gt_globals = stm.process_dataframe(self.dataframe, max_for_uninhabited)
        
         ########################################
         # Write filtered clustered target list #
         ########################################
         wrm.write_label(f2, "Target list after clustering")
         wrm.write_cluster_table(f2, self.dataframe, growth_coefficients)
-
+            ################################
+#         # Compute and write statistics #
+#         ################################
+#         # - binomial test
+#         # - wilcoxon
+        wrm.write_label(f2, "Statistics")
+        p_binomial=binom_test(samples_gt_globals,n_targets_gt_0,0.5)
+        stats_header_labels = ["Number of cases median samples>median globals", "Number of targets", "pBinomial"]
+        stats_header_values = [samples_gt_globals, n_targets_gt_0, p_binomial]
+        wrm.write_information(f2, stats_header_labels, stats_header_values, "   ")
+        p_binomial=binom_test(growth_samples_gt_globals,n_targets_gt_0,0.5)
+        stats_header_labels = ["Number of cases growth samples>growth globals", "Number of targets", "pBinomial"]
+        stats_header_values = [growth_samples_gt_globals, n_targets_gt_0, p_binomial]
+        wrm.write_information(f2, stats_header_labels, stats_header_values, "   ")
         # plm.plot_confounder_likelihood_ratio(self.dataframe, original_target_list)
         
         #################
@@ -602,22 +616,13 @@ class MainProgram:
 # =============================================================================
 #         
 #     
-#         ################################
-#         # Compute and write statistics #
-#         ################################
-#         # - binomial test
-#         # - wilcoxon
-#         wrm.write_label(f2, "Statistics")
-#         p_binomial=binom_test(samples_gt_globals,n_targets_gt_0,0.5)
-#         stats_header_labels = ["Number of successes", "Number of targets", "pBinomial"]
-#         stats_header_values = [samples_gt_globals, n_targets_gt_0, p_binomial]
-#         wrm.write_information(f2, stats_header_labels, stats_header_values, "   ")
-# 
+#     
+ 
 #         t_wilcox,p_wilcox=wilcoxon(all_sample_means,all_global_means)
 #         f2.write( 'Wilcoxon stat for sample vs globals means whole period:'+str(float(t_wilcox))+ '   p='+str(float(p_wilcox))+'\n')
-# 
-# 
-#         ##################################
+
+#      
+    
 #         #Only include data with non-zero values in statistical tests#
 #         ###################################
         trimmed_bin_array=[]
@@ -642,12 +647,13 @@ class MainProgram:
 #         # Test distributions are different
 #         #######################
         t_wilcox,p_wilcox=wilcoxon(trimmed_p_samples,trimmed_p_globals)
-        f2.write( 'Wilcoxon stat for samples vs globals with full controls:'+str(float(t_wilcox))+ '   p='+str(float(p_wilcox))+'\n')
+        f2.write( 'Wilcoxon stat for samples vs globals :'+str(float(t_wilcox))+ '   p='+str(float(p_wilcox))+'\n')
         ks_d,ks_p=ks_2samp(trimmed_p_samples,trimmed_p_globals)
-        f2.write( 'KS test  for samples vs globals with full controls:'+str(float(ks_d))+ '   p='+str(float(ks_p))+'\n')
+        f2.write( 'KS test  for samples vs globals :'+str(float(ks_d))+ '   p='+str(float(ks_p))+'\n')
         if ks_p<self.min_p:
              f2.write('The two distribitions are significantly different p<0.001'+'\n')
              tests_passed=tests_passed+1
+        
 #             
 #         ##################################
 #         # Detect and display threshold and below curve #
