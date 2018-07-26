@@ -131,7 +131,7 @@ def plot_odds_ratio(bins, actual_ratios, predictions,lambda_tau, linear_predicte
     plt.close()
     
     
-def plot_detection_frequencies (bins, actual_ratios, predictions, max_xaxis, identifier, label, file_path):
+def plot_detection_frequencies (bins, actual_ratios, logit_predictions, linear_predictions,max_xaxis, identifier, label, file_path):
     fig = plt.figure()
 
 # =============================================================================
@@ -139,7 +139,8 @@ def plot_detection_frequencies (bins, actual_ratios, predictions, max_xaxis, ide
 #         ratio = actual_ratios[i];
 # =============================================================================
     plt.plot(bins,actual_ratios,'bo')
-    plt.plot(bins,predictions,'r')
+    plt.plot(bins,logit_predictions,'r')
+    plt.plot(bins,linear_predictions,'g')
     # ax.axvline(lambda_tau, color='k', linestyle='--')
     # ax.axhline(1, color='k', linestyle='--')
     # linear = ax.plot(bins, linear_predicted_ratios, 'b', label="linear");
@@ -149,8 +150,9 @@ def plot_detection_frequencies (bins, actual_ratios, predictions, max_xaxis, ide
     plt.gca().set_xlim(0, max_xaxis)
     #max yaxis needs to be set dynamically
     y_lim1=max(actual_ratios)
-    y_lim2=max(predictions)
-    y_lim=max(y_lim1,y_lim2)
+    y_lim2=max(logit_predictions)
+    y_lim3=max(linear_predictions)
+    y_lim=max(y_lim1,y_lim2,y_lim3)
     # not currently succeeding in fixing these dynamically
     plt.gca().set_ylim(0,y_lim)
     label = label.lower();

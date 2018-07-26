@@ -3,6 +3,7 @@ import math
 import plot_module as plm
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
+import statsmodels.formula.api as smf
 import write_module as wrm
 from classes_module import Target, PopulationData
 from scipy.optimize import curve_fit
@@ -10,6 +11,7 @@ from scipy import stats;
 from scipy.stats import linregress, chisquare, binom_test, levene,wilcoxon,ks_2samp
 from sklearn.metrics import r2_score
 from sklearn.model_selection import RepeatedKFold
+
 
 
 
@@ -155,8 +157,22 @@ def fit_to_logit(bins, sample_counts, global_counts):
         sample_globals.append([sample_counts[i]+0.000001,global_counts[i]+0.000001])
     glm_binom = sm.GLM(sample_globals, bins, family=sm.families.Binomial())
     res = glm_binom.fit()
-    #print(res.summary())
+ #   print(res.summary())
     return(res)
+    
+def fit_to_linear (bins, sample_counts, global_counts):
+ #   bins=sm.add_constant(bins, prepend=False)
+    probs=[]
+    for  i in range(0,len(sample_counts)):
+        aProb=sample_counts[i]/global_counts[i]
+        probs.append(aProb)
+    res=sm.OLS(probs, bins).fit()
+#    print(res.summary())
+    return(res)
+        
+    
+    
+
     
 def generate_logit_predictions(bins,params):
     predictions=[]
@@ -165,6 +181,13 @@ def generate_logit_predictions(bins,params):
         predictions.append(a_prediction)
     return(predictions)
     
+def generate_linear_predictions(bins,params):
+    predictions=[]
+    for a_Bin in bins:
+ #       a_prediction=(params[1]+params[0]*a_Bin)
+        a_prediction=(params[0]*a_Bin)
+        predictions.append(a_prediction)
+    return(predictions)
 
 def generate_bin_values(dataframe, globals_dataframe, population_data):
     bin_size = population_data.bin_size
@@ -760,12 +783,15 @@ def write_results(aFile,anIdentifier, aPath,dataframe, globals_dataframe,populat
         tests_passed=tests_passed+1
     if p_below_curve<min_p:
         aFile.write('Samples_curve is significantly below globals curve '+'\n')
-        tests_passed=tests_passed+1
+  #      tests_passed=tests_passed+1
     ##################################
     #  comnpute medians
     ##################################
     median_samples=dataframe[dataframe.type=='s']['density'].median()
     median_globals=globals_dataframe ['density'].median()
+    if median_samples>median_globals:
+        aFile.write('Median density for samples>median density for globals'+'\n')
+        tests_passed=tests_passed +1
     #########################
     # Write medians
     #########################
@@ -778,7 +804,16 @@ def write_results(aFile,anIdentifier, aPath,dataframe, globals_dataframe,populat
     #################
     logit_results=fit_to_logit(trimmed_bin_array, trimmed_sample_counts, trimmed_global_counts)
     logit_predictions=generate_logit_predictions(trimmed_bin_array,logit_results.params)
-   
+    if logit_results.params[0]>0:
+        aFile.write('Logit curve positive')
+        tests_passed=tests_passed+1
+        
+    
+    #################
+    # Fit data to linear curve #
+    #################
+    linear_results=fit_to_linear(trimmed_bin_array, trimmed_sample_counts, trimmed_global_counts)
+    linear_predictions=generate_linear_predictions(trimmed_bin_array,linear_results.params)
    
     
     
@@ -794,12 +829,16 @@ def write_results(aFile,anIdentifier, aPath,dataframe, globals_dataframe,populat
    # logit_results=stm.fitToLogit(bin_array, sample_counts, global_counts)
     plm.plot_p_graphs(trimmed_bin_array, trimmed_p_samples, trimmed_p_globals, anIdentifier, aPath)
     plm.plot_cumulative_p_graphs(trimmed_bin_array, trimmed_p_samples, trimmed_p_globals, anIdentifier, aPath)
-    plm.plot_detection_frequencies (trimmed_bin_array, trimmed_likelihood_ratios, logit_predictions,  population_data.max_population-population_data.bin_size*2, anIdentifier, "detection_frequencies", aPath)
+    plm.plot_detection_frequencies (trimmed_bin_array, trimmed_likelihood_ratios, logit_predictions, linear_predictions, population_data.max_population-population_data.bin_size*2, anIdentifier, "detection_frequencies", aPath)
     wrm.write_label(aFile,"Logistic fit"+'\n')
     aFile.write("Intercept: "+str(logit_results.params[1])+'\n')
     aFile.write("Coefficient: "+str(logit_results.params[0])+'\n')
     aFile.write("AIC: "+str(logit_results.aic)+'\n')
     aFile.write("Pearson Chi2: "+str(logit_results.pearson_chi2)+'\n')
+    wrm.write_label(aFile,"Linear fit"+'\n')
+   # aFile.write("Intercept: "+str(linear_results.params[1])+'\n')
+    aFile.write("Coefficient: "+str(linear_results.params[0])+'\n')
+    aFile.write("AIC: "+str(linear_results.aic)+'\n')
 # =============================================================================
 #         t_threshold_wilcoxon, p_threshold_wilcoxon = wilcoxon(threshold_controls, threshold_samples)
 #         wrm.write_label(f2, "Statistics for threshold bins")
@@ -812,7 +851,9 @@ def write_results(aFile,anIdentifier, aPath,dataframe, globals_dataframe,populat
 # =============================================================================
     # - plots targets and globals on a map
     plm.plot_targets_on_map(dataframe, globals_dataframe, aPath, anIdentifier)
-    print "tests_passed", tests_passed
+    wrm.write_label(aFile,"Test summary"+'\n')
+    aFile.write("Tests passed:"+str(tests_passed)+'\n')
+    
     
 
 

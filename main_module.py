@@ -447,7 +447,7 @@ class MainProgram:
         latitude_bands = dict();
         latitude_keys = [];
         start_lat = maximum_lat;
-        end_lat = maximum_lat-20;
+        end_lat = maximum_lat-10;
         while(True):
             if end_lat < minimum_lat:
                 end_lat = minimum_lat;
@@ -473,7 +473,7 @@ class MainProgram:
             if end_lat == minimum_lat:
                 break;
             start_lat = end_lat
-            end_lat -= 20;
+            end_lat -= 10;
 # I have eliminated generation of confounder table - this should allow analysis to go forward
 
 # =============================================================================
