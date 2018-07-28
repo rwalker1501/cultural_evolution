@@ -45,7 +45,7 @@ base_path = os.getcwd()
 # Figure 1A: map of all sites and controls. Use a different colour (green) for sites where we have "direct" and "exact age" compared to all other sites
 # Fig 2A: pGraph for world, Eriksson
 # Fig 2B: OR graph for world, Eriksson
-mm.run_experiment(base_path, "rpv12", "rpv12",date_window=24);
+#mm.run_experiment(base_path, "rpv12", "rpv12",date_window=24);
 # doing this to get growth coefficients
 #mm.run_experiment(base_path, "rpv12", "rpv12_999",date_window=999);
 #mm.run_experiment(base_path, "rpv12", "rpv12_9999",date_window=9999);
@@ -63,14 +63,14 @@ mm.run_experiment(base_path, "rpv12", "rpv12",date_window=24);
 
 
 # # FiG2E: OR graph for France + Spain, Eriksson
-#mm.run_experiment(base_path, "rpv12_fr_sp", "rpv12_fr_sp", the_globals="France and Spain")
+mm.run_experiment(base_path, "rpv12_fr_sp", "rpv12_fr_sp", the_globals="France and Spain")
 
 # # FIG2E: OR graph for Australia, Eriksson
-#mm.run_experiment(base_path, "rpv12_au", "rpv12_au", the_globals="Australia")
+mm.run_experiment(base_path, "rpv12_au", "rpv12_au", the_globals="Australia")
 
 # FIG2G: pGraph for world, Timmermann (as in Fig 2A)
 # FIG2H: OR graph for world, Timmermann (as in Fig2B)
-# mm.run_experiment(base_path, "rpv12", "rpv12_timmermann", population_data_name="Timmermann",date_window=999);
+#mm.run_experiment(base_path, "rpv12", "rpv12_timmermann", population_data_name="Timmermann",date_window=999);
 
 # SM1 Map showing location of regions with high mean population density in period 5000-50000BP
 #mm.plot_min_densities_in_time_range("Eriksson", 50000, 5000, 5000)

@@ -131,29 +131,31 @@ def plot_odds_ratio(bins, actual_ratios, predictions,lambda_tau, linear_predicte
     plt.close()
     
     
-def plot_detection_frequencies (bins, actual_ratios, logit_predictions, linear_predictions,max_xaxis, identifier, label, file_path):
+def plot_detection_frequencies (bins, actual_ratios, logit_predictions, predicted_threshold,max_xaxis, identifier, label, file_path):
     fig = plt.figure()
 
 # =============================================================================
 #     for i in range(0, len(bins)):
 #         ratio = actual_ratios[i];
 # =============================================================================
-    plt.plot(bins,actual_ratios,'bo')
-    plt.plot(bins,logit_predictions,'r')
-    plt.plot(bins,linear_predictions,'g')
-    # ax.axvline(lambda_tau, color='k', linestyle='--')
-    # ax.axhline(1, color='k', linestyle='--')
-    # linear = ax.plot(bins, linear_predicted_ratios, 'b', label="linear");
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.plot(bins,actual_ratios,'bo',label='Observations')
+    ax.plot(bins,logit_predictions,'r',label='Logit curve')
+#    ax.plot(bins,threshold_predictions,'g',label='Theoretical model')
+    ax.axvline(predicted_threshold, color='k', linestyle='--',label='Estimated_threshold')
+    #ax.axhline(1, color='k', linestyle='--')
+    # threshold = ax.plot(bins, threshold_predictions, 'b', label="linear");
     # threshold = ax.plot(bins, threshold_predicted_ratios, 'g', label="threshold");
     plt.ylabel(label)
-    plt.xlabel("Population density")
+    plt.xlabel("Population density per cell")
     plt.gca().set_xlim(0, max_xaxis)
+    plt.legend(title= "Legend")
     #max yaxis needs to be set dynamically
     y_lim1=max(actual_ratios)
     y_lim2=max(logit_predictions)
-    y_lim3=max(linear_predictions)
-    y_lim=max(y_lim1,y_lim2,y_lim3)
-    # not currently succeeding in fixing these dynamically
+#    y_lim3=max(threshold_predictions)
+    y_lim=max(y_lim1,y_lim2)
     plt.gca().set_ylim(0,y_lim)
     label = label.lower();
     label = label.replace(" ", "_");
@@ -198,19 +200,18 @@ def plot_p_graphs(bins, p_samples, p_globals, identifier, file_path):
     ax.plot(bins,p_samples,'b', label="Samples")
     ax.plot(bins, p_globals,'r',label="Globals")
     # ax.axvline(threshold, color='k', linestyle='--')
-
-    plt.gca().set_ylim(0, 0.25)
+    plt.gca().set_ylim(0, 0.40)
 
     # text = "Threshold: " + str(threshold) + "\nSuccesses: " + str(success) + "\n Trials: " + str(trials) + "\nBinomial: " + str(binomial)
     
     plt.ylabel("Relative detection frequency")
-    plt.xlabel("Population density")
+    plt.xlabel("Population density per cell")
     plt.legend(title= "Legend")
     # plt.text(2, 2, text, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
     fig.savefig(os.path.join(file_path, str(identifier) + "_p_graph.png"))
     plt.close()
     
-def plot_cumulative_p_graphs(bins, p_samples, p_globals, identifier, file_path):
+def plot_cumulative_p_graphs(bins, p_samples, p_globals, median_samples,median_globals,threshold,identifier, file_path):
     fig = plt.figure()
     ax = fig.add_subplot(111)
     # ax.set_title(title)
@@ -230,9 +231,11 @@ def plot_cumulative_p_graphs(bins, p_samples, p_globals, identifier, file_path):
     plt.gca().set_ylim(0, 1.0)
 
     # text = "Threshold: " + str(threshold) + "\nSuccesses: " + str(success) + "\n Trials: " + str(trials) + "\nBinomial: " + str(binomial)
-    
-    plt.ylabel("Cumulated Relative detection frequency")
-    plt.xlabel("Population density")
+    ax.axvline(median_samples, color='b', linestyle='--')
+    ax.axvline(median_globals, color='r', linestyle='--')
+    ax.axvline(threshold, color='g', linestyle='--')
+    plt.ylabel("Cumulated relative detection frequency")
+    plt.xlabel("Population density per cell")
     plt.legend(title= "Legend")
     # plt.text(2, 2, text, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
     fig.savefig(os.path.join(file_path, str(identifier) + "cum_p_graph.png"))
@@ -326,6 +329,7 @@ def plot_densities_on_map_by_time(population_data, time):
 
     cmap = cm.get_cmap('jet')
 
+    #why is this divided by 6000 - don't understand
     dens = np.array(dens).astype(float)/6000;
     x,y = my_map(lons, lats)
     rgba = cmap(dens);
@@ -343,12 +347,13 @@ def plot_densities_on_map_by_time(population_data, time):
 
     sm = cm.ScalarMappable(cmap=cmap)
     sm.set_array([])
-    sm.set_clim([0, 6000])
+    #This used to be divided by 6000
+    sm.set_clim([0, 3000])
     plt.colorbar(sm, orientation='horizontal', pad=0.03, aspect=50)
 
     # plt.title('Densities on Map: ' + population_data.name + " " + str(time) + "BP")
 
-    plt.savefig("densitites_on_map_" + population_data.name + "_" + str(time) + "BP.png");
+    plt.savefig("densitites_on_map_" + population_data.name + "_" + str(time) + "Kya.png");
     plt.close();
 
 def plot_min_densities_in_time_range(population_data, time_from, time_to, min_density):

@@ -418,7 +418,7 @@ class MainProgram:
             new_dir = "date_" + str(start_date) + "-" + str(end_date) + "_" + directory;
             new_target_list, f = tam.filter_targets_for_date(original_target_list, end_date, start_date, "");
 
-            new_df = dataframe[(dataframe.period <= start_date) & (dataframe.period >= end_date)]
+            new_df = dataframe[(dataframe.period <= start_date) & (dataframe.period > end_date)]
             new_gdf = globals_dataframe[(globals_dataframe.period <= start_date) & (globals_dataframe.period >= end_date)]
 
             self.dataframe = new_df;
@@ -447,14 +447,14 @@ class MainProgram:
         latitude_bands = dict();
         latitude_keys = [];
         start_lat = maximum_lat;
-        end_lat = maximum_lat-10;
+        end_lat = maximum_lat-20;
         while(True):
             if end_lat < minimum_lat:
                 end_lat = minimum_lat;
             new_dir = "lat_" + str(int(start_lat)) + "-" + str(int(end_lat)) + "_" + directory;
             new_target_list, f = tam.filter_targets_for_latitude(original_target_list, end_lat, start_lat, "");
             
-            new_df = dataframe[(dataframe.latitude <= start_lat) & (dataframe.latitude >= end_lat)]
+            new_df = dataframe[(dataframe.latitude <= start_lat) & (dataframe.latitude > end_lat)]
             new_gdf = globals_dataframe[(globals_dataframe.latitude <= start_lat) & (globals_dataframe.latitude >= end_lat)]
 
             self.dataframe = new_df;
@@ -473,7 +473,7 @@ class MainProgram:
             if end_lat == minimum_lat:
                 break;
             start_lat = end_lat
-            end_lat -= 10;
+            end_lat -= 20;
 # I have eliminated generation of confounder table - this should allow analysis to go forward
 
 # =============================================================================
@@ -790,8 +790,9 @@ def run_experiment(results_path, target_list_file, output_directory, population_
         dens_ncf=data['dens_ncf']
 
         tim_info_path = os.path.join(pop_data_path, "timmermann_info.txt") #base_path+'/population_data/timmermann_info.txt'
-        time_likelihood_ratio, bin_size, max_population, max_for_uninhabited, is_active, ascending_time = pdm.read_population_data_info(tim_info_path)
-        population_data = PopulationData("Timmermann", is_active, lats_ncf, lons_ncf, ts_ncf, dens_ncf, time_likelihood_ratio, bin_size, max_population, max_for_uninhabited, ascending_time)
+        # time_likelihood_ratio should be time_multiplier
+        time_likelihood_ratio, density_multiplier,bin_size, max_population, max_for_uninhabited, is_active, ascending_time = pdm.read_population_data_info(tim_info_path)
+        population_data = PopulationData("Timmermann", is_active, lats_ncf, lons_ncf, ts_ncf, dens_ncf, time_likelihood_ratio, density_multiplier,bin_size, max_population, max_for_uninhabited, ascending_time)
             
 
     mp.set_date_window(date_window)

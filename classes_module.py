@@ -36,7 +36,7 @@ class Target():
         
 class PopulationData():
 
-    def __init__(self, name, is_active, lat_array, lon_array, time_array, density_array, time_multiplier, bin_size, max_population, max_for_uninhabited, ascending_time):
+    def __init__(self, name, is_active, lat_array, lon_array, time_array, density_array, time_multiplier, density_multiplier,bin_size, max_population, max_for_uninhabited, ascending_time):
         
         self.name = name
         self.lat_array = lat_array
@@ -44,6 +44,7 @@ class PopulationData():
         self.time_array = time_array
         self.density_array = density_array
         self.time_multiplier = time_multiplier
+        self.density_multiplier=density_multiplier
         self.bin_size = bin_size
         self.max_population = max_population
         self.is_active = is_active

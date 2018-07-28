@@ -639,13 +639,24 @@ def linear_fit(data_x,data_y):
     p_opt,p_cov=curve_fit(linear_model, data_x,data_y)
     return p_opt, p_cov   
 
-def threshold_fit(data_x,data_y):
+def fit_to_threshold_model(data_x,sample_counts, global_counts):
+    data_y=[]
+    for i in range(0,len(sample_counts)):
+        data_y.append(float(sample_counts[i]/global_counts[i]))
     if len(data_x)>3:
-        p_opt,p_cov=curve_fit(threshold_model, data_x,data_y,p0=[1000.0,0.1,0.0002], bounds=([0, 0, 0], [np.inf, 25, 1]))
+#p0=[1000.0,0.1,0.0002],
+# guessed threshold needs to be reset for Timmermann data
+ #       p_opt,p_cov=curve_fit(threshold_model, data_x,data_y, p0=[1400.0,0.001,0.002],bounds=([0, 0, 0]), diag=(1./data_x.mean(),1./data_y.mean()), [np.inf, 25, 1])
+        diag1=1./np.asarray(data_x).mean()
+        diag2=1./(np.asarray(data_y).mean())
+        print "diag1=",str(diag1)
+        print "diag2=",str(diag2)
+        p_opt,p_cov=curve_fit(threshold_model, data_x,data_y,p0=[1400.0,0.0000001])
     else:
-        p_opt=[0,0,0]
+        p_opt=[0,0]
         p_cov=0
     return p_opt, p_cov 
+
 
 # =============================================================================
 # def threshold_fit2(data_x,data_y, max_lambda_tau):
@@ -676,17 +687,33 @@ def linear_model(x,beta):
 #     return (results)
 # =============================================================================
 
-def threshold_model(x,threshold,gamma,beta):
-# This instantiates a threshold model in which y grows linearly with slope b for values of x >threshold
+# =============================================================================
+# def threshold_model(x,threshold,beta, zeta):
+# # This instantiates a  model exactly based on the theoretical model
+#     results=[]
+#     for an_x in x: 
+#         if an_x>=threshold:
+#             istar=float((an_x-threshold)*beta)
+#             result=1-(1-zeta)**istar
+#         else:
+#             result=0
+#         results.append(result)
+#         
+#     return (results)
+# =============================================================================
+
+def threshold_model(x,threshold,beta):
+# This instantiates a  linear threshold model appoximating the theoretical model
     results=[]
     for an_x in x: 
         if an_x>=threshold:
-            result=float((an_x-threshold)*beta+gamma)
+            result=(an_x-threshold)*beta
         else:
-            result=gamma
+            result=0
         results.append(result)
         
     return (results)
+
 
 
 
@@ -812,10 +839,35 @@ def write_results(aFile,anIdentifier, aPath,dataframe, globals_dataframe,populat
     #################
     # Fit data to linear curve #
     #################
-    linear_results=fit_to_linear(trimmed_bin_array, trimmed_sample_counts, trimmed_global_counts)
-    linear_predictions=generate_linear_predictions(trimmed_bin_array,linear_results.params)
+# =============================================================================
+#     linear_results=fit_to_linear(trimmed_bin_array, trimmed_sample_counts, trimmed_global_counts)
+#     linear_predictions=generate_linear_predictions(trimmed_bin_array,linear_results.params)
+# =============================================================================
    
+    #################
+    # Fit data to threshold model #
+    #################
+# =============================================================================
+#     pOpt,pCov=fit_to_threshold_model(trimmed_bin_array, trimmed_sample_counts, trimmed_global_counts)
+#     threshold_predictions=threshold_model(trimmed_bin_array, pOpt[0],pOpt[1])
+#  #   print "pOpt0=",str(pOpt[0])+'\nl'
+# #    print "pOpt1=",str(pOpt[1])+'\nl'
+# #    print "pOpt2=",str(pOpt[2])+'\nl'
+#     wrm.write_label(aFile,"Threshold model"+'\n')
+#     aFile.write('Estimated threshold from curve fitting'+str(pOpt[0])+'\n')
+#     aFile.write('Estimated coefficient for population'+str(pOpt[1])+'\n')
+# #    aFile.write('Estimated zeta'+str(pOpt[2])+'\n')
+# =============================================================================
     
+# =============================================================================
+#      #################
+#     # comparison LMS for logit and threshold curve
+#     #*******************
+#     wrm.write_label(aFile,"Comparison of LMS"+'\n')
+#     aFile.write('Likelihood ratio for logit fit')
+#     aFile.write('LMS Logit:' + str(lms(logit_predictions,likelihood_ratios))+'\n')
+#     aFile.write('LMS Threshold:'+ str(lms(threshold_predictions, likelihood_ratios))+'\n')
+# =============================================================================
     
     # Generate graphs and statistics #
     ##################################
@@ -828,17 +880,19 @@ def write_results(aFile,anIdentifier, aPath,dataframe, globals_dataframe,populat
     #threshold_binomial, threshold, threshold_success_count, threshold_trial_count, threshold_samples, threshold_controls = stm.generate_p_threshold_and_binomial(p_samples, p_controls, bin_array)
    # logit_results=stm.fitToLogit(bin_array, sample_counts, global_counts)
     plm.plot_p_graphs(trimmed_bin_array, trimmed_p_samples, trimmed_p_globals, anIdentifier, aPath)
-    plm.plot_cumulative_p_graphs(trimmed_bin_array, trimmed_p_samples, trimmed_p_globals, anIdentifier, aPath)
-    plm.plot_detection_frequencies (trimmed_bin_array, trimmed_likelihood_ratios, logit_predictions, linear_predictions, population_data.max_population-population_data.bin_size*2, anIdentifier, "detection_frequencies", aPath)
+    plm.plot_cumulative_p_graphs(trimmed_bin_array, trimmed_p_samples, trimmed_p_globals, median_samples,median_globals,threshold,anIdentifier, aPath)
+    plm.plot_detection_frequencies (trimmed_bin_array, trimmed_likelihood_ratios, logit_predictions, threshold,population_data.max_population-population_data.bin_size*2, anIdentifier, "detection_frequencies", aPath)
     wrm.write_label(aFile,"Logistic fit"+'\n')
     aFile.write("Intercept: "+str(logit_results.params[1])+'\n')
     aFile.write("Coefficient: "+str(logit_results.params[0])+'\n')
     aFile.write("AIC: "+str(logit_results.aic)+'\n')
     aFile.write("Pearson Chi2: "+str(logit_results.pearson_chi2)+'\n')
-    wrm.write_label(aFile,"Linear fit"+'\n')
-   # aFile.write("Intercept: "+str(linear_results.params[1])+'\n')
-    aFile.write("Coefficient: "+str(linear_results.params[0])+'\n')
-    aFile.write("AIC: "+str(linear_results.aic)+'\n')
+# =============================================================================
+#     wrm.write_label(aFile,"Linear fit"+'\n')
+#    # aFile.write("Intercept: "+str(linear_results.params[1])+'\n')
+#     aFile.write("Coefficient: "+str(linear_results.params[0])+'\n')
+#     aFile.write("AIC: "+str(linear_results.aic)+'\n')
+# # =============================================================================
 # =============================================================================
 #         t_threshold_wilcoxon, p_threshold_wilcoxon = wilcoxon(threshold_controls, threshold_samples)
 #         wrm.write_label(f2, "Statistics for threshold bins")

@@ -126,6 +126,7 @@ def extract_dataframe(population_data, target_list, date_window):
     time_np = population_data.time_array
     den_np = population_data.density_array
     time_multiplier = population_data.time_multiplier
+    density_multiplier=population_data.density_multiplier
     smallest_time = min(time_np)*time_multiplier
 
     ############################
@@ -200,7 +201,7 @@ def extract_dataframe(population_data, target_list, date_window):
                         if in_target_location(target, lat, lon, is_global == 1):
                             try:
                                 time_index = time_dict[time]
-                                density = den_np[time_index][latlon_ind]
+                                density = den_np[time_index][latlon_ind]*density_multiplier
                                 if np.isnan(density):
                                     density=0
                                 # save information only if density > 0
