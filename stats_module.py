@@ -99,51 +99,55 @@ def compute_growth_coefficient(times, populations):
     else:
         return -1.
     
-def detect_threshold(bins,n_samples,n_globals):
-    cum_samples_list=[]
-    cum_globals_list=[]
-    cum_samples=0
-    cum_globals=0
- #   print 'In detect threshold'
-    for i in range(0,len(bins)):
-        cum_samples=cum_samples+n_samples[i]
-        cum_globals=cum_globals+n_globals[i]
-        cum_samples_list.append(cum_samples)
-        cum_globals_list.append(cum_globals)
-    total_samples=cum_samples_list[len(bins)-1]
-    total_globals=cum_globals_list[len(bins)-1]
-    print 'total_samples: ',str(total_samples)
-    print 'total_globals: ', str(total_globals)
-    p_sample=total_samples/total_globals
-    min_p=1
-    below_curve=0
-#    print 'p_sample: ',str(p_sample)
-    for i in range(0,len(bins)):
-        p=stats.binom_test(cum_samples_list[i],cum_globals_list[i],p_sample)
- #       print 'Threshold: ',str(bins[i]), 'samples: ',str(cum_samples_list[i]),' globals: ',str(cum_globals_list[i]),'p: ',str(p),'p_samples',str(cum_samples_list[i]/float(total_samples)),'p_globals: ',str(cum_globals_list[i]/float(total_globals))
-        if p<min_p:
-            min_p=p
-            threshold=bins[i]
-            successes=cum_samples_list[i]
-            trials=cum_globals_list[i]
-        if cum_samples_list[i]/float(total_samples)<cum_globals_list[i]/float(total_globals):
-            below_curve=below_curve+1
-    p_below_curve=stats.binom_test(below_curve,len(bins))
-#    print "Threshold: ",str(threshold)
-#    print "Successes: ",str(successes)
-#    print "Trials: ", str(trials)
-#    print "p: ", str(min_p)
-#    print "below_curve: ",str(below_curve)
-#    print "p_below_curve: ",str(p_below_curve)
-    return(threshold,successes,trials,min_p,below_curve,p_below_curve)
-    
+# =============================================================================
+# def detect_threshold(bins,n_samples,n_globals):
+#     cum_samples_list=[]
+#     cum_globals_list=[]
+#     cum_samples=0
+#     cum_globals=0
+#  #   print 'In detect threshold'
+#     for i in range(0,len(bins)):
+#         cum_samples=cum_samples+n_samples[i]
+#         cum_globals=cum_globals+n_globals[i]
+#         cum_samples_list.append(cum_samples)
+#         cum_globals_list.append(cum_globals)
+#     total_samples=cum_samples_list[len(bins)-1]
+#     total_globals=cum_globals_list[len(bins)-1]
+#     print 'total_samples: ',str(total_samples)
+#     print 'total_globals: ', str(total_globals)
+#     p_sample=total_samples/total_globals
+#     min_p=1
+#     below_curve=0
+# #    print 'p_sample: ',str(p_sample)
+#     for i in range(0,len(bins)):
+#         p=stats.binom_test(cum_samples_list[i],cum_globals_list[i],p_sample)
+#  #       print 'Threshold: ',str(bins[i]), 'samples: ',str(cum_samples_list[i]),' globals: ',str(cum_globals_list[i]),'p: ',str(p),'p_samples',str(cum_samples_list[i]/float(total_samples)),'p_globals: ',str(cum_globals_list[i]/float(total_globals))
+#         if p<min_p:
+#             min_p=p
+#             threshold=bins[i]
+#             successes=cum_samples_list[i]
+#             trials=cum_globals_list[i]
+#         if cum_samples_list[i]/float(total_samples)<cum_globals_list[i]/float(total_globals):
+#             below_curve=below_curve+1
+#     p_below_curve=stats.binom_test(below_curve,len(bins))
+# #    print "Threshold: ",str(threshold)
+# #    print "Successes: ",str(successes)
+# #    print "Trials: ", str(trials)
+# #    print "p: ", str(min_p)
+# #    print "below_curve: ",str(below_curve)
+# #    print "p_below_curve: ",str(p_below_curve)
+#     return(threshold,successes,trials,min_p,below_curve,p_below_curve)
+#     
+# =============================================================================
         
         
             
             
 
-def fit_to_logit(bins, sample_counts, global_counts):
+def fit_to_logit(bins, sample_counts, global_counts,bin_size):
 # This needs to be checked
+    add=bin_size/2
+    bins=[x+add for x in bins]
     bins=sm.add_constant(bins, prepend=False)
  #   print "bins"
  #   for i in range(0,5):
@@ -210,10 +214,8 @@ def generate_bin_values(dataframe, globals_dataframe, population_data):
     # globals dataframe
     globals_dataframe['bin_index'] = (globals_dataframe.density/bin_size)-bins_to_omit
     globals_dataframe['bin_index'] = globals_dataframe.bin_index.astype(int)
+    #we add bin_size/2 to get midpoint of each bin
     globals_dataframe['bin'] = globals_dataframe.bin_index*bin_size+minimum_bin
-
-
-
     bin_array = []
     sample_counts = []
     global_counts = []
@@ -230,17 +232,31 @@ def generate_bin_values(dataframe, globals_dataframe, population_data):
     # total globals by counting rows
     total_samples = dataframe[dataframe.type=='s']['contribution'].sum()
     total_globals = globals_dataframe['density'].count()
-    p_for_filter=float(total_samples/total_globals)
-    q_for_filter=1-p_for_filter
-    # compute min globals necessary to get confidence of 0.95 on likelihood ratio with range of 0.0025 - this is questionnable
-    top_term=1.96**2*p_for_filter*q_for_filter/0.001**2
-    bottom_term=1+((1.96**2)*p_for_filter*q_for_filter)/(0.001**2*total_globals)
-    minimum_globals=int(top_term/bottom_term)
+# =============================================================================
+#     p_for_filter=float(total_samples/total_globals)
+#     minimum_globals=int(1/p_for_filter)
+#     # This is for eriksson - will need to change for Timmermann
+#     margin_of_error=0.0003
+#     q_for_filter=1-p_for_filter
+#     # compute min globals necessary to get confidence of 0.95 on likelihood ratio with MOE of 0.0001
+#     x=1.96**2*p_for_filter*q_for_filter/margin_of_error**2
+#     minimum_globals=total_globals*x/(x+total_globals-1)
+#  We get rid of bins with no globals
+    minimum_globals=1
+# =============================================================================
+# =============================================================================
+#     top_term=1.96**2*p_for_filter*q_for_filter/0.001**2
+#     bottom_term=1+((1.96**2)*p_for_filter*q_for_filter)/(0.0001**2*total_globals)
+# =============================================================================
+    
+    # Don't allow zero values for minimum globals
+    if minimum_globals==0:
+        minimum_globals=1
     # print(top_term)
     # print(bottom_term)
    # minimum_globals=500   This is a temporary override on computed value - to be removed
     #########################
-    # Loop through each bin #
+    # Loop through each bin . data untrimmed - would be better to filter here#
     #########################
     current_bin = minimum_bin
     while(current_bin < max_population):
@@ -639,23 +655,58 @@ def linear_fit(data_x,data_y):
     p_opt,p_cov=curve_fit(linear_model, data_x,data_y)
     return p_opt, p_cov   
 
-def fit_to_threshold_model(data_x,sample_counts, global_counts):
+# =============================================================================
+# def fit_to_threshold_model(data_x,sample_counts, global_counts):
+#     data_y=[]
+#     for i in range(0,len(sample_counts)):
+#         data_y.append(float(sample_counts[i]/global_counts[i]))
+#     if len(data_x)>3:
+# #p0=[1000.0,0.1,0.0002],
+# # guessed threshold needs to be reset for Timmermann data
+#  #       p_opt,p_cov=curve_fit(threshold_model, data_x,data_y, p0=[1400.0,0.001,0.002],bounds=([0, 0, 0]), diag=(1./data_x.mean(),1./data_y.mean()), [np.inf, 25, 1])
+#         diag1=1./np.asarray(data_x).mean()
+#         diag2=1./(np.asarray(data_y).mean())
+#         print "diag1=",str(diag1)
+#         print "diag2=",str(diag2)
+#         p_opt,p_cov=curve_fit(threshold_model, data_x,data_y,p0=[1400.0,0.0000001])
+#     else:
+#         p_opt=[0,0]
+#         p_cov=0
+#     return p_opt, p_cov 
+# =============================================================================
+
+
+def detect_threshold(data_x,sample_counts, global_counts,bin_size):
+    
+# This finds a threshold using pettitt's test
+    add=bin_size/2
+    data_x=[x+add for x in data_x]
+    u=[]
     data_y=[]
+    max_u=0
+    threshold=0
     for i in range(0,len(sample_counts)):
+        if global_counts[i]==0:
+            print "global counts =0", "i=",str(i),'\n'
         data_y.append(float(sample_counts[i]/global_counts[i]))
     if len(data_x)>3:
-#p0=[1000.0,0.1,0.0002],
-# guessed threshold needs to be reset for Timmermann data
- #       p_opt,p_cov=curve_fit(threshold_model, data_x,data_y, p0=[1400.0,0.001,0.002],bounds=([0, 0, 0]), diag=(1./data_x.mean(),1./data_y.mean()), [np.inf, 25, 1])
-        diag1=1./np.asarray(data_x).mean()
-        diag2=1./(np.asarray(data_y).mean())
-        print "diag1=",str(diag1)
-        print "diag2=",str(diag2)
-        p_opt,p_cov=curve_fit(threshold_model, data_x,data_y,p0=[1400.0,0.0000001])
+        total_t=len(sample_counts)
+        for t in range(0,total_t):
+            u.append(0)
+            for i in range(0,t):
+                for j in range(t+1,total_t):
+                        u[t]=u[t]+np.sign(data_y[i]-data_y[j])
+  #          print "candidate threshold=",str(data_x[t]), " u=",str(u[t]),'/n'
+            if abs(u[t])>max_u:
+                max_u=abs(u[t])
+                threshold=data_x[t]
+        p=2*math.exp((-6*max_u**2)/(total_t**3+total_t**2))
+ #       print "threshold=",str(threshold)," p=", str(float(p)),"/n"                         
     else:
-        p_opt=[0,0]
-        p_cov=0
-    return p_opt, p_cov 
+        threshold=0
+        p=1
+    return threshold,p 
+
 
 
 # =============================================================================
@@ -717,6 +768,9 @@ def threshold_model(x,threshold,beta):
 
 
 
+
+
+
 # =============================================================================
 # def threshold_model(x, n_pop,lambda_tau):
 #     results=[]
@@ -744,7 +798,7 @@ def write_results(aFile,anIdentifier, aPath,dataframe, globals_dataframe,populat
     
     bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_controls, p_likelihood_ratios,minimum_globals = generate_bin_values(dataframe, globals_dataframe, population_data)
     wrm.write_bin_table(aFile, bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, likelihood_ratios, p_samples, p_globals, p_controls, p_likelihood_ratios,minimum_globals)
-   
+    print 'minimum globals=',minimum_globals
     
     ################################
     # Compute and write statistics #
@@ -762,7 +816,7 @@ def write_results(aFile,anIdentifier, aPath,dataframe, globals_dataframe,populat
 
 
     ##################################
-    #Only include data with non-zero values in statistical tests#
+    #Only include data with above minimum count of globals in statistical tests#
     ###################################
     trimmed_bin_array=[]
     trimmed_p_samples=[]
@@ -771,13 +825,16 @@ def write_results(aFile,anIdentifier, aPath,dataframe, globals_dataframe,populat
     trimmed_global_counts=[]
     trimmed_likelihood_ratios=[]
     for i in range(0, len(bin_array)):
-        if global_counts>min_globals:
+        if global_counts[i]>=minimum_globals:
             trimmed_bin_array.append(bin_array[i])
             trimmed_p_samples.append(p_samples[i])
             trimmed_p_globals.append(p_globals[i])
             trimmed_sample_counts.append(sample_counts[i])
             trimmed_global_counts.append(global_counts[i])
             trimmed_likelihood_ratios.append(likelihood_ratios[i])
+    if len(trimmed_global_counts)<len(global_counts)/2:
+        aFile.write('insufficient data for analysis')
+        return('Insufficient data for analysis')
     #######################
     # Test distributions match qualitative predictions from model
     #######################
@@ -797,20 +854,27 @@ def write_results(aFile,anIdentifier, aPath,dataframe, globals_dataframe,populat
     # Detect and display threshold and below curve #
     ##################################
     
-    threshold,successes,trials,p_threshold, below_curve, p_below_curve=detect_threshold(trimmed_bin_array, trimmed_sample_counts,trimmed_global_counts)
-    wrm.write_label(aFile,"Threshold analysis"+'\n')
+# =============================================================================
+#     threshold,successes,trials,p_threshold, below_curve, p_below_curve=detect_threshold(trimmed_bin_array, trimmed_sample_counts,trimmed_global_counts)
+#     wrm.write_label(aFile,"Threshold analysis"+'\n')
+#     aFile.write('Threshold: '+str(threshold)+'\n')
+#     aFile.write('Successes: '+str(successes)+'\n')
+#     aFile.write('Trials: '+str(trials)+'\n')
+#     aFile.write('p: '+str(p_threshold)+'\n')
+#     aFile.write('below_curve: '+str(below_curve)+'\n')
+# =============================================================================
+    threshold,p_threshold=detect_threshold(trimmed_bin_array,trimmed_sample_counts,trimmed_global_counts,population_data.bin_size)
     aFile.write('Threshold: '+str(threshold)+'\n')
-    aFile.write('Successes: '+str(successes)+'\n')
-    aFile.write('Trials: '+str(trials)+'\n')
     aFile.write('p: '+str(p_threshold)+'\n')
-    aFile.write('below_curve: '+str(below_curve)+'\n')
-    aFile.write('p_below_curve: '+str(p_below_curve)+'\n')
-    if p_threshold<min_p:
-        aFile.write('There is a significant threshold effect'+'\n')
-        tests_passed=tests_passed+1
-    if p_below_curve<min_p:
-        aFile.write('Samples_curve is significantly below globals curve '+'\n')
-  #      tests_passed=tests_passed+1
+# =============================================================================
+#     aFile.write('p_below_curve: '+str(p_below_curve)+'\n')
+#     if p_threshold<min_p:
+#         aFile.write('There is a significant threshold effect'+'\n')
+#         tests_passed=tests_passed+1
+#     if p_below_curve<min_p:
+#         aFile.write('Samples_curve is significantly below globals curve '+'\n')
+#   #      tests_passed=tests_passed+1
+# =============================================================================
     ##################################
     #  comnpute medians
     ##################################
@@ -829,7 +893,7 @@ def write_results(aFile,anIdentifier, aPath,dataframe, globals_dataframe,populat
     #################
     # Fit data to logit curve #
     #################
-    logit_results=fit_to_logit(trimmed_bin_array, trimmed_sample_counts, trimmed_global_counts)
+    logit_results=fit_to_logit(trimmed_bin_array, trimmed_sample_counts, trimmed_global_counts,population_data.bin_size)
     logit_predictions=generate_logit_predictions(trimmed_bin_array,logit_results.params)
     if logit_results.params[0]>0:
         aFile.write('Logit curve positive')
@@ -879,9 +943,9 @@ def write_results(aFile,anIdentifier, aPath,dataframe, globals_dataframe,populat
     # - plots p_graphs and write statistics (binomial and wilcoxon)
     #threshold_binomial, threshold, threshold_success_count, threshold_trial_count, threshold_samples, threshold_controls = stm.generate_p_threshold_and_binomial(p_samples, p_controls, bin_array)
    # logit_results=stm.fitToLogit(bin_array, sample_counts, global_counts)
-    plm.plot_p_graphs(trimmed_bin_array, trimmed_p_samples, trimmed_p_globals, anIdentifier, aPath)
-    plm.plot_cumulative_p_graphs(trimmed_bin_array, trimmed_p_samples, trimmed_p_globals, median_samples,median_globals,threshold,anIdentifier, aPath)
-    plm.plot_detection_frequencies (trimmed_bin_array, trimmed_likelihood_ratios, logit_predictions, threshold,population_data.max_population-population_data.bin_size*2, anIdentifier, "detection_frequencies", aPath)
+    plm.plot_p_graphs(trimmed_bin_array, trimmed_p_samples, trimmed_p_globals,population_data.bin_size, anIdentifier, aPath)
+    plm.plot_cumulative_p_graphs(trimmed_bin_array, trimmed_p_samples, trimmed_p_globals, population_data.bin_size,median_samples,median_globals,threshold,anIdentifier, aPath)
+    plm.plot_detection_frequencies (trimmed_bin_array, trimmed_likelihood_ratios, logit_predictions, population_data.bin_size, threshold,population_data.max_population-population_data.bin_size*2, anIdentifier, "detection_frequencies", aPath)
     wrm.write_label(aFile,"Logistic fit"+'\n')
     aFile.write("Intercept: "+str(logit_results.params[1])+'\n')
     aFile.write("Coefficient: "+str(logit_results.params[0])+'\n')

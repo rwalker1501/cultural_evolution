@@ -131,13 +131,15 @@ def plot_odds_ratio(bins, actual_ratios, predictions,lambda_tau, linear_predicte
     plt.close()
     
     
-def plot_detection_frequencies (bins, actual_ratios, logit_predictions, predicted_threshold,max_xaxis, identifier, label, file_path):
+def plot_detection_frequencies (bins, actual_ratios, logit_predictions, bin_size,predicted_threshold,max_xaxis, identifier, label, file_path):
     fig = plt.figure()
 
 # =============================================================================
 #     for i in range(0, len(bins)):
 #         ratio = actual_ratios[i];
 # =============================================================================
+    add=bin_size/2
+    bins=[x+add for x in bins]
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.plot(bins,actual_ratios,'bo',label='Observations')
@@ -149,7 +151,7 @@ def plot_detection_frequencies (bins, actual_ratios, logit_predictions, predicte
     # threshold = ax.plot(bins, threshold_predicted_ratios, 'g', label="threshold");
     plt.ylabel(label)
     plt.xlabel("Population density per cell")
-    plt.gca().set_xlim(0, max_xaxis)
+#    plt.gca().set_xlim(0, max_xaxis)
     plt.legend(title= "Legend")
     #max yaxis needs to be set dynamically
     y_lim1=max(actual_ratios)
@@ -193,7 +195,9 @@ def plot_sites_graph(bins, actual_sites, predicted_sites, label, identifier, tit
     fig.savefig(os.path.join(file_path, str(identifier) + "_" + label + "_sites.png"))
     plt.close()
 
-def plot_p_graphs(bins, p_samples, p_globals, identifier, file_path):
+def plot_p_graphs(bins, p_samples, p_globals, bin_size,identifier, file_path):
+    add=bin_size/2
+    bins=[x+add for x in bins]
     fig = plt.figure()
     ax = fig.add_subplot(111)
     # ax.set_title(title)
@@ -211,7 +215,9 @@ def plot_p_graphs(bins, p_samples, p_globals, identifier, file_path):
     fig.savefig(os.path.join(file_path, str(identifier) + "_p_graph.png"))
     plt.close()
     
-def plot_cumulative_p_graphs(bins, p_samples, p_globals, median_samples,median_globals,threshold,identifier, file_path):
+def plot_cumulative_p_graphs(bins, p_samples, p_globals, bin_size, median_samples,median_globals,threshold,identifier, file_path):
+    add=bin_size/2
+    bins=[x+add for x in bins]
     fig = plt.figure()
     ax = fig.add_subplot(111)
     # ax.set_title(title)
@@ -220,20 +226,30 @@ def plot_cumulative_p_graphs(bins, p_samples, p_globals, median_samples,median_g
     for a_p_Sample in p_samples:
         cum_samples=cum_samples+a_p_Sample
         cum_p_samples.append(cum_samples)
+    # normalize values because some p_samples may be missing
+# =============================================================================
+#     normalizer=1/cum_samples
+#     cum_p_samples=(x * normalizer for x in cum_p_samples)
+# =============================================================================
     cum_globals=0
     cum_p_globals=[]
     for a_p_globals in p_globals:
         cum_globals=cum_globals+a_p_globals
         cum_p_globals.append(cum_globals)
+# =============================================================================
+#     normalizer=1/cum_globals
+#     cum_p_globals=(x * normalizer for x in cum_p_globals)
+# =============================================================================
+    
     ax.plot(bins,cum_p_samples,'b', label="Samples")
     ax.plot(bins, cum_p_globals,'r',label="Globals")
     # ax.axvline(threshold, color='k', linestyle='--')
     plt.gca().set_ylim(0, 1.0)
 
     # text = "Threshold: " + str(threshold) + "\nSuccesses: " + str(success) + "\n Trials: " + str(trials) + "\nBinomial: " + str(binomial)
-    ax.axvline(median_samples, color='b', linestyle='--')
-    ax.axvline(median_globals, color='r', linestyle='--')
-    ax.axvline(threshold, color='g', linestyle='--')
+    ax.axvline(median_samples, color='b', linestyle='--',label="Median samples")
+    ax.axvline(median_globals, color='r', linestyle='--', label="Median globals")
+    ax.axvline(threshold, color='g', linestyle='--', label="Threshold")
     plt.ylabel("Cumulated relative detection frequency")
     plt.xlabel("Population density per cell")
     plt.legend(title= "Legend")

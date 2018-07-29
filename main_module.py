@@ -418,8 +418,8 @@ class MainProgram:
             new_dir = "date_" + str(start_date) + "-" + str(end_date) + "_" + directory;
             new_target_list, f = tam.filter_targets_for_date(original_target_list, end_date, start_date, "");
 
-            new_df = dataframe[(dataframe.period <= start_date) & (dataframe.period > end_date)]
-            new_gdf = globals_dataframe[(globals_dataframe.period <= start_date) & (globals_dataframe.period >= end_date)]
+            new_df = dataframe[(dataframe.period < start_date) & (dataframe.period >= end_date)]
+            new_gdf = globals_dataframe[(globals_dataframe.period < start_date) & (globals_dataframe.period >= end_date)]
 
             self.dataframe = new_df;
             self.globals_dataframe = new_gdf;
@@ -432,7 +432,7 @@ class MainProgram:
                 date_keys.append(label);
                 date_bands[label] = [bin_array, sample_counts, global_counts, control_counts, odds_ratios, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs]
             except ValueError:
-                print("No Geographic Points Fall in this area")
+                print("Insufficient data for this band")
 
             if end_date == minimum_date:
                 break;
@@ -454,8 +454,8 @@ class MainProgram:
             new_dir = "lat_" + str(int(start_lat)) + "-" + str(int(end_lat)) + "_" + directory;
             new_target_list, f = tam.filter_targets_for_latitude(original_target_list, end_lat, start_lat, "");
             
-            new_df = dataframe[(dataframe.latitude <= start_lat) & (dataframe.latitude > end_lat)]
-            new_gdf = globals_dataframe[(globals_dataframe.latitude <= start_lat) & (globals_dataframe.latitude >= end_lat)]
+            new_df = dataframe[(dataframe.latitude < start_lat) & (dataframe.latitude >= end_lat)]
+            new_gdf = globals_dataframe[(globals_dataframe.latitude < start_lat) & (globals_dataframe.latitude >= end_lat)]
 
             self.dataframe = new_df;
             self.globals_dataframe = new_gdf;
@@ -568,11 +568,11 @@ class MainProgram:
         #   - dataframe: contains all locations and population densities in the population data that is relevant to the target list
         clustered_target_list, self.dataframe, self.globals_dataframe = tam.process_targets(self.base_path, population_data, original_target_list, self.dataframe, self.globals_dataframe, self.globals, self.dataframe_loaded, self.clustering_on, self.date_window, self.critical_distance, self.critical_time, directory, self.min_date_window, self.min_lat, self.max_lat, self.min_date, self.max_date)
 
-        if self.dataframe.empty:
-            print "No geographic points fall in target area"
-            f2.write("No Geographic Points Fall in Target Areas")
+        if self.dataframe.empty or len(clustered_target_list)<10:
+            print "Not enough samples in target area"
+            f2.write("Not enough samples in Target Areas")
             f2.close()
-            return "No Geographic Points Fall in Target Areas"
+            return "Not enough samples in target area"
 
         #####################
         # Process dataframe #
@@ -623,7 +623,7 @@ class MainProgram:
 
 #      
     
-#         #Only include data with non-zero values in statistical tests#
+#         #Only include data with  globals > minimum_globals in statistical tests#
 #         ###################################
         trimmed_bin_array=[]
         trimmed_p_samples=[]
@@ -639,6 +639,11 @@ class MainProgram:
                  trimmed_sample_counts.append(sample_counts[i])
                  trimmed_global_counts.append(global_counts[i])
                  trimmed_likelihood_ratios.append(likelihood_ratios[i])
+        if len(trimmed_global_counts)<len(global_counts)/2:
+            f2.write('insufficient non-zero bins for analysis')
+            return ('insufficient non-zero bins for analysis')
+            
+            
 #         #######################
 #         # Test distributions match qualitative predictions from model
 #         #######################
@@ -659,28 +664,32 @@ class MainProgram:
 #         # Detect and display threshold and below curve #
 #         ##################################
 #         
-        threshold,successes,trials,p_threshold, below_curve, p_below_curve=stm.detect_threshold(trimmed_bin_array, trimmed_sample_counts,trimmed_global_counts)
-        wrm.write_label(f2,"Threshold analysis"+'\n')
-        f2.write('Threshold: '+str(threshold)+'\n')
-        f2.write('Successes: '+str(successes)+'\n')
-        f2.write('Trials: '+str(trials)+'\n')
-        f2.write('p: '+str(p_threshold)+'\n')
-        f2.write('below_curve: '+str(below_curve)+'\n')
-        f2.write('p_below_curve: '+str(p_below_curve)+'\n')
-        if p_threshold<self.min_p:
-             f2.write('There is a significant threshold effect'+'\n')
-             tests_passed=tests_passed+1
-        if p_below_curve<self.min_p:
-             f2.write('Samples_curve is significantly below globals curve '+'\n')
-             tests_passed=tests_passed+1
+# =============================================================================
+#         threshold,successes,trials,p_threshold, below_curve, p_below_curve=stm.detect_threshold(trimmed_bin_array, trimmed_sample_counts,trimmed_global_counts)
+#         wrm.write_label(f2,"Threshold analysis"+'\n')
+#         f2.write('Threshold: '+str(threshold)+'\n')
+#         f2.write('Successes: '+str(successes)+'\n')
+#         f2.write('Trials: '+str(trials)+'\n')
+#         f2.write('p: '+str(p_threshold)+'\n')
+#         f2.write('below_curve: '+str(below_curve)+'\n')
+#         f2.write('p_below_curve: '+str(p_below_curve)+'\n')
+#         if p_threshold<self.min_p:
+#              f2.write('There is a significant threshold effect'+'\n')
+#              tests_passed=tests_passed+1
+#         if p_below_curve<self.min_p:
+#              f2.write('Samples_curve is significantly below globals curve '+'\n')
+#              tests_passed=tests_passed+1
+# =============================================================================
 #         
 #         
 #         #################
 #         # Fit data to logit curve #
 #         #################
-        logit_results=stm.fit_to_logit(trimmed_bin_array, trimmed_sample_counts, trimmed_global_counts)
-        logit_predictions=stm.generate_logit_predictions(trimmed_bin_array,logit_results.params)
-#        
+# =============================================================================
+#         logit_results=stm.fit_to_logit(trimmed_bin_array, trimmed_sample_counts, trimmed_global_counts)
+#         logit_predictions=stm.generate_logit_predictions(trimmed_bin_array,logit_results.params)
+# #        
+# =============================================================================
 #        
 #         
 #         
@@ -697,11 +706,13 @@ class MainProgram:
 #         plm.plot_p_graphs(trimmed_bin_array, trimmed_p_samples, trimmed_p_globals, directory, new_path)
 #         plm.plot_cumulative_p_graphs(trimmed_bin_array, trimmed_p_samples, trimmed_p_globals, directory, new_path)
 #         plm.plot_detection_frequencies (trimmed_bin_array, trimmed_likelihood_ratios, logit_predictions,  population_data.max_population-population_data.bin_size*2, directory, "detection_frequencies", new_path)
-        wrm.write_label(f2,"Logistic fit"+'\n')
-        f2.write("Intercept: "+str(logit_results.params[1])+'\n')
-        f2.write("Coefficient: "+str(logit_results.params[0])+'\n')
-        f2.write("AIC: "+str(logit_results.aic)+'\n')
-        f2.write("Pearson Chi2: "+str(logit_results.pearson_chi2)+'\n')
+# =============================================================================
+#         wrm.write_label(f2,"Logistic fit"+'\n')
+#         f2.write("Intercept: "+str(logit_results.params[1])+'\n')
+#         f2.write("Coefficient: "+str(logit_results.params[0])+'\n')
+#         f2.write("AIC: "+str(logit_results.aic)+'\n')
+#         f2.write("Pearson Chi2: "+str(logit_results.pearson_chi2)+'\n')
+# =============================================================================
 # # =============================================================================
 # #         t_threshold_wilcoxon, p_threshold_wilcoxon = wilcoxon(threshold_controls, threshold_samples)
 # #         wrm.write_label(f2, "Statistics for threshold bins")
