@@ -346,7 +346,7 @@ def plot_densities_on_map_by_time(population_data, time):
     cmap = cm.get_cmap('jet')
 
     #why is this divided by 6000 - don't understand
-    dens = np.array(dens).astype(float)/6000;
+    dens = np.array(dens).astype(float)/3000;
     x,y = my_map(lons, lats)
     rgba = cmap(dens);
 

@@ -39,8 +39,9 @@ def load_population_data(base_path, population_data_sources):
     dens_ncf=data['dens_ncf']
 
     tim_info_path = os.path.join(pop_data_path, 'timmermann_info.txt')
-    time_multiplier, bin_size, max_population, max_for_uninhabited, is_active, ascending_time = read_population_data_info(tim_info_path)
-    timmermann = PopulationData("Timmermann", is_active, lats_ncf, lons_ncf, ts_ncf, dens_ncf, time_multiplier, bin_size, max_population, max_for_uninhabited, ascending_time)
+    time_multiplier, density_multiplier,bin_size, max_population, max_for_uninhabited, is_active, ascending_time = read_population_data_info(tim_info_path)
+     # why do we use a different method to load timmermann data?
+    timmermann = PopulationData("Timmermann", is_active, lats_ncf, lons_ncf, ts_ncf, dens_ncf, time_multiplier, density_multiplier,bin_size, max_population, max_for_uninhabited, ascending_time)
     population_data_sources.append(timmermann)
 
     return population_data_sources
