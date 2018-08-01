@@ -1,0 +1,7 @@
+time_multiplier	1000
+Density_multiplier 	1.
+bin_size	2
+max_population	31
+max_for_uninhabited	2
+is_active	False
+ascending_time	True

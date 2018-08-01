@@ -64,10 +64,10 @@ mm.run_experiment(base_path, "rpv12", "rpv12",date_window=24);
 
 
 # # FiG2E: OR graph for France + Spain, Eriksson
-mm.run_experiment(base_path, "rpv12_fr_sp", "rpv12_fr_sp", the_globals="France and Spain")
+#mm.run_experiment(base_path, "rpv12_fr_sp", "rpv12_fr_sp", the_globals="France and Spain")
 
 # # FIG2E: OR graph for Australia, Eriksson
-mm.run_experiment(base_path, "rpv12_au", "rpv12_au", the_globals="Australia")
+#mm.run_experiment(base_path, "rpv12_au", "rpv12_au", the_globals="Australia")
 
 # FIG2G: pGraph for world, Timmermann (as in Fig 2A)
 # FIG2H: OR graph for world, Timmermann (as in Fig2B)
@@ -77,7 +77,7 @@ mm.run_experiment(base_path, "rpv12_au", "rpv12_au", the_globals="Australia")
 #mm.plot_min_densities_in_time_range("Eriksson", 50000, 5000, 5000)
 # SM2: OR graph for each date band - include empty lats, error bars, no trend lines.
 # SM3: OR graph for each latitude band -  include empty lats, error bars, no trend lines.
-mm.run_experiment(base_path, "rpv12", "rpv12_ca", is_confounder_analysis=True, date_window=24);
+#mm.run_experiment(base_path, "rpv12", "rpv12_ca", is_confounder_analysis=True, date_window=24);
 
 # SM4: OR graphs for France/Spain with different clustering parameters (distance = 100, 500, 1000 km, time = 1000, 5000, 10000 years)
 #mm.run_experiment(base_path, "rpv10_fr_sp", "rpv10_fr_sp_cd100_ct1000", the_globals="France and Spain", clustering_on=True, critical_distance=100, critical_time=1000)
