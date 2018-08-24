@@ -13,6 +13,7 @@ import stats_module as stm
 import plot_module as plm
 import write_module as wrm
 import pandas as pd
+import math
 from os import listdir
 from os.path import isfile, join
 from copy import deepcopy
@@ -23,8 +24,7 @@ from sklearn.model_selection import RepeatedKFold
 from datetime import date
 from classes_module import Target, PopulationData
 from datetime import datetime
-import math
-
+from mpmath import mpf
 pd.options.mode.chained_assignment = None 
 
 
@@ -608,7 +608,7 @@ class MainProgram:
         #################
         # - extracts bin values
         # - write bin values to file
-        tam.generate_merged_dataframe(base_path,directory,self.dataframe,self.globals_dataframe)
+        merged_df = tam.generate_merged_dataframe(base_path,directory,self.dataframe,self.globals_dataframe)
         stm.write_results(f2,directory,new_path,self.dataframe, self.globals_dataframe, population_data,self.min_globals, self.min_p)
         bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_controls, p_likelihood_ratios,minimum_globals = stm.generate_bin_values(self.dataframe, self.globals_dataframe, population_data)
        # wrm.write_bin_table(f2, bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, likelihood_ratios, p_samples, p_globals, p_controls, p_likelihood_ratios,minimum_globals)
@@ -654,11 +654,52 @@ class MainProgram:
         t_wilcox,p_wilcox=wilcoxon(trimmed_p_samples,trimmed_p_globals)
         f2.write( 'Wilcoxon stat for samples vs globals :'+str(float(t_wilcox))+ '   p='+str(float(p_wilcox))+'\n')
         ks_d,ks_p=ks_2samp(trimmed_p_samples,trimmed_p_globals)
-        f2.write( 'KS test  for samples vs globals :'+str(float(ks_d))+ '   p='+str(float(ks_p))+'\n')
+        f2.write( 'KS test for p_samples vs p_globals :'+str(float(ks_d))+ '   p='+str(float(ks_p))+'\n')
         if ks_p<self.min_p:
              f2.write('The two distribitions are significantly different p<0.001'+'\n')
              tests_passed=tests_passed+1
-        
+
+        all_sample_densities = self.dataframe[self.dataframe.type == 's']['density'];
+        all_global_densities = self.globals_dataframe['density']
+
+        ks_d,ks_p=ks_2samp(all_sample_densities,all_global_densities);
+        f2.write( 'KS test for sample densities vs global densities :'+str(float(ks_d))+ '   p='+str(float(ks_p))+'\n')
+        if ks_p<self.min_p:
+             f2.write('The two distribitions (all) are significantly different p<0.001'+'\n')
+             tests_passed=tests_passed+1
+
+        ################
+        # Pettitt Test #
+        ################
+        unique_densities, cum_samples, cum_globals, cum_det_freq = stm.generate_cumulated_detection_frequency(merged_df);
+        threshold,p = stm.optimized_pettitt_test(unique_densities, cum_det_freq);
+        wrm.write_label(f2, "Pettitt Test");
+        f2.write('Threshold: ' + str(threshold) + "\n");
+        f2.write('p: ' + str(p) + "\n");
+
+
+        sample_tuples, global_tuples = stm.generate_tuples_from_dataframe(merged_df);
+
+        unique_densities, coef, intercept, logit_prediction = stm.logit_values_using_GLM(sample_tuples, global_tuples);
+        unique_densities, cum_coef, cum_intercept, cum_logit_prediction = stm.logit_values_using_GLM(zip(unique_densities,cum_samples), zip(unique_densities,cum_globals));
+        # x, y, coef, intercept, logit_prediction = stm.logit_values(sample_tuples, global_tuples);
+        wrm.write_label(f2, "Logistic Regression");
+        f2.write('Coef: ' + str(coef) + "\n");
+        f2.write('Intercept: ' + str(intercept) + "\n");
+
+        add = population_data.bin_size/2
+        bins = [];
+        det_freq = [];
+        for i in range(0, len(trimmed_bin_array)):
+            if trimmed_likelihood_ratios[i] > -1:
+                det_freq.append(trimmed_likelihood_ratios[i]);
+                bins.append(trimmed_bin_array[i] + add);
+
+        plm.plot_logit(bins, det_freq, unique_densities, logit_prediction, "all_det_freq", directory, new_path);
+        plm.plot_logit(unique_densities, cum_det_freq, unique_densities, cum_logit_prediction, "cum_det_freq", directory, new_path);
+
+
+        f2.close();
 #             
 #         ##################################
 #         # Detect and display threshold and below curve #

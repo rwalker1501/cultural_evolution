@@ -1,16 +1,20 @@
 import numpy as np
 import math
+import copy
 import plot_module as plm
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
 import write_module as wrm
+from mpmath import mpf, exp
 from classes_module import Target, PopulationData
 from scipy.optimize import curve_fit
 from scipy import stats;
 from scipy.stats import linregress, chisquare, binom_test, levene,wilcoxon,ks_2samp
 from sklearn.metrics import r2_score
 from sklearn.model_selection import RepeatedKFold
+from sklearn.linear_model import LogisticRegression
+from operator import itemgetter
 
 
 
@@ -174,16 +178,13 @@ def fit_to_linear (bins, sample_counts, global_counts):
 #    print(res.summary())
     return(res)
         
-    
-    
 
-    
 def generate_logit_predictions(bins,params):
     predictions=[]
     for a_Bin in bins:
         a_prediction=(math.exp(params[1]+params[0]*a_Bin))/(1+(math.exp(params[1]+params[0]*a_Bin)))
         predictions.append(a_prediction)
-    return(predictions)
+    return (predictions)
     
 def generate_linear_predictions(bins,params):
     predictions=[]
@@ -675,6 +676,182 @@ def linear_fit(data_x,data_y):
 #     return p_opt, p_cov 
 # =============================================================================
 
+def logit_values_using_GLM(sample_tuples, global_tuples):
+
+    unique_densities = [i[0] for i in sample_tuples];
+
+    values=sm.add_constant(unique_densities, prepend=False)
+
+    sample_globals = []
+    likelihood_ratios = [];
+    for i in range(len(sample_tuples)):
+        sample_count = sample_tuples[i][1];
+        global_count = global_tuples[i][1];
+         # I add 0.000001 to all counts to make fit work - temporary fix for bug in statsModels
+        sample_globals.append([sample_count+0.000001,global_count+0.000001])
+
+    glm_binom = sm.GLM(sample_globals, values, family=sm.families.Binomial())
+    res = glm_binom.fit()
+    print(res.params)
+
+    loss = generate_logit_predictions(unique_densities, res.params);
+    return unique_densities, res.params[0], res.params[1], loss; 
+
+def generate_tuples_from_dataframe(merged_dataframe):
+    unique_densities = np.sort(merged_dataframe.density.unique());
+    zero_array = [0 for i in unique_densities];
+    sample_base_dict = dict(zip(unique_densities,zero_array));
+    global_base_dict = dict(zip(unique_densities,zero_array));
+
+    merged_dataframe['count'] = 0;
+    sample_dataframe = merged_dataframe[merged_dataframe.type == 's'];
+    global_dataframe = merged_dataframe[merged_dataframe.type == 'g'];
+    
+    sample_tuples = generate_sorted_dataframe_tuples(sample_base_dict, sample_dataframe);
+    global_tuples = generate_sorted_dataframe_tuples(global_base_dict, global_dataframe);
+
+    return sample_tuples, global_tuples;
+
+def logit_values(sample_tuples, global_tuples):
+
+    x = [];
+    y = [];
+    for i in range(len(sample_tuples)):
+        density = sample_tuples[i][0];
+        sample_count = sample_tuples[i][1];
+        global_count = global_tuples[i][1];
+
+        # sample > 0 check, all densities
+        x.append([density]);
+        y.append(1 if sample_count > 0 else 0);
+
+    x = np.array(x);
+    y = np.array(y);
+
+    logit = LogisticRegression();
+    logit.fit(x,y);
+    coef = logit.coef_;
+    intercept = logit.intercept_;
+    loss = logistic_model_2(x*coef + intercept).ravel();
+    return x.ravel(), y, coef, intercept, loss;
+
+
+    
+def logistic_model(x):
+    return 1 / (1 + np.exp(-x));
+
+def logistic_model_2(x):
+    return (np.exp(x))/(1+(np.exp(x)))
+
+def generate_sorted_dataframe_tuples(base_dict, dataframe):
+    print("Generate sorted dataframe tuples")
+    dataframe['count'] = 0;
+    dataframe = dataframe.groupby(['density']).count().reset_index();
+    # print(dataframe);
+    dataframe_dict = dict(zip(dataframe['density'], dataframe['count']));
+    base_dict.update(dataframe_dict)
+    sorted_dataframe_tuples = sorted(base_dict.iteritems(), key=itemgetter(0));
+
+    return sorted_dataframe_tuples;
+
+
+def generate_cumulated_densities(base_dict, dataframe):
+    sorted_dataframe_tuples = generate_sorted_dataframe_tuples(base_dict, dataframe);
+
+    cum_values = [0 for x in base_dict.keys()];
+    cum_values[0] = sorted_dataframe_tuples[0][1];
+    for i in range(1, len(sorted_dataframe_tuples)):
+        cum_values[i] = cum_values[i-1] + sorted_dataframe_tuples[i][1];
+
+    return cum_values;
+
+
+
+def generate_cumulated_detection_frequency(merged_dataframe):
+    unique_densities = np.sort(merged_dataframe.density.unique());
+    zero_array = [0 for x in unique_densities];
+
+    samples_base_dict = dict(zip(unique_densities,zero_array));
+    globals_base_dict = dict(zip(unique_densities,zero_array));
+
+    samples = merged_dataframe[merged_dataframe.type == 's']
+    cum_samples = generate_cumulated_densities(samples_base_dict, samples)
+
+    the_globals = merged_dataframe[merged_dataframe.type == 'g']
+    cum_globals = generate_cumulated_densities(globals_base_dict, the_globals);
+
+    cum_det_freq = [];
+    for i in range(len(cum_globals)):
+        cum_det_freq.append(float(cum_samples[i])/float(cum_globals[i]));
+
+    return unique_densities, cum_samples, cum_globals, cum_det_freq;
+
+def optimized_pettitt_test(data_x, data_y):
+    u=[]
+    max_u=0
+    threshold=0
+    if len(data_x)>3:
+        total_t=len(data_x)
+        
+        u.append(0);
+        for j in range(1, total_t):
+            u[0]=u[0]+np.sign(data_y[0]-data_y[j])
+        if abs(u[0]) > max_u:
+            max_u=abs(u[0])
+            threshold=data_x[0];
+            
+        
+        for t in range(1,total_t-1):
+            to_remove = 0;
+            # print("REMOVE");
+            for i in range(0, t):
+                # print(str(i) + " " + str(t));
+                to_remove += np.sign(data_y[i]-data_y[t])
+            
+            to_add = 0;
+            # print("ADD");
+            for j in range(t+1, total_t):
+                # print(str(t) + " " + str(j));
+                to_add += np.sign(data_y[t]-data_y[j]);
+            
+            u.append(0);
+            u[t] = u[t-1] - to_remove + to_add;
+            
+            if abs(u[t])>max_u:
+                max_u=abs(u[t])
+                threshold=data_x[t];
+        num_p = float(-6*max_u**2);
+        denom_p = float(total_t**3+total_t**2);
+        print("num: " + str(num_p))
+        print("denom: " + str(denom_p))
+        p=2*exp(num_p/denom_p);
+        print("p: " + str(p))
+
+        # print(u);
+    else:
+        threshold=0
+        p=1
+    return threshold,p 
+
+def pettitt_test(data_x, data_y):
+    threshold = 0
+    max_u = 0
+    u = []
+    if len(data_x)>3:
+        total_t=len(data_x)
+        for t in range(0,total_t):
+            u.append(0)
+            for i in range(0,t):
+                for j in range(t+1,total_t):
+                        u[t]=u[t]+np.sign(data_y[i]-data_y[j])
+            if abs(u[t])>max_u:
+                max_u=abs(u[t])
+                threshold=data_x[t]
+        p=2*math.exp((-6*max_u**2)/(total_t**3+total_t**2))                      
+    else:
+        threshold=0
+        p=1
+    return threshold,p 
 
 def detect_threshold(data_x,sample_counts, global_counts,bin_size):
     

@@ -130,7 +130,29 @@ def plot_odds_ratio(bins, actual_ratios, predictions,lambda_tau, linear_predicte
     fig.savefig(os.path.join(file_path, str(identifier) + "_" + label + ".png"))
     plt.close()
     
-    
+def plot_logit(bins, det_freq_values, unique_densities, logit_predictions, label, identifier, file_path):
+    fig = plt.figure();
+    if max(bins)/2 > len(bins):
+        plt.scatter(bins, det_freq_values, color="blue");
+    else:
+        plt.plot(bins, det_freq_values, color="blue");
+    plt.plot(unique_densities, logit_predictions, color="red");
+    plt.xlabel("Densities");
+    plt.ylabel("Values");
+
+    # x_lim1 = max(bins);
+    # x_lim2 = max(unique_densities);
+    # x_lim = max(x_lim1, x_lim2);
+    # plt.gca().set_xlim(0,max(bins)/2);
+    y_lim1=max(det_freq_values);
+    y_lim2=max(logit_predictions);
+#    y_lim3=max(threshold_predictions)
+    y_lim=max(y_lim1,y_lim2);
+    plt.gca().set_ylim(0,y_lim);
+    fig.savefig(os.path.join(file_path, identifier + "_" + label + "_logit.png"));
+    plt.close();
+
+
 def plot_detection_frequencies (bins, actual_ratios, logit_predictions, bin_size,predicted_threshold,max_xaxis, identifier, label, file_path):
     fig = plt.figure()
 
@@ -254,7 +276,7 @@ def plot_cumulative_p_graphs(bins, p_samples, p_globals, bin_size, median_sample
     plt.xlabel("Population density per cell")
     plt.legend(title= "Legend")
     # plt.text(2, 2, text, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
-    fig.savefig(os.path.join(file_path, str(identifier) + "cum_p_graph.png"))
+    fig.savefig(os.path.join(file_path, str(identifier) + "_cum_p_graph.png"))
     plt.close()
 
 def plot_growth_coefficient_boxplot(data, file_path):
