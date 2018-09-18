@@ -608,7 +608,6 @@ class MainProgram:
         #################
         # - extracts bin values
         # - write bin values to file
-        merged_df = tam.generate_merged_dataframe(base_path,directory,self.dataframe,self.globals_dataframe)
         stm.write_results(f2,directory,new_path,self.dataframe, self.globals_dataframe, population_data,self.min_globals, self.min_p)
         bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_controls, p_likelihood_ratios,minimum_globals = stm.generate_bin_values(self.dataframe, self.globals_dataframe, population_data)
        # wrm.write_bin_table(f2, bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, likelihood_ratios, p_samples, p_globals, p_controls, p_likelihood_ratios,minimum_globals)
@@ -668,17 +667,33 @@ class MainProgram:
              f2.write('The two distribitions (all) are significantly different p<0.001'+'\n')
              tests_passed=tests_passed+1
 
+
+        wrm.write_label(f2, "Unique Sample Densities");
+
+
+        merged_df = tam.generate_merged_dataframe(base_path,directory,self.dataframe,self.globals_dataframe);
+        unique_sample_densities = merged_df[merged_df.type == 's'].density.unique();
+        trim_merged_df = merged_df[merged_df.density.isin(unique_sample_densities)];
+        trim_merged_df_s = trim_merged_df[trim_merged_df.type == 's']
+        trim_merged_df_g = trim_merged_df[trim_merged_df.type == 'g']
+
+        f2.write("Unique sample densities: " + str(len(unique_sample_densities)) + "\n");
+        f2.write("Sample points with unique sample densities: " + str(len(trim_merged_df_s)) + "\n");
+        f2.write("Global points with unique sample densities: " + str(len(trim_merged_df_g)) + "\n");
+
         ################
         # Pettitt Test #
         ################
-        unique_densities, cum_samples, cum_globals, cum_det_freq = stm.generate_cumulated_detection_frequency(merged_df);
+
+        # all_sample_densities = merged_df[merged_df.type == 's']['density'];
+        unique_densities, cum_samples, cum_globals, cum_det_freq = stm.generate_cumulated_detection_frequency(trim_merged_df);
         threshold,p = stm.optimized_pettitt_test(unique_densities, cum_det_freq);
         wrm.write_label(f2, "Pettitt Test");
         f2.write('Threshold: ' + str(threshold) + "\n");
         f2.write('p: ' + str(p) + "\n");
 
 
-        sample_tuples, global_tuples = stm.generate_tuples_from_dataframe(merged_df);
+        sample_tuples, global_tuples = stm.generate_tuples_from_dataframe(trim_merged_df);
 
         unique_densities, coef, intercept, logit_prediction = stm.logit_values_using_GLM(sample_tuples, global_tuples);
         unique_densities, cum_coef, cum_intercept, cum_logit_prediction = stm.logit_values_using_GLM(zip(unique_densities,cum_samples), zip(unique_densities,cum_globals));
@@ -824,7 +839,7 @@ def plot_min_densities_in_time_range(population_data_name, time_from, time_to, m
     mp.plot_min_densities_in_time_range(population_data, time_from, time_to, min_density);
 
 
-def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", the_globals="All", date_window=24, user_max_for_uninhabited=1, clustering_on = False, critical_distance=0, filter_date_before=-1, filter_not_direct=False, filter_not_exact=False, filter_not_figurative=False, filter_not_controversial = False, perform_cross_validation=False, number_of_kfolds = 100,  min_date_window=0, critical_time=10000, filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False, is_confounder_analysis=False,reweighting=False):
+def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", the_globals="All", date_window=24, user_max_for_uninhabited=-1, clustering_on = False, critical_distance=0, filter_date_before=-1, filter_not_direct=False, filter_not_exact=False, filter_not_figurative=False, filter_not_controversial = False, perform_cross_validation=False, number_of_kfolds = 100,  min_date_window=0, critical_time=10000, filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False, is_confounder_analysis=False,reweighting=False):
   # Note: current setting of minimum_globals is overwritten in stats_modulegenera
     mp = MainProgram()
     base_path = mp.get_base_path()
