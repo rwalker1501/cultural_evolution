@@ -53,7 +53,7 @@ class MainProgram:
         self.minimum_likelihood_ratio = 0
         self.perform_cross_validation = False
         self.user_max_for_uninhabited = 1
-        self.default_mfu = True
+        self.default_mfu = False
         self.min_date_window = 0
         self.critical_time = 10000
         self.max_lat = 60;
@@ -566,7 +566,7 @@ class MainProgram:
         #   - clusters targets and returns 2D array of targets grouped in clusters
         #   - If dataframe has not been loaded (through load processed targets), extracts dataframe and saves it.
         #   - dataframe: contains all locations and population densities in the population data that is relevant to the target list
-        clustered_target_list, self.dataframe, self.globals_dataframe = tam.process_targets(self.base_path, population_data, original_target_list, self.dataframe, self.globals_dataframe, self.globals, self.dataframe_loaded, self.clustering_on, self.date_window, self.critical_distance, self.critical_time, directory, self.min_date_window, self.min_lat, self.max_lat, self.min_date, self.max_date)
+        clustered_target_list, self.dataframe, self.globals_dataframe = tam.process_targets(self.base_path, population_data, original_target_list, self.dataframe, self.globals_dataframe, self.globals, self.dataframe_loaded, self.clustering_on, self.date_window, self.critical_distance, self.critical_time, directory, self.min_date_window, self.min_lat, self.max_lat, self.min_date, self.max_date, max_for_uninhabited)
 
         if self.dataframe.empty or len(clustered_target_list)<10:
             print "Not enough samples in target area"
@@ -580,6 +580,7 @@ class MainProgram:
         # - gets statistics (means, growth coefficients) of dataframe
         # - filters target list/dataframe by removing clusters with 0 sample means 
         # - This is ugly - we report medians in write module and we calculate them again here.
+        print("Calculating medians..")
         all_sample_mediams, all_global_medians, growth_coefficients, samples_gt_globals, n_targets_gt_0, self.dataframe,growth_samples_gt_globals = stm.process_dataframe(self.dataframe, max_for_uninhabited)
        
         ########################################
@@ -592,6 +593,8 @@ class MainProgram:
 #         ################################
 #         # - binomial test
 #         # - wilcoxon
+
+        print("Calculating statistics..")
         wrm.write_label(f2, "Statistics")
         p_binomial=binom_test(samples_gt_globals,n_targets_gt_0,0.5)
         stats_header_labels = ["Number of cases median samples>median globals", "Number of targets", "pBinomial"]
@@ -608,6 +611,7 @@ class MainProgram:
         #################
         # - extracts bin values
         # - write bin values to file
+        print("Writing bins..")
         stm.write_results(f2,directory,new_path,self.dataframe, self.globals_dataframe, population_data,self.min_globals, self.min_p)
         bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, top_MHs, bottom_MHs, top_test_MHs, bottom_test_MHs, likelihood_ratios, p_samples, p_globals, p_controls, p_likelihood_ratios,minimum_globals = stm.generate_bin_values(self.dataframe, self.globals_dataframe, population_data)
        # wrm.write_bin_table(f2, bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, likelihood_ratios, p_samples, p_globals, p_controls, p_likelihood_ratios,minimum_globals)

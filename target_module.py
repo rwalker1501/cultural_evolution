@@ -9,7 +9,7 @@ from os.path import isfile, join
 from clusterer import ClusterAnalysis
 from classes_module import Target, PopulationData
 
-def process_targets(base_path, population_data, original_target_list, dataframe, globals_dataframe, the_globals, dataframe_loaded, clustering_on, date_window, critical_distance, critical_time, directory, min_date_window, min_lat, max_lat, min_date, max_date):
+def process_targets(base_path, population_data, original_target_list, dataframe, globals_dataframe, the_globals, dataframe_loaded, clustering_on, date_window, critical_distance, critical_time, directory, min_date_window, min_lat, max_lat, min_date, max_date, max_for_uninhabited):
     
     #########################################
     # Cluster targets and group in clusters #
@@ -51,7 +51,8 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
         elif the_globals == "Trial Latitudes 2":
             globals_dataframe = load_bin_globals_for_trial_latitudes2(population_data, clustered_list, date_window)
         elif the_globals == "All":
-            globals_dataframe = load_bin_globals_for_all(population_data, clustered_list, date_window,min_lat, max_lat, min_date, max_date)
+            globals_dataframe = load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date, max_for_uninhabited)
+            # globals_dataframe = load_bin_globals_for_all(population_data, clustered_list, date_window,min_lat, max_lat, min_date, max_date)
         # save the_globals dataframe in processed_targets folder
         globals_dataframe_filename = os.path.join(processed_targets_dir, directory + "_globals_df.csv") 
         globals_dataframe.to_csv(globals_dataframe_filename, sep=";")
@@ -266,6 +267,57 @@ def create_time_dictionaries(time_np, time_multiplier, ascending_time):
                 next_time_dict[time_np[i+1]*time_multiplier] = time
 
     return time_dict, next_time_dict
+
+
+def load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date, max_for_uninhabited):
+    lat_np = population_data.lat_array
+    lon_np = population_data.lon_array
+    time_np = population_data.time_array
+    den_np = population_data.density_array
+    time_multiplier = population_data.time_multiplier
+    density_multiplier = population_data.density_multiplier;
+
+
+    time_mask = (time_np*time_multiplier <= max_date) & (time_np*time_multiplier >= min_date);
+    latlon_mask = (lat_np <= max_lat) & (lat_np >= min_lat);
+    mask = latlon_mask[np.newaxis,:] & time_mask[:, np.newaxis];
+
+    latlon_length = len(lat_np);
+    time_length = len(time_np);
+    indices = np.reshape(range(latlon_length*time_length), [-1, latlon_length])
+    valid_ind = indices[mask];
+
+
+    # print("Latlon: " + str(latlon_length))
+    # print("Time: " + str(time_length))
+    # print("density: " + str(len(den_np)));
+    print(indices[time_length-1][latlon_length-1]/(latlon_length))
+    # print(latlon_length*time_length/(time_length-1))
+
+    print("Masking lat, lon, time..")
+    periods = time_np[valid_ind/(latlon_length)]
+    valid_latlon_ind = valid_ind%latlon_length
+    latitudes = lat_np[valid_latlon_ind]
+    longitudes = lon_np[valid_latlon_ind]
+
+    print("Masking densities");
+    densities = den_np[mask]*density_multiplier;
+
+    print("Generating dataframe...")
+    new_df = pd.DataFrame({'density': densities, 'period': periods, 'latitude': latitudes, 'longitude': longitudes})
+    print("Filtering...")
+    new_df = new_df[new_df.density > max_for_uninhabited];
+    print("Globals dataframe generated.")
+    print(new_df)
+    return new_df
+
+
+
+
+
+
+
+
 
 def load_globals_for_all(population_data, target_list, date_window, min_lat, max_lat, min_date, max_date):
 
