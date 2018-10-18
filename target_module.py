@@ -62,6 +62,9 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
         new_df['distance'] = (new_df['latitude']-new_df['target_lat'])*(new_df['latitude']-new_df['target_lat']) + (new_df['longitude']-new_df['target_lon'])*(new_df['longitude']-new_df['target_lon'])
         new_df['rank'] = new_df.groupby(['target_lat', 'target_lon', 'period'])['distance'].rank(method="first",ascending=True);
         new_df = new_df[((new_df['type'] == 's') & (new_df['rank'] < 2)) | (new_df['type'] == 'c')];
+
+        # remove duplicates
+        new_df = new_df.groupby(['density', 'latitude', 'longitude', 'period', 'type']).first().reset_index();
         # print(new_df[new_df.type == 's'])
         # save dataframe in processed_targets folder
         dataframe_filename = os.path.join(processed_targets_dir, directory + "_dataframe.csv")

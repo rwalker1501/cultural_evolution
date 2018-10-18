@@ -714,6 +714,8 @@ class MainProgram:
                 det_freq.append(trimmed_likelihood_ratios[i]);
                 bins.append(trimmed_bin_array[i] + add);
 
+
+
         plm.plot_logit(bins, det_freq, unique_densities, logit_prediction, "all_det_freq", directory, new_path);
         plm.plot_logit(unique_densities, cum_det_freq, unique_densities, cum_logit_prediction, "cum_det_freq", directory, new_path);
 

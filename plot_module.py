@@ -129,6 +129,8 @@ def plot_odds_ratio(bins, actual_ratios, predictions,lambda_tau, linear_predicte
     label = label.replace(" ", "_");
     fig.savefig(os.path.join(file_path, str(identifier) + "_" + label + ".png"))
     plt.close()
+
+
     
 def plot_logit(bins, det_freq_values, unique_densities, logit_predictions, label, identifier, file_path):
     fig = plt.figure();
@@ -136,21 +138,23 @@ def plot_logit(bins, det_freq_values, unique_densities, logit_predictions, label
         plt.scatter(bins, det_freq_values, color="blue");
     else:
         plt.plot(bins, det_freq_values, color="blue");
-    plt.plot(unique_densities, logit_predictions, color="red");
+    # plt.plot(unique_densities, logit_predictions, color="red");
     plt.xlabel("Densities");
     plt.ylabel("Values");
 
+    fig.tight_layout();
     # x_lim1 = max(bins);
     # x_lim2 = max(unique_densities);
     # x_lim = max(x_lim1, x_lim2);
     # plt.gca().set_xlim(0,max(bins)/2);
-    y_lim1=max(det_freq_values);
-    y_lim2=max(logit_predictions);
+    y_lim=max(det_freq_values);
+    # y_lim2=max(logit_predictions);
 #    y_lim3=max(threshold_predictions)
-    y_lim=max(y_lim1,y_lim2);
+    # y_lim=max(y_lim1,y_lim2);
     plt.gca().set_ylim(0,y_lim);
-    fig.savefig(os.path.join(file_path, identifier + "_" + label + "_logit.png"));
+    fig.savefig(os.path.join(file_path, identifier + "_" + label + ".png"));
     plt.close();
+
 
 
 def plot_detection_frequencies (bins, actual_ratios, logit_predictions, bin_size,predicted_threshold,max_xaxis, identifier, label, file_path):
