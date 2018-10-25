@@ -43,6 +43,7 @@ def process_dataframe(data, max_for_uninhabited):
         # consider only data where densities > max_for_uninhabited
         cluster_df = cluster_df[cluster_df.density > max_for_uninhabited]
 
+
         #########################################
         # Get the median for samples and globals #
         #########################################
@@ -780,6 +781,13 @@ def generate_cumulated_detection_frequency(merged_dataframe):
     the_globals = merged_dataframe[merged_dataframe.type == 'g']
     cum_globals = generate_cumulated_densities(globals_base_dict, the_globals);
 
+
+    print("unique_densities")
+    print(unique_densities)
+    print("Cumulative samples")
+    print(cum_samples);
+    print("Cumulative globals")
+    print(cum_globals);
     cum_det_freq = [];
     for i in range(len(cum_globals)):
         cum_det_freq.append(float(cum_samples[i])/float(cum_globals[i]));

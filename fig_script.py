@@ -42,11 +42,38 @@ import main_module as mm
 #--------#
 base_path = os.getcwd()
 
+
+# mm.run_experiment(base_path, "rpv12", "rpv12",date_window=24);
+# mm.run_experiment(base_path, "rpv12", "rpv12_timmermann", population_data_name="Timmermann",date_window=999);
+
+# exit();
+
+for date_lag in range(4500, 5001, 500):
+
+	start = date_lag
+	if date_lag == 4500:
+		start = 7500
+	for date_window in range(start + 500, 10001, 500):
+		erik_fn = "rpv12_lag" + str(date_lag) + "_dw" + str(date_window);
+		print(erik_fn);
+		mm.run_experiment(base_path, "rpv12", erik_fn, date_window=date_window, date_lag=date_lag);
+
+		tim_fn = "rpv12_lag" + str(date_lag) + "_dw" + str(date_window) + "_timmermann";
+		print(tim_fn);
+		mm.run_experiment(base_path, "rpv12", tim_fn, population_data_name="Timmermann",date_window=date_window, date_lag=date_lag);
+		
+
+
+
+
+
 # Figure 1A: map of all sites and controls. Use a different colour (green) for sites where we have "direct" and "exact age" compared to all other sites
 # Fig 2A: pGraph for world, Eriksson
 # Fig 2B: OR graph for world, Eriksson
 #
-mm.run_experiment(base_path, "rpv12", "rpv12",date_window=24);
+# mm.run_experiment(base_path, "rpv12", "rpv12",date_window=24);
+
+# mm.run_experiment(base_path, "rpv12", "rpv12", processed_targets = True, date_window=24);
 # doing this to get growth coefficients
 #mm.run_experiment(base_path, "rpv12", "rpv12_999",date_window=999);
 #mm.run_experiment(base_path, "rpv12", "rpv12_9999",date_window=9999);
@@ -71,7 +98,9 @@ mm.run_experiment(base_path, "rpv12", "rpv12",date_window=24);
 
 # FIG2G: pGraph for world, Timmermann (as in Fig 2A)
 # FIG2H: OR graph for world, Timmermann (as in Fig2B)
-#mm.run_experiment(base_path, "rpv12", "rpv12_timmermann", population_data_name="Timmermann",date_window=999);
+# mm.run_experiment(base_path, "rpv12", "rpv12_timmermann", population_data_name="Timmermann",date_window=999);
+# mm.run_experiment(base_path, "rpv12", "rpv12_timmermann",  processed_targets = True,  population_data_name="Timmermann",date_window=999);
+# mm.run_experiment(base_path, "rpv12_test", "rpv12_tim_test", population_data_name="Timmermann",date_window=999);
 
 # SM1 Map showing location of regions with high mean population density in period 5000-50000BP
 #mm.plot_min_densities_in_time_range("Eriksson", 50000, 5000, 5000)

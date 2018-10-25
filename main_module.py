@@ -49,6 +49,7 @@ class MainProgram:
         self.clustering_on=False
         self.critical_distance=0
         self.date_window=50
+        self.date_lag = 0;
         self.number_of_kfolds = 10
         self.minimum_likelihood_ratio = 0
         self.perform_cross_validation = False
@@ -83,6 +84,9 @@ class MainProgram:
     def set_date_window(self, date_window):
         self.date_window = date_window
         
+    def set_date_lag(self, date_lag):
+        self.date_lag = date_lag;
+
     def set_critical_distance(self, critical_distance):
         self.critical_distance = critical_distance
 
@@ -522,8 +526,10 @@ class MainProgram:
             max_for_uninhabited = self.user_max_for_uninhabited
 
         print("Date window: " + str(self.date_window))
+        print("Date lag: " + str(self.date_lag))
         print("Max for uninhabited: " + str(max_for_uninhabited))
         print("Clustering: " + str(self.clustering_on))
+
 
         #####################################
         # Create directory and results file #
@@ -548,8 +554,8 @@ class MainProgram:
         f2.write('Date: '+dateTime)
         f2.write('\n')
 
-        header_labels = ['population_data', 'max_for_uninhabited', 'date_window', 'critical_distance', "filters_applied","globals"]
-        header_values = [population_data.name, max_for_uninhabited, self.date_window, self.critical_distance, self.filters_applied,self.globals]
+        header_labels = ['population_data', 'max_for_uninhabited', 'date_window', 'date_lag', 'critical_distance', "filters_applied","globals"]
+        header_values = [population_data.name, max_for_uninhabited, self.date_window, self.date_lag, self.critical_distance, self.filters_applied,self.globals]
         wrm.write_information(f2, header_labels, header_values, ", ")
 
         ##############################
@@ -566,7 +572,7 @@ class MainProgram:
         #   - clusters targets and returns 2D array of targets grouped in clusters
         #   - If dataframe has not been loaded (through load processed targets), extracts dataframe and saves it.
         #   - dataframe: contains all locations and population densities in the population data that is relevant to the target list
-        clustered_target_list, self.dataframe, self.globals_dataframe = tam.process_targets(self.base_path, population_data, original_target_list, self.dataframe, self.globals_dataframe, self.globals, self.dataframe_loaded, self.clustering_on, self.date_window, self.critical_distance, self.critical_time, directory, self.min_date_window, self.min_lat, self.max_lat, self.min_date, self.max_date, max_for_uninhabited)
+        clustered_target_list, self.dataframe, self.globals_dataframe = tam.process_targets(self.base_path, population_data, original_target_list, self.dataframe, self.globals_dataframe, self.globals, self.dataframe_loaded, self.clustering_on, self.date_window, self.critical_distance, self.critical_time, directory, self.min_date_window, self.min_lat, self.max_lat, self.min_date, self.max_date, max_for_uninhabited, self.date_lag)
 
         if self.dataframe.empty or len(clustered_target_list)<10:
             print "Not enough samples in target area"
@@ -845,7 +851,7 @@ def plot_min_densities_in_time_range(population_data_name, time_from, time_to, m
     mp.plot_min_densities_in_time_range(population_data, time_from, time_to, min_density);
 
 
-def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", the_globals="All", date_window=24, user_max_for_uninhabited=-1, clustering_on = False, critical_distance=0, filter_date_before=-1, filter_not_direct=False, filter_not_exact=False, filter_not_figurative=False, filter_not_controversial = False, perform_cross_validation=False, number_of_kfolds = 100,  min_date_window=0, critical_time=10000, filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False, is_confounder_analysis=False,reweighting=False):
+def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", the_globals="All", date_window=24, user_max_for_uninhabited=-1, clustering_on = False, critical_distance=0, filter_date_before=-1, filter_not_direct=False, filter_not_exact=False, filter_not_figurative=False, filter_not_controversial = False, perform_cross_validation=False, number_of_kfolds = 100,  min_date_window=0, critical_time=10000, filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False, is_confounder_analysis=False,reweighting=False, date_lag = 0):
   # Note: current setting of minimum_globals is overwritten in stats_modulegenera
     mp = MainProgram()
     base_path = mp.get_base_path()
@@ -869,6 +875,7 @@ def run_experiment(results_path, target_list_file, output_directory, population_
             
 
     mp.set_date_window(date_window)
+    mp.set_date_lag(date_lag)
     mp.set_min_date_window(min_date_window)
     if user_max_for_uninhabited != -1:
         mp.set_user_max_for_uninhabited(user_max_for_uninhabited)

@@ -9,7 +9,7 @@ from os.path import isfile, join
 from clusterer import ClusterAnalysis
 from classes_module import Target, PopulationData
 
-def process_targets(base_path, population_data, original_target_list, dataframe, globals_dataframe, the_globals, dataframe_loaded, clustering_on, date_window, critical_distance, critical_time, directory, min_date_window, min_lat, max_lat, min_date, max_date, max_for_uninhabited):
+def process_targets(base_path, population_data, original_target_list, dataframe, globals_dataframe, the_globals, dataframe_loaded, clustering_on, date_window, critical_distance, critical_time, directory, min_date_window, min_lat, max_lat, min_date, max_date, max_for_uninhabited, date_lag):
     
     #########################################
     # Cluster targets and group in clusters #
@@ -32,6 +32,7 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
     # - saves extracted dataframe as <directory>_dataframe.csv
     # - saves the_globals as <directory>_globals_df.csv
     # - saves target list as <directory>_targets.csv
+    print(dataframe_loaded)
     if dataframe_loaded is False:
 
         processed_targets_dir = os.path.join(base_path, "processed_targets")
@@ -55,10 +56,12 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
             # globals_dataframe = load_bin_globals_for_all(population_data, clustered_list, date_window,min_lat, max_lat, min_date, max_date)
         # save the_globals dataframe in processed_targets folder
         globals_dataframe_filename = os.path.join(processed_targets_dir, directory + "_globals_df.csv") 
-        globals_dataframe.to_csv(globals_dataframe_filename, sep=";")
+        
+        # WRITE PROCESSED GLOBALS
+        # globals_dataframe.to_csv(globals_dataframe_filename, sep=";")
 
         # extract dataframe
-        new_df = extract_dataframe(population_data, folded_target_list, date_window)
+        new_df = extract_dataframe(population_data, folded_target_list, max_for_uninhabited, date_window, date_lag)
         new_df['distance'] = (new_df['latitude']-new_df['target_lat'])*(new_df['latitude']-new_df['target_lat']) + (new_df['longitude']-new_df['target_lon'])*(new_df['longitude']-new_df['target_lon'])
         new_df['rank'] = new_df.groupby(['target_lat', 'target_lon', 'period'])['distance'].rank(method="first",ascending=True);
         new_df = new_df[((new_df['type'] == 's') & (new_df['rank'] < 2)) | (new_df['type'] == 'c')];
@@ -68,13 +71,15 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
         # print(new_df[new_df.type == 's'])
         # save dataframe in processed_targets folder
         dataframe_filename = os.path.join(processed_targets_dir, directory + "_dataframe.csv")
-        new_df.to_csv(dataframe_filename, sep=";",quoting=csv.QUOTE_NONNUMERIC) #this is an addition to get file written in good format for excel
+        
+        # WRITE PROCESSED TARGET DATEFRAME
+        # new_df.to_csv(dataframe_filename, sep=";",quoting=csv.QUOTE_NONNUMERIC) #this is an addition to get file written in good format for excel
         dataframe = new_df
 
 
         # save targets in processed_targets folder 
-        targets_filename = directory + "_targets"
-        save_target_list_to_csv(clustered_list, processed_targets_dir, targets_filename)
+        # targets_filename = directory + "_targets"
+        # save_target_list_to_csv(clustered_list, processed_targets_dir, targets_filename)
 
 
     return folded_target_list, dataframe, globals_dataframe
@@ -122,7 +127,7 @@ def clear_processed_targets(base_path):
     print("\n")
 
 
-def extract_dataframe(population_data, target_list, date_window):
+def extract_dataframe(population_data, target_list, max_for_uninhabited, date_window, date_lag):
 
         
     lat_np = population_data.lat_array
@@ -183,9 +188,9 @@ def extract_dataframe(population_data, target_list, date_window):
                 ###################################################
                 # Loop from date_from to date_from + dw of target #
                 ###################################################
-                date_from = target.date_from + date_window
+                date_from = target.date_from + date_lag + date_window
                 # date_to = target.date_to
-                date_to = target.date_from
+                date_to = target.date_from + date_lag
 
                 time = date_to
                 if smallest_time > time:
@@ -208,8 +213,8 @@ def extract_dataframe(population_data, target_list, date_window):
                                 density = den_np[time_index][latlon_ind]*density_multiplier
                                 if np.isnan(density):
                                     density=0
-                                # save information only if density > 0
-                                if density > 0:
+                                # save information only if density > max_for_uninhabited
+                                if density > max_for_uninhabited:
                                     target_lat.append(target.orig_lat)
                                     target_lon.append(target.orig_lon)
                                     latitudes.append(lat)
@@ -294,7 +299,7 @@ def load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date
     # print("Latlon: " + str(latlon_length))
     # print("Time: " + str(time_length))
     # print("density: " + str(len(den_np)));
-    print(indices[time_length-1][latlon_length-1]/(latlon_length))
+    # print(indices[time_length-1][latlon_length-1]/(latlon_length))
     # print(latlon_length*time_length/(time_length-1))
 
     print("Masking lat, lon, time..")
@@ -311,14 +316,8 @@ def load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date
     print("Filtering...")
     new_df = new_df[new_df.density > max_for_uninhabited];
     print("Globals dataframe generated.")
-    print(new_df)
+    # print(new_df)
     return new_df
-
-
-
-
-
-
 
 
 
