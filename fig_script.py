@@ -43,27 +43,29 @@ import main_module as mm
 base_path = os.getcwd()
 
 
-# mm.run_experiment(base_path, "rpv12", "rpv12",date_window=24);
+mm.run_experiment(base_path, "rpv12", "rpv12",date_window=24);
 # mm.run_experiment(base_path, "rpv12", "rpv12_timmermann", population_data_name="Timmermann",date_window=999);
 
 # exit();
 
-for date_lag in range(4500, 5001, 500):
-
-	start = date_lag
-	if date_lag == 4500:
-		start = 7500
-	for date_window in range(start + 500, 10001, 500):
-		erik_fn = "rpv12_lag" + str(date_lag) + "_dw" + str(date_window);
-		print(erik_fn);
-		mm.run_experiment(base_path, "rpv12", erik_fn, date_window=date_window, date_lag=date_lag);
-
-		tim_fn = "rpv12_lag" + str(date_lag) + "_dw" + str(date_window) + "_timmermann";
-		print(tim_fn);
-		mm.run_experiment(base_path, "rpv12", tim_fn, population_data_name="Timmermann",date_window=date_window, date_lag=date_lag);
-		
-
-
+# =============================================================================
+# for date_lag in range(4500, 5001, 500):
+# 
+# 	start = date_lag
+# 	if date_lag == 4500:
+# 		start = 7500
+# 	for date_window in range(start + 500, 10001, 500):
+# 		erik_fn = "rpv12_lag" + str(date_lag) + "_dw" + str(date_window);
+# 		print(erik_fn);
+# 		mm.run_experiment(base_path, "rpv12", erik_fn, date_window=date_window, date_lag=date_lag);
+# 
+# 		tim_fn = "rpv12_lag" + str(date_lag) + "_dw" + str(date_window) + "_timmermann";
+# 		print(tim_fn);
+# 		mm.run_experiment(base_path, "rpv12", tim_fn, population_data_name="Timmermann",date_window=date_window, date_lag=date_lag);
+# 		
+# 
+# 
+# =============================================================================
 
 
 

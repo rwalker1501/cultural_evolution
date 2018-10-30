@@ -303,7 +303,7 @@ def load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date
     # print(latlon_length*time_length/(time_length-1))
 
     print("Masking lat, lon, time..")
-    periods = time_np[valid_ind/(latlon_length)]
+    periods = time_np[valid_ind/(latlon_length)]*time_multiplier
     valid_latlon_ind = valid_ind%latlon_length
     latitudes = lat_np[valid_latlon_ind]
     longitudes = lon_np[valid_latlon_ind]
