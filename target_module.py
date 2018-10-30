@@ -58,7 +58,7 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
         globals_dataframe_filename = os.path.join(processed_targets_dir, directory + "_globals_df.csv") 
         
         # WRITE PROCESSED GLOBALS
-        # globals_dataframe.to_csv(globals_dataframe_filename, sep=";")
+        globals_dataframe.to_csv(globals_dataframe_filename, sep=";")
 
         # extract dataframe
         new_df = extract_dataframe(population_data, folded_target_list, max_for_uninhabited, date_window, date_lag)
@@ -73,7 +73,7 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
         dataframe_filename = os.path.join(processed_targets_dir, directory + "_dataframe.csv")
         
         # WRITE PROCESSED TARGET DATEFRAME
-        # new_df.to_csv(dataframe_filename, sep=";",quoting=csv.QUOTE_NONNUMERIC) #this is an addition to get file written in good format for excel
+        new_df.to_csv(dataframe_filename, sep=";",quoting=csv.QUOTE_NONNUMERIC) #this is an addition to get file written in good format for excel
         dataframe = new_df
 
 
@@ -287,6 +287,11 @@ def load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date
 
 
     time_mask = (time_np*time_multiplier <= max_date) & (time_np*time_multiplier >= min_date);
+    
+    print("Min date: " + str(min_date));
+    print("Max date: " + str(max_date));
+    print("Min lat: " + str(min_lat));
+    print("Max lat: " + str(max_lat));
     latlon_mask = (lat_np <= max_lat) & (lat_np >= min_lat);
     mask = latlon_mask[np.newaxis,:] & time_mask[:, np.newaxis];
 
@@ -303,7 +308,8 @@ def load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date
     # print(latlon_length*time_length/(time_length-1))
 
     print("Masking lat, lon, time..")
-    periods = time_np[valid_ind/(latlon_length)]
+    periods = time_np[valid_ind/(latlon_length)]*time_multiplier
+    print(periods)
     valid_latlon_ind = valid_ind%latlon_length
     latitudes = lat_np[valid_latlon_ind]
     longitudes = lon_np[valid_latlon_ind]
