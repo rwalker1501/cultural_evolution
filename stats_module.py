@@ -27,6 +27,7 @@ def process_dataframe(data, max_for_uninhabited):
     growth_coefficients = []
     samples_gt_globals = 0
     growth_samples_gt_globals=0
+    samples_positive_growth=0
     n_targets_gt_0 = 0
 
     max_cluster_id = data['cluster_id'].max()
@@ -88,11 +89,13 @@ def process_dataframe(data, max_for_uninhabited):
         growth_coefficient_samples=compute_growth_coefficient(sample_times, sample_populations)
         growth_coefficient_globals=compute_growth_coefficient(global_times, global_populations)
         if growth_coefficient_samples>growth_coefficient_globals:
-           growth_samples_gt_globals+=1   
+           growth_samples_gt_globals+=1 
+        if growth_coefficient_samples>0:
+            samples_positive_growth+=1
         growth_coefficients.append(growth_coefficient_samples)
         growth_coefficients.append(growth_coefficient_globals)           
     # print(data)
-    return all_sample_medians, all_global_medians, growth_coefficients, samples_gt_globals, n_targets_gt_0, data,growth_samples_gt_globals
+    return all_sample_medians, all_global_medians, growth_coefficients, samples_gt_globals, n_targets_gt_0, data,growth_samples_gt_globals,samples_positive_growth
 
 def compute_growth_coefficient(times, populations):
     if len(times)>=2:

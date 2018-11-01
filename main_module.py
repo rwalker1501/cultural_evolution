@@ -587,7 +587,7 @@ class MainProgram:
         # - filters target list/dataframe by removing clusters with 0 sample means 
         # - This is ugly - we report medians in write module and we calculate them again here.
         print("Calculating medians..")
-        all_sample_mediams, all_global_medians, growth_coefficients, samples_gt_globals, n_targets_gt_0, self.dataframe,growth_samples_gt_globals = stm.process_dataframe(self.dataframe, max_for_uninhabited)
+        all_sample_mediams, all_global_medians, growth_coefficients, samples_gt_globals, n_targets_gt_0, self.dataframe,growth_samples_gt_globals,samples_positive_growth = stm.process_dataframe(self.dataframe, max_for_uninhabited)
        
         ########################################
         # Write filtered clustered target list #
@@ -611,6 +611,10 @@ class MainProgram:
         stats_header_values = [growth_samples_gt_globals, n_targets_gt_0, p_binomial]
         wrm.write_information(f2, stats_header_labels, stats_header_values, "   ")
         # plm.plot_confounder_likelihood_ratio(self.dataframe, original_target_list)
+        p_binomial=binom_test(samples_positive_growth,n_targets_gt_0,0.5)
+        stats_header_labels = ["Number of cases samples show positive growth", "Number of targets", "pBinomial"]
+        stats_header_values = [samples_positive_growth, n_targets_gt_0, p_binomial]
+        wrm.write_information(f2, stats_header_labels, stats_header_values, "   ")
         
         #################
         # Generate bins #
