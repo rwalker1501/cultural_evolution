@@ -203,6 +203,9 @@ def extract_dataframe(population_data, target_list, max_for_uninhabited, date_wi
                     #   time = 40 + (25 - 40%25) = 40 + (25 - 15) = 50
                     time = time + (time_multiplier - time % time_multiplier)
                 
+                # # made exclusive (used to include date if divisible by multiplier)
+                # time = time + (time_multiplier - time % time_multiplier)
+                # made exclusive (used to be time <= date_from)
                 while(time <= date_from and time != -1):
                     # small loop is created here so that code is not repeated
                     for is_global in range(0,2):
@@ -286,13 +289,20 @@ def load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date
     density_multiplier = population_data.density_multiplier;
 
 
-    time_mask = (time_np*time_multiplier <= max_date) & (time_np*time_multiplier >= min_date);
+    # MADE EXCLUSIVE
+    # time_mask = (time_np*time_multiplier <= max_date) & (time_np*time_multiplier >= min_date);
+    time_mask = (time_np*time_multiplier < max_date) & (time_np*time_multiplier > min_date);
     
     print("Min date: " + str(min_date));
     print("Max date: " + str(max_date));
     print("Min lat: " + str(min_lat));
     print("Max lat: " + str(max_lat));
+
+
+    # MADE EXCLUSIVE
     latlon_mask = (lat_np <= max_lat) & (lat_np >= min_lat);
+    # latlon_mask = (lat_np < max_lat) & (lat_np > min_lat);
+
     mask = latlon_mask[np.newaxis,:] & time_mask[:, np.newaxis];
 
     latlon_length = len(lat_np);
