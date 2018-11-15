@@ -10,6 +10,7 @@ from mpmath import mpf, exp
 from classes_module import Target, PopulationData
 from scipy.optimize import curve_fit
 from scipy import stats;
+from scipy.optimize import minimize
 from scipy.stats import linregress, chisquare, binom_test, levene,wilcoxon,ks_2samp
 from sklearn.metrics import r2_score
 from sklearn.model_selection import RepeatedKFold
@@ -103,7 +104,8 @@ def compute_growth_coefficient(times, populations):
             if np.isnan(populations[i]):
                 populations[i] = 0
         slope, intercept, r_value, p_value, std_err = linregress(times, populations)
-        return slope 
+# times increase towards past - so growing population gives negative slope - we invert slope to give intuitive reading 
+        return slope * -1
     else:
         return -1.
     
@@ -182,7 +184,41 @@ def fit_to_linear (bins, sample_counts, global_counts):
 #    print(res.summary())
     return(res)
         
+def regress_model_with_innovation(parameters, *args):
+#   This function computes the logLikelihood of our main model
+#   Save initial parameter guesses
+#   A lot of type problems with numpy arrays here - needs cleaning up
+    
+    samples_in=np.asarray(args[0])
+    globals_in=np.asarray (args[1])
+    densities_in=np.asarray(args[2])+50
+ #   print "densities="
+ #   print densities_in
+    death=parameters[0]
+    mu=parameters[1]
+    zetta=parameters[2]
+    iStar=np.asarray((mu/(mu+death))*densities_in)
+#    print "istar="
+#    print iStar
+#   I am not sure there shouldn't be a log in second term in following expression
+    logLik=-(np.sum(np.multiply(samples_in,np.log(zetta*iStar)))-np.sum(np.multiply(globals_in,iStar)))
 
+    return logLik
+
+def fit_model_with_innovation (samples_in, globals_in, densities_in):
+    initial_death=35
+    initial_mu=0.24
+    initial_zetta=4.6*10**-5
+    init_parameters=[initial_death,initial_mu,initial_zetta]
+    #  method does not support bounds on parameters which must all be positive - have to change method
+    results=minimize(regress_model_with_innovation, init_parameters, args=(samples_in, globals_in, densities_in),method='nelder-mead')
+    print '*************'
+    print 'x results from model'
+    print '*************'
+    print results.x
+    return results    
+    
+    
 def generate_logit_predictions(bins,params):
     predictions=[]
     for a_Bin in bins:
@@ -1037,6 +1073,11 @@ def write_results(aFile,anIdentifier, aPath,dataframe, globals_dataframe,populat
     if ks_p<min_p:
         aFile.write('The two distribitions are significantly different p<0.001'+'\n')
         tests_passed=tests_passed+1
+        
+  #  *******************************
+  #  fit to curve with innovation - only output is on screen
+  #  *******************************
+    opt_results=fit_model_with_innovation(sample_counts,global_counts,bin_array)
         
     ##################################
     # Detect and display threshold and below curve #
