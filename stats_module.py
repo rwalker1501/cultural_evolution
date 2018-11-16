@@ -197,21 +197,29 @@ def regress_model_with_innovation(parameters, *args):
     death=parameters[0]
     mu=parameters[1]
     zetta=parameters[2]
-    iStar=np.asarray((mu/(mu+death))*densities_in)
-#    print "istar="
-#    print iStar
-#   I am not sure there shouldn't be a log in second term in following expression
-    logLik=-(np.sum(np.multiply(samples_in,np.log(zetta*iStar)))-np.sum(np.multiply(globals_in,iStar)))
+    threshold=(mu+death)**2
+    print death, ",",mu,",",zetta
+    iStarList=[]
+    for i in range(0,len(densities_in)):
+        if densities_in[i]<threshold:
+            iStarList.append((mu/(mu+death))*densities_in[i])
+        else:
+            iStarList.append((1-(mu+death)/math.sqrt(densities_in[i]))*densities_in[i])    
+    iStar=np.asarray(iStarList)
+    predicted_frequencies=iStar*zetta
+    print "predicted frequencies="
+    print predicted_frequencies
+    logLik=-np.sum(np.multiply(samples_in,np.log(predicted_frequencies))-np.multiply(globals_in,predicted_frequencies))
+    print 'logLik=',logLik
 
     return logLik
 
 def fit_model_with_innovation (samples_in, globals_in, densities_in):
-    initial_death=35
+    initial_death=35.7
     initial_mu=0.24
     initial_zetta=4.6*10**-5
     init_parameters=[initial_death,initial_mu,initial_zetta]
-    #  method does not support bounds on parameters which must all be positive - have to change method
-    results=minimize(regress_model_with_innovation, init_parameters, args=(samples_in, globals_in, densities_in),method='nelder-mead')
+    results=minimize(regress_model_with_innovation, init_parameters, args=(samples_in, globals_in,densities_in),bounds=((0.00001,100),(0.00001,1),(0.0000001,0.0001)),method='TNC')
     print '*************'
     print 'x results from model'
     print '*************'
