@@ -1085,7 +1085,7 @@ def write_results(aFile,anIdentifier, aPath,dataframe, globals_dataframe,populat
   #  *******************************
   #  fit to curve with innovation - only output is on screen
   #  *******************************
-    opt_results=fit_model_with_innovation(sample_counts,global_counts,bin_array)
+  #  opt_results=fit_model_with_innovation(sample_counts,global_counts,bin_array)
         
     ##################################
     # Detect and display threshold and below curve #

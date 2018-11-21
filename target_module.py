@@ -43,6 +43,8 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
         # extract the_globals dataframe depending on the_globals parameter
         if the_globals == "Australia":
             globals_dataframe = load_bin_globals_for_australia(population_data, clustered_list, date_window, min_date, max_date)
+        elif the_globals=="No equatorials":
+            globals_dataframe = load_bin_globals_for_no_equatorials(population_data, clustered_list, date_window, min_lat, max_lat,min_date, max_date,max_for_uninhabited)
         elif the_globals == "France and Spain":
             globals_dataframe = load_bin_globals_for_francespain(population_data, clustered_list, date_window, min_date, max_date)
         elif the_globals == "Trial Latitudes":
@@ -58,7 +60,7 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
         globals_dataframe_filename = os.path.join(processed_targets_dir, directory + "_globals_df.csv") 
         
         # WRITE PROCESSED GLOBALS
-        # globals_dataframe.to_csv(globals_dataframe_filename, sep=";")
+        globals_dataframe.to_csv(globals_dataframe_filename, sep=";")
 
         # extract dataframe
         new_df = extract_dataframe(population_data, folded_target_list, max_for_uninhabited, date_window, date_lag)
@@ -73,13 +75,13 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
         dataframe_filename = os.path.join(processed_targets_dir, directory + "_dataframe.csv")
         
         # WRITE PROCESSED TARGET DATEFRAME
-        # new_df.to_csv(dataframe_filename, sep=";",quoting=csv.QUOTE_NONNUMERIC) #this is an addition to get file written in good format for excel
+        new_df.to_csv(dataframe_filename, sep=";",quoting=csv.QUOTE_NONNUMERIC) #this is an addition to get file written in good format for excel
         dataframe = new_df
 
 
         # save targets in processed_targets folder 
-        # targets_filename = directory + "_targets"
-        # save_target_list_to_csv(clustered_list, processed_targets_dir, targets_filename)
+        targets_filename = directory + "_targets"
+        save_target_list_to_csv(clustered_list, processed_targets_dir, targets_filename)
 
 
     return folded_target_list, dataframe, globals_dataframe
@@ -476,6 +478,11 @@ def load_bin_globals_for_trial_latitudes(population_data, target_list, date_wind
     new_df = df.loc[~df.latitude.between(-10, 40)]
     return new_df
 
+def load_bin_globals_for_no_equatorials (population_data, target_list, date_window, min_lat, max_lat, min_date, max_date, max_for_uninhabited):
+    df = load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date, max_for_uninhabited)
+    new_df = df.loc[~df.latitude.between(-10, 20)]
+    return new_df
+
 def load_bin_globals_no_empty_lat(population_data, target_list, date_window, min_lat, max_lat, min_date, max_date):
     df = load_bin_globals_for_all(population_data, target_list, date_window, min_lat, max_lat, min_date, max_date)
     new_df = df.loc[~df.latitude.between(0, 20)]
@@ -486,6 +493,7 @@ def load_bin_globals_for_trial_latitudes2(population_data, target_list, date_win
     new_df = df.loc[~df.latitude.between(-30, -10)]
     new_df = df.loc[~df.latitude.between(40, 50)]
     return new_df
+
 
 def in_target_location(target, lat, lon, is_global):
 # Used to deal to test if a particular hexagon with a particular density matches at least one of a list of targets in time and location

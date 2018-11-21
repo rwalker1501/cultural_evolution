@@ -43,8 +43,8 @@ import main_module as mm
 base_path = os.getcwd()
 
 
-mm.run_experiment(base_path, "rpv12", "rpv12",date_window=24);
-# mm.run_experiment(base_path, "rpv12", "rpv12_timmermann", population_data_name="Timmermann",date_window=999);
+#mm.run_experiment(base_path, "rpv12", "rpv12",date_window=24);
+mm.run_experiment(base_path, "rpv12 no equatorials", "rpv12_timmermann no equatorials", population_data_name="Timmermann",date_window=999,the_globals="No equatorials");
 
 # exit();
 

@@ -706,29 +706,31 @@ class MainProgram:
         f2.write('Threshold: ' + str(threshold) + "\n");
         f2.write('p: ' + str(p) + "\n");
 
-
-        sample_tuples, global_tuples = stm.generate_tuples_from_dataframe(trim_merged_df);
-
-        unique_densities, coef, intercept, logit_prediction = stm.logit_values_using_GLM(sample_tuples, global_tuples);
-        unique_densities, cum_coef, cum_intercept, cum_logit_prediction = stm.logit_values_using_GLM(zip(unique_densities,cum_samples), zip(unique_densities,cum_globals));
-        # x, y, coef, intercept, logit_prediction = stm.logit_values(sample_tuples, global_tuples);
-        wrm.write_label(f2, "Logistic Regression");
-        f2.write('Coef: ' + str(coef) + "\n");
-        f2.write('Intercept: ' + str(intercept) + "\n");
-
-        add = population_data.bin_size/2
-        bins = [];
-        det_freq = [];
-        for i in range(0, len(trimmed_bin_array)):
-            if trimmed_likelihood_ratios[i] > -1:
-                det_freq.append(trimmed_likelihood_ratios[i]);
-                bins.append(trimmed_bin_array[i] + add);
-
-
-
-        plm.plot_logit(bins, det_freq, unique_densities, logit_prediction, "all_det_freq", directory, new_path);
-        plm.plot_logit(unique_densities, cum_det_freq, unique_densities, cum_logit_prediction, "cum_det_freq", directory, new_path);
-
+# Logit analysis commented because of error
+# =============================================================================
+#         sample_tuples, global_tuples = stm.generate_tuples_from_dataframe(trim_merged_df);
+# 
+#         unique_densities, coef, intercept, logit_prediction = stm.logit_values_using_GLM(sample_tuples, global_tuples);
+#         unique_densities, cum_coef, cum_intercept, cum_logit_prediction = stm.logit_values_using_GLM(zip(unique_densities,cum_samples), zip(unique_densities,cum_globals));
+#         # x, y, coef, intercept, logit_prediction = stm.logit_values(sample_tuples, global_tuples);
+#         wrm.write_label(f2, "Logistic Regression");
+#         f2.write('Coef: ' + str(coef) + "\n");
+#         f2.write('Intercept: ' + str(intercept) + "\n");
+# 
+#         add = population_data.bin_size/2
+#         bins = [];
+#         det_freq = [];
+#         for i in range(0, len(trimmed_bin_array)):
+#             if trimmed_likelihood_ratios[i] > -1:
+#                 det_freq.append(trimmed_likelihood_ratios[i]);
+#                 bins.append(trimmed_bin_array[i] + add);
+# 
+# 
+# 
+#         plm.plot_logit(bins, det_freq, unique_densities, logit_prediction, "all_det_freq", directory, new_path);
+#         plm.plot_logit(unique_densities, cum_det_freq, unique_densities, cum_logit_prediction, "cum_det_freq", directory, new_path);
+# 
+# =============================================================================
 
         f2.close();
 #             
