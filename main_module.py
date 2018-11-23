@@ -558,14 +558,6 @@ class MainProgram:
         header_values = [population_data.name, max_for_uninhabited, self.date_window, self.date_lag, self.critical_distance, self.filters_applied,self.globals]
         wrm.write_information(f2, header_labels, header_values, ", ")
 
-        ##############################
-        # Write original target list #
-        ##############################
-        wrm.write_label(f2, "Target list")
-        f2.write('\n')
-        wrm.write_target_table(f2, original_target_list, self.date_window)
-        f2.write('\n\n')
-
         #######################
         # Process target list #
         #######################
@@ -573,7 +565,6 @@ class MainProgram:
         #   - If dataframe has not been loaded (through load processed targets), extracts dataframe and saves it.
         #   - dataframe: contains all locations and population densities in the population data that is relevant to the target list
         clustered_target_list, self.dataframe, self.globals_dataframe = tam.process_targets(self.base_path, population_data, original_target_list, self.dataframe, self.globals_dataframe, self.globals, self.dataframe_loaded, self.clustering_on, self.date_window, self.critical_distance, self.critical_time, directory, self.min_date_window, self.min_lat, self.max_lat, self.min_date, self.max_date, max_for_uninhabited, self.date_lag)
-
         if self.dataframe.empty or len(clustered_target_list)<10:
             print "Not enough samples in target area"
             f2.write("Not enough samples in Target Areas")
@@ -587,13 +578,15 @@ class MainProgram:
         # - filters target list/dataframe by removing clusters with 0 sample means 
         # - This is ugly - we report medians in write module and we calculate them again here.
         print("Calculating medians..")
-        all_sample_mediams, all_global_medians, growth_coefficients, samples_gt_globals, n_targets_gt_0, self.dataframe,growth_samples_gt_globals = stm.process_dataframe(self.dataframe, max_for_uninhabited)
+        all_sample_medians, all_control_medians, samples_growth_coefficients, samples_gt_globals, n_targets_gt_0, self.dataframe = stm.process_dataframe(self.dataframe, max_for_uninhabited)
        
+
+        print(self.dataframe.cluster_id.unique())
         ########################################
         # Write filtered clustered target list #
         ########################################
         wrm.write_label(f2, "Target list after clustering")
-        wrm.write_cluster_table(f2, self.dataframe, growth_coefficients)
+        wrm.write_cluster_table(f2, self.dataframe, samples_growth_coefficients, self.date_lag, self.date_window)
             ################################
 #         # Compute and write statistics #
 #         ################################
@@ -606,10 +599,7 @@ class MainProgram:
         stats_header_labels = ["Number of cases median samples>median globals", "Number of targets", "pBinomial"]
         stats_header_values = [samples_gt_globals, n_targets_gt_0, p_binomial]
         wrm.write_information(f2, stats_header_labels, stats_header_values, "   ")
-        p_binomial=binom_test(growth_samples_gt_globals,n_targets_gt_0,0.5)
-        stats_header_labels = ["Number of cases growth samples>growth globals", "Number of targets", "pBinomial"]
-        stats_header_values = [growth_samples_gt_globals, n_targets_gt_0, p_binomial]
-        wrm.write_information(f2, stats_header_labels, stats_header_values, "   ")
+        
         # plm.plot_confounder_likelihood_ratio(self.dataframe, original_target_list)
         
         #################

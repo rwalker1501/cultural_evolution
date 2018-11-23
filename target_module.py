@@ -25,7 +25,6 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
     folded_target_list = fold_target_list(clustered_list)
     # clustered_list, folded_target_list = limit_target_list_to_oldest(folded_target_list)
 
-
     ###################################################
     # Extract dataframe and save as processed targets #
     ###################################################
@@ -138,6 +137,9 @@ def extract_dataframe(population_data, target_list, max_for_uninhabited, date_wi
     density_multiplier=population_data.density_multiplier
     smallest_time = min(time_np)*time_multiplier
 
+    print("TEST TEST")
+    print(len(target_list))
+
     ############################
     # Create Time Dictionaries #
     ############################
@@ -146,19 +148,19 @@ def extract_dataframe(population_data, target_list, max_for_uninhabited, date_wi
     time_dict, next_time_dict = create_time_dictionaries(time_np, time_multiplier, population_data.ascending_time)
              
     latlon_length = len(lat_np)
+    targets = []
     periods = []
     densities = []
-    cluster_ids = []
     pseudo_types = []
     types = []
-    locations = []
     contributions = []
     latitudes = []
     longitudes = []
-    target_lat = []
-    target_lon = []
+    target_lats = []
+    target_lons = [];
     dirs = []
     exacts = []
+    cluster_ids = []
 
     #######################
     # Loop through latlon #
@@ -218,14 +220,15 @@ def extract_dataframe(population_data, target_list, max_for_uninhabited, date_wi
                                     density=0
                                 # save information only if density > max_for_uninhabited
                                 if density > max_for_uninhabited:
-                                    target_lat.append(target.orig_lat)
-                                    target_lon.append(target.orig_lon)
+                                    cluster_ids.append(target.cluster_id);
+                                    targets.append(target)
                                     latitudes.append(lat)
                                     longitudes.append(lon)
+                                    target_lats.append(target.orig_lat);
+                                    target_lons.append(target.orig_lon);
+
                                     periods.append(time)
                                     densities.append(density)
-                                    cluster_ids.append(target.cluster_id)
-                                    locations.append(target.location)
                                     contributions.append(float(1)/number_of_targets_in_cluster)
 
                                     if target.is_direct == "Yes":
@@ -250,8 +253,12 @@ def extract_dataframe(population_data, target_list, max_for_uninhabited, date_wi
                         time = next_time_dict[time]
                     except KeyError:
                         time = -1
-        
-    new_df = pd.DataFrame({'location': locations, 'density': densities, 'period': periods, 'latitude': latitudes, 'longitude': longitudes, 'target_lat': target_lat, 'target_lon': target_lon, 'cluster_id':cluster_ids, 'pseudo_type':pseudo_types, 'type':types, 'contribution': contributions, 'is_dir': dirs, 'is_exact': exacts})
+    
+    new_df = pd.DataFrame({'target': targets, 'cluster_id': cluster_ids, 'density': densities, 'period': periods, 'latitude': latitudes, 'longitude': longitudes, 'target_lat': target_lats, 'target_lon': target_lons, 'pseudo_type':pseudo_types, 'type':types, 'contribution': contributions, 'is_dir': dirs, 'is_exact': exacts})
+    
+    print("TEST TEST")
+    print(new_df.cluster_id.unique())
+
     return new_df
 
 
@@ -778,7 +785,7 @@ def generate_merged_dataframe(base_path,directory, dataframe, globals_dataframe)
     temp_globals_df['pseudo_type'] = 'b';
     # remove this line if you want to retain type 'c' (globals/'old controls' per target)
     temp_targets_df = temp_targets_df[temp_targets_df.type == 's'];
-    del temp_targets_df['location']
+    # del temp_targets_df['location']
     del temp_targets_df['cluster_id']
     del temp_targets_df['contribution']
     del temp_targets_df['is_dir'];

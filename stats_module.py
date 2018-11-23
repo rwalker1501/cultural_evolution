@@ -23,10 +23,11 @@ def process_dataframe(data, max_for_uninhabited):
 
     # print(data)
     all_sample_medians=[]
-    all_global_medians=[]
-    growth_coefficients = []
-    samples_gt_globals = 0
-    growth_samples_gt_globals=0
+    all_control_medians=[]
+    samples_growth_coefficients = []
+    controls_growth_coefficients = []
+    samples_gt_controls = 0
+    growth_samples_gt_controls=0
     n_targets_gt_0 = 0
 
     max_cluster_id = data['cluster_id'].max()
@@ -34,6 +35,8 @@ def process_dataframe(data, max_for_uninhabited):
         max_cluster_id = 0
 
 
+    print("Num cluster_id")
+    print(len(data.cluster_id.unique()))
     for i in range(0,max_cluster_id+1):
 
         ######################
@@ -61,15 +64,15 @@ def process_dataframe(data, max_for_uninhabited):
         n_targets_gt_0 += 1
 
         # Get every global in the cluster..
-        global_cluster_df = cluster_df[cluster_df.type == 'c']
+        control_cluster_df = cluster_df[cluster_df.type == 'c']
         # take the mean of these globals
-        global_median = global_cluster_df['density'].median()
-        if np.isnan(global_median):
-            global_median=0
-        if sample_median>global_median:
-            samples_gt_globals += 1
+        control_median = control_cluster_df['density'].median()
+        if np.isnan(control_median):
+            control_median=0
+        if sample_median>control_median:
+            samples_gt_controls += 1
         all_sample_medians.append(sample_median)
-        all_global_medians.append(global_median)
+        all_control_medians.append(control_median)
 
 
         ###############################
@@ -80,19 +83,18 @@ def process_dataframe(data, max_for_uninhabited):
         sample_times = sample_cluster_df['period'].values
         sample_populations = sample_cluster_df['density'].values
 
-        # extract all periods and all population as arrays from the globals dataframe
-        global_times = global_cluster_df['period'].values
-        global_populations = global_cluster_df['density'].values
+        # extract all periods and all population as arrays from the controls dataframe
+        control_times = control_cluster_df['period'].values
+        control_populations = control_cluster_df['density'].values
 
         # compute growth coefficients for samples and globals
         growth_coefficient_samples=compute_growth_coefficient(sample_times, sample_populations)
-        growth_coefficient_globals=compute_growth_coefficient(global_times, global_populations)
-        if growth_coefficient_samples>growth_coefficient_globals:
-           growth_samples_gt_globals+=1   
-        growth_coefficients.append(growth_coefficient_samples)
-        growth_coefficients.append(growth_coefficient_globals)           
+        samples_growth_coefficients.append(growth_coefficient_samples)
     # print(data)
-    return all_sample_medians, all_global_medians, growth_coefficients, samples_gt_globals, n_targets_gt_0, data,growth_samples_gt_globals
+
+    print(len(data.cluster_id.unique()))
+    print(len(samples_growth_coefficients))
+    return all_sample_medians, all_control_medians, samples_growth_coefficients, samples_gt_controls, n_targets_gt_0, data
 
 def compute_growth_coefficient(times, populations):
     if len(times)>=2:

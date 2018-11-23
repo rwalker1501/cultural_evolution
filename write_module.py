@@ -128,8 +128,8 @@ def write_information(a_file, labels, values, delimiter):
     a_file.write('\n')
 
 
-def write_cluster_table(a_file, dataframe, growth_coefficients):
-    cluster_headers=["First Location in cluster", "Cluster", "Latitude", "Longitude", "Sample/Global", "Median Population Density over Period", "N samples over period", "growthCoefficient"]
+def write_cluster_table(a_file, dataframe, sample_growth_coefficients, date_lag, date_window):
+    cluster_headers=["Name of Site", "Latitude", "Longitude", "TargetDateFrom", "TargetDateTo", "AnalysisDateFrom", "AnalysisDateTo", "Direct", "Exact", "Population density", "Controls population density", "Growth Coefficient"]
     write_headers(a_file, cluster_headers, ';')
 
     ################################
@@ -140,28 +140,41 @@ def write_cluster_table(a_file, dataframe, growth_coefficients):
     #new_data = dataframe.groupby(['cluster_id', 'pseudo_type']).mean().reset_index()
     new_data = dataframe.groupby(['cluster_id', 'pseudo_type']).mean().reset_index()
     temp_types = new_data['pseudo_type'].values
-    cluster_ids = new_data['cluster_id'].values
-    medians = new_data['density'].values
-    # aggregate by sum
-    counts = dataframe.groupby(['cluster_id', 'pseudo_type']).sum()['contribution'].values
+    cluster_ids = new_data.cluster_id.unique();
+    print("ClusterID")
+    print(cluster_ids)
 
     for i in range(0, len(cluster_ids)):
-        # get first target
-        location = dataframe[dataframe.cluster_id == cluster_ids[i]].head(1)['location'].values[0]
-        longitude = dataframe[dataframe.cluster_id == cluster_ids[i]].head(1)['target_lon'].values[0]
-        latitude = dataframe[dataframe.cluster_id == cluster_ids[i]].head(1)['target_lat'].values[0]
+        cluster_df = dataframe[dataframe.cluster_id == cluster_ids[i]] 
+        # print(cluster_df)
+        target = cluster_df['target'].values[0];
+        location = target.location;
+        latitude = target.orig_lat;
+        longitude = target.orig_lon;
+        date_from = target.date_from;
+        date_to = target.date_to
+        date_from_analysis = target.date_from + date_lag;
+        date_to_analysis = target.date_from + date_lag + date_window;
+        direct = target.is_direct
+        exact = target.age_estimation
+        sample_mean = cluster_df[cluster_df.type == 's']['density'].values[0];
+        controls_mean = cluster_df[cluster_df.type == 'c']['density'].values[0];
+
+
+
         a_file.write("\"" + str(location) + "\";")
-        a_file.write(str(cluster_ids[i]) + ";")
+        # a_file.write(str(cluster_ids[i]) + ";")
         a_file.write(str(latitude) + ";")
         a_file.write(str(longitude) + ";")
-
-        if temp_types[i]=='a':
-            a_file.write("Sample;")
-        else:
-            a_file.write('Global;')
-        a_file.write(str(medians[i]) + ";")
-        a_file.write(str(counts[i]) + ";")
-        a_file.write(str(growth_coefficients[i]))
+        a_file.write(str(date_from) + ";")
+        a_file.write(str(date_to) + ";")
+        a_file.write(str(date_from_analysis) + ";")
+        a_file.write(str(date_to_analysis) + ";")
+        a_file.write(str(direct) + ";")
+        a_file.write(str(exact) + ";")
+        a_file.write(str(sample_mean) + ";")
+        a_file.write(str(controls_mean) + ";")
+        a_file.write(str(sample_growth_coefficients[i]))
         a_file.write("\n")
 # =============================================================================
 #         if i != 0 and i%2==1:
@@ -173,22 +186,16 @@ def write_bin_table(a_file, bin_array, sample_counts, global_counts, control_cou
     print 'minimum globals in write_bin_table=',str(minimum_globals)
     write_label(a_file, "Distribution of values for samples and globals - Minimum_globals="+str(minimum_globals))
 
-    columns = ['Bin value', 'Samples', 'Globals', 'Controls', 'Odds Ratios', 'Lower CIs', 'Upper CIs', 'Likelihood Ratios', 'pSamples', 'pGlobals', 'pControls' 'p Likelihood Ratios']
+    columns = ['Bin value', 'Samples', 'Globals', 'Detection Frequency', 'Relative Frequency of Sites', 'Relative Frequency of Globals']
     write_headers(a_file,columns,";")
 
     for i in range(0, len(bin_array)):
         a_file.write(str(bin_array[i]) + ';')
         a_file.write(str(sample_counts[i]) + ';')
         a_file.write(str(global_counts[i]) + ';')
-        a_file.write(str(control_counts[i]) + ';')
-        a_file.write(str(odds_ratios[i]) + ';')
-        a_file.write(str(lower_cis[i]) + ';')
-        a_file.write(str(upper_cis[i]) + ';')
         a_file.write(str(likelihood_ratios[i]) + ';')
         a_file.write(str(p_samples[i]) + ';')
         a_file.write(str(p_globals[i]) + ";")
-        a_file.write(str(p_controls[i]) + ';')
-        a_file.write(str(p_likelihood_ratios[i]))
         a_file.write("\n")
 
 
