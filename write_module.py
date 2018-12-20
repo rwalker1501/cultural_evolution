@@ -141,23 +141,31 @@ def write_cluster_table(a_file, dataframe, sample_growth_coefficients, date_lag,
     new_data = dataframe.groupby(['cluster_id', 'pseudo_type']).mean().reset_index()
     temp_types = new_data['pseudo_type'].values
     cluster_ids = new_data.cluster_id.unique();
-    print("ClusterID")
-    print(cluster_ids)
+    # print("ClusterID")
+    # print(cluster_ids)
 
     for i in range(0, len(cluster_ids)):
         cluster_df = dataframe[dataframe.cluster_id == cluster_ids[i]] 
         # print(cluster_df)
-        target = cluster_df['target'].values[0];
-        location = target.location;
-        latitude = target.orig_lat;
-        longitude = target.orig_lon;
-        date_from = target.date_from;
-        date_to = target.date_to
-        date_from_analysis = target.date_from + date_lag;
-        date_to_analysis = target.date_from + date_lag + date_window;
-        direct = target.is_direct
-        exact = target.age_estimation
+        location = cluster_df['target_location'].values[0];
+        latitude = cluster_df['target_lat'].values[0];
+        longitude = cluster_df['target_lon'].values[0];
+        date_from = cluster_df['target_date_from'].values[0];
+        date_to = cluster_df['target_date_to'].values[0];
+        date_from_analysis = date_from + date_lag;
+        date_to_analysis = date_from + date_lag + date_window;
+
+
+        direct = 'not direct';
+        if cluster_df['is_dir'].values[0]:
+            direct = 'direct'
+
+        exact = 'not exact';
+        if cluster_df['is_exact'].values[0]:
+            direct = 'exact'
+
         sample_mean = cluster_df[cluster_df.type == 's']['density'].values[0];
+        # print(cluster_ids[i])
         controls_mean = cluster_df[cluster_df.type == 'c']['density'].values[0];
 
 
@@ -181,13 +189,18 @@ def write_cluster_table(a_file, dataframe, sample_growth_coefficients, date_lag,
 #             a_file.write("\n")   #I was getting an unexplained CR on every two lines - think this is responsible.
 # =============================================================================
 
-def write_bin_table(a_file, bin_array, sample_counts, global_counts, control_counts, odds_ratios, lower_cis, upper_cis, likelihood_ratios, p_samples, p_globals, p_controls, p_likelihood_ratios,minimum_globals):
+def write_bin_table(a_file, bin_values_df, minimum_globals):
 
-    print 'minimum globals in write_bin_table=',str(minimum_globals)
     write_label(a_file, "Distribution of values for samples and globals - Minimum_globals="+str(minimum_globals))
 
     columns = ['Bin value', 'Samples', 'Globals', 'Detection Frequency', 'Relative Frequency of Sites', 'Relative Frequency of Globals']
     write_headers(a_file,columns,";")
+    bin_array = bin_values_df['bin_array'].values
+    sample_counts = bin_values_df['sample_counts'].values
+    global_counts = bin_values_df['global_counts'].values
+    likelihood_ratios = bin_values_df['likelihood_ratios'].values
+    p_samples = bin_values_df['p_samples'].values
+    p_globals = bin_values_df['p_globals'].values
 
     for i in range(0, len(bin_array)):
         a_file.write(str(bin_array[i]) + ';')
@@ -198,6 +211,30 @@ def write_bin_table(a_file, bin_array, sample_counts, global_counts, control_cou
         a_file.write(str(p_globals[i]) + ";")
         a_file.write("\n")
 
+def write_analysis(f2, stat_dictionary, min_p):
+
+    write_label(f2, "Statistics")
+
+    f2.write('Total sites: '+str(stat_dictionary['total_samples'])+'\n')
+    f2.write('Total globals: '+str(stat_dictionary['total_globals'])+'\n\n')
+
+    f2.write('Median density for sites: '+str(stat_dictionary['median_samples'])+'\n')
+    f2.write('Median density for globals: '+str(stat_dictionary['median_globals'])+'\n\n')
+
+    f2.write('Mean density for sites: '+str(stat_dictionary['mean_samples'])+'\n')
+    f2.write('Mean density for globals: '+str(stat_dictionary['mean_globals'])+'\n\n')
+
+    f2.write('Standard deviation of density for sites: '+str(stat_dictionary['std_samples'])+'\n')
+    f2.write('Standard deviation of density for globals: '+str(stat_dictionary['std_globals'])+'\n\n')
+
+    ks_p = stat_dictionary['ks_p']
+    ks_d = stat_dictionary['ks_d']
+
+    f2.write('K S2 test for p_samples vs p_globals:\n');
+    f2.write('    ks_d: ' + str(float(ks_d)) + '\n')
+    f2.write('    ks_p: ' + str(float(ks_p)) + '\n')
+    if ks_p < min_p:
+        f2.write('    The two distribitions are significantly different p<0.001'+'\n')
 
 def write_lat_bin_table(a_file, bin_array, table, label):
     write_label(a_file, "Distribution of values for " + label + " per latitude range")

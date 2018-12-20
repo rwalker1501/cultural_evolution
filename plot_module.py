@@ -9,20 +9,7 @@ from matplotlib.font_manager import FontProperties
 from mpl_toolkits.basemap import Basemap
 # import seaborn
 
-    
-def plot_crude_or_vs_mh_or(bin_array, crude_or, mh_or, identifier, file_path):
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
 
-    ax.plot(bin_array, crude_or, color='blue', label="Crude OR");
-    ax.plot(bin_array, mh_or, color='coral', label="MH OR");
-    plt.ylabel("OR")
-    plt.xlabel("Population density")
-    plt.gca().set_ylim(0, 7)
-
-    plt.legend(title= "Legend")
-    fig.savefig(os.path.join(file_path, str(identifier) + "_crude_vs_mh.png"))
-    plt.close()
 
 def plot_time_clusters(time, labels):
     n = np.array(labels).max() + 1
@@ -94,84 +81,19 @@ def plot_ratio(bins, actual_ratios, lambda_tau, linear_predicted_ratios, thresho
     fig.savefig(os.path.join(file_path, str(identifier) + "_" + label + ".png"))
     plt.close()
 
-def plot_odds_ratio(bins, actual_ratios, predictions,lambda_tau, linear_predicted_ratios, threshold_predicted_ratios, lower_cis, upper_cis, max_xaxis, identifier, label, file_path):
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-
-    y_cis_lower = [];
-    y_cis_upper = [];
-    for i in range(0, len(bins)):
-        lower_ci = lower_cis[i];
-        upper_ci = upper_cis[i];
-        ratio = actual_ratios[i];
-        if lower_ci == "NA":
-            y_cis_lower.append(0);
-            y_cis_upper.append(0);
-        else:
-            lower = ratio - lower_ci;
-            upper = upper_ci - ratio;
-            y_cis_lower.append(lower);
-            y_cis_upper.append(upper);
-    # have commented out error bars
-    #ax.errorbar(bins, actual_ratios, yerr=[y_cis_lower, y_cis_upper], fmt="o", capsize=3)
-    # Got rid of threshold line
-    plt.plot(bins,actual_ratios,'bo')
-    # ax.axvline(lambda_tau, color='k', linestyle='--')
-    # ax.axhline(1, color='k', linestyle='--')
-    # linear = ax.plot(bins, linear_predicted_ratios, 'b', label="linear");
-    # threshold = ax.plot(bins, threshold_predicted_ratios, 'g', label="threshold");
-    plt.ylabel(label)
-    plt.xlabel("Population density")
-    plt.gca().set_ylim(0, 7)
-    plt.gca().set_xlim(0, max_xaxis)
-
-    label = label.lower();
-    label = label.replace(" ", "_");
-    fig.savefig(os.path.join(file_path, str(identifier) + "_" + label + ".png"))
-    plt.close()
 
 
-    
-def plot_logit(bins, det_freq_values, unique_densities, logit_predictions, label, identifier, file_path):
+def plot_detection_frequencies (bins, actual_ratios, bin_size, max_xaxis, identifier, file_path):
     fig = plt.figure();
-    if max(bins)/2 > len(bins):
-        plt.scatter(bins, det_freq_values, color="blue");
-    else:
-        plt.plot(bins, det_freq_values, color="blue");
-    # plt.plot(unique_densities, logit_predictions, color="red");
-    plt.xlabel("Densities");
-    plt.ylabel("Values");
-
-    fig.tight_layout();
-    # x_lim1 = max(bins);
-    # x_lim2 = max(unique_densities);
-    # x_lim = max(x_lim1, x_lim2);
-    # plt.gca().set_xlim(0,max(bins)/2);
-    y_lim=max(det_freq_values);
-    # y_lim2=max(logit_predictions);
-#    y_lim3=max(threshold_predictions)
-    # y_lim=max(y_lim1,y_lim2);
-    plt.gca().set_ylim(0,y_lim);
-    fig.savefig(os.path.join(file_path, identifier + "_" + label + ".png"));
-    plt.close();
-
-
-
-def plot_detection_frequencies (bins, actual_ratios, logit_predictions, bin_size,predicted_threshold,max_xaxis, identifier, label, file_path):
-    fig = plt.figure()
-
-# =============================================================================
-#     for i in range(0, len(bins)):
-#         ratio = actual_ratios[i];
-# =============================================================================
     add=bin_size/2
     bins=[x+add for x in bins]
+    label = "detection_frequencies";
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.plot(bins,actual_ratios,'bo',label='Observations')
-    ax.plot(bins,logit_predictions,'r',label='Logit curve')
-#    ax.plot(bins,threshold_predictions,'g',label='Theoretical model')
-    ax.axvline(predicted_threshold, color='k', linestyle='--',label='Estimated_threshold')
+#     ax.plot(bins,logit_predictions,'r',label='Logit curve')
+# #    ax.plot(bins,threshold_predictions,'g',label='Theoretical model')
+#     ax.axvline(predicted_threshold, color='k', linestyle='--',label='Estimated_threshold')
     #ax.axhline(1, color='k', linestyle='--')
     # threshold = ax.plot(bins, threshold_predictions, 'b', label="linear");
     # threshold = ax.plot(bins, threshold_predicted_ratios, 'g', label="threshold");
@@ -180,31 +102,14 @@ def plot_detection_frequencies (bins, actual_ratios, logit_predictions, bin_size
 #    plt.gca().set_xlim(0, max_xaxis)
     plt.legend(title= "Legend")
     #max yaxis needs to be set dynamically
-    y_lim1=max(actual_ratios)
-    y_lim2=max(logit_predictions)
+    y_lim=max(actual_ratios)
+    # y_lim2=max(logit_predictions)
 #    y_lim3=max(threshold_predictions)
-    y_lim=max(y_lim1,y_lim2)
+    # y_lim=max(y_lim1,y_lim2)
     plt.gca().set_ylim(0,y_lim)
-    label = label.lower();
-    label = label.replace(" ", "_");
     fig.savefig(os.path.join(file_path, str(identifier) + "_" + label + ".png"))
     plt.close()
 
-
-# def plot_likelihood_ratio(bins, actual_multipliers, lambda_tau, predicted_multipliers, label, identifier, file_path):
-#     fig = plt.figure()
-#     ax = fig.add_subplot(111)
-
-#     plt.scatter(bins, actual_multipliers, label=label)
-#     if label=="threshold":
-#         ax.axvline(lambda_tau, color='k', linestyle='--')
-#     ax.axhline(1, color='k', linestyle='--')
-#     ax.plot(bins, predicted_multipliers, 'g')
-#     plt.ylabel("p Likelihood Ratio")
-#     plt.xlabel("Population density")
-#     plt.gca().set_ylim(bottom=0)
-#     fig.savefig(os.path.join(file_path, str(identifier) + "_" + label + "_ratio.png"))
-#     plt.close()
 
 def plot_sites_graph(bins, actual_sites, predicted_sites, label, identifier, title, file_path):
     fig = plt.figure()
@@ -241,7 +146,7 @@ def plot_p_graphs(bins, p_samples, p_globals, bin_size,identifier, file_path):
     fig.savefig(os.path.join(file_path, str(identifier) + "_p_graph.png"))
     plt.close()
     
-def plot_cumulative_p_graphs(bins, p_samples, p_globals, bin_size, median_samples,median_globals,threshold,identifier, file_path):
+def plot_cumulative_p_graphs(bins, p_samples, p_globals, bin_size, median_samples,median_globals,identifier, file_path):
     add=bin_size/2
     bins=[x+add for x in bins]
     fig = plt.figure()
@@ -275,25 +180,12 @@ def plot_cumulative_p_graphs(bins, p_samples, p_globals, bin_size, median_sample
     # text = "Threshold: " + str(threshold) + "\nSuccesses: " + str(success) + "\n Trials: " + str(trials) + "\nBinomial: " + str(binomial)
     ax.axvline(median_samples, color='b', linestyle='--',label="Median samples")
     ax.axvline(median_globals, color='r', linestyle='--', label="Median globals")
-    ax.axvline(threshold, color='g', linestyle='--', label="Threshold")
+    # ax.axvline(threshold, color='g', linestyle='--', label="Threshold")
     plt.ylabel("Cumulated relative detection frequency")
     plt.xlabel("Population density per cell")
     plt.legend(title= "Legend")
     # plt.text(2, 2, text, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
     fig.savefig(os.path.join(file_path, str(identifier) + "_cum_p_graph.png"))
-    plt.close()
-
-def plot_growth_coefficient_boxplot(data, file_path):
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    # ax.set_title("Growth Coefficients")
-    sample = data[0::2]
-    controls = data[1::2]
-    agg_data = [sample, controls]
-    ax.boxplot(agg_data)
-    plt.ylabel("value")
-    plt.xticks([1,2],['Samples', 'Controls'])
-    fig.savefig(os.path.join(file_path,"gc_boxplot.png"))
     plt.close()
 
 
@@ -398,45 +290,6 @@ def plot_densities_on_map_by_time(population_data, time):
     plt.savefig("densitites_on_map_" + population_data.name + "_" + str(time) + "Kya.png");
     plt.close();
 
-def plot_min_densities_in_time_range(population_data, time_from, time_to, min_density):
-    my_map = Basemap(projection='robin', lat_0=57, lon_0=-135,
-    resolution = 'l', area_thresh = 1000.0,
-    llcrnrlon=-136.25, llcrnrlat=56,
-    urcrnrlon=-134.25, urcrnrlat=57.75)
-     
-    my_map.drawcoastlines()
-    my_map.drawcountries()
-    my_map.fillcontinents(color='lightgray')
-    my_map.drawmapboundary()
-     
-    my_map.drawmeridians(np.arange(0, 360, 30))
-    my_map.drawparallels(np.arange(-90, 90, 30))
-
-    time_indices = []
-    for i in range(0, len(population_data.time_array)):
-        time = population_data.time_array[i]*population_data.time_multiplier
-        if time <= time_from and time >= time_to:
-            time_indices.append(i)
-
-    temp_time_densities = []
-    for time_index in time_indices:
-        temp_time_densities.append(population_data.density_array[time_index]);
-
-    densities = np.mean(np.array(temp_time_densities), axis = 0);
-
-    lons = []
-    lats = []
-
-    for i in range(0, len(densities)):
-        if densities[i] >= min_density:
-            lats.append(population_data.lat_array[i])
-            lons.append(population_data.lon_array[i])
-
-    x,y = my_map(lons, lats)
-    my_map.plot(x, y, 'ro', markersize=5)
-
-    plt.savefig("high_densitites_on_map_time_range" + str(time_to) + "-" + str(time_from));
-    plt.close();
 
 def plot_densities_on_map_by_range(population_data, min_density, max_density, start_time, end_time):
     my_map = Basemap(projection='robin', lat_0=57, lon_0=-135,
@@ -544,28 +397,6 @@ def plot_densities_on_map_snapshot(population_data, start_time, end_time):
     plt.savefig("densities_snapshot_" + str(start_time) + "-" + str(end_time) + ".png", dpi=500)
     plt.close()
 
-
-def plot_boxplot_from_bin_file(bin_file_path):
-    bins = []
-    samples = []
-    controls = []
-
-    bin_file = open(bin_file_path)
-
-    line = "-1"
-    while line != '':
-        line = bin_file.readline()
-        line = bin_file.readline()
-        line = bin_file.readline()
-        line = bin_file.readline()
-
-        line = bin_file.readline()
-        line_values = line.split(";")
-        bins.append(int(line_values[0]))
-        samples.append(int(line_values[1]))
-        controls.append(int(line_values[2]))
-
-    dataframe = pd.DataFrame({'bins': bins, 'samples': samples, 'controls': controls})
 
 
 

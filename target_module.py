@@ -31,7 +31,6 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
     # - saves extracted dataframe as <directory>_dataframe.csv
     # - saves the_globals as <directory>_globals_df.csv
     # - saves target list as <directory>_targets.csv
-    print(dataframe_loaded)
     if dataframe_loaded is False:
 
         processed_targets_dir = os.path.join(base_path, "processed_targets")
@@ -59,26 +58,29 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
         # WRITE PROCESSED GLOBALS
         globals_dataframe.to_csv(globals_dataframe_filename, sep=";")
 
-        # extract dataframe
+        # extract dataframe rank
         new_df = extract_dataframe(population_data, folded_target_list, max_for_uninhabited, date_window, date_lag)
+        
+        # get closest site to target
         new_df['distance'] = (new_df['latitude']-new_df['target_lat'])*(new_df['latitude']-new_df['target_lat']) + (new_df['longitude']-new_df['target_lon'])*(new_df['longitude']-new_df['target_lon'])
         new_df['rank'] = new_df.groupby(['target_lat', 'target_lon', 'period'])['distance'].rank(method="first",ascending=True);
-        new_df = new_df[((new_df['type'] == 's') & (new_df['rank'] < 2)) | (new_df['type'] == 'c')];
+        
+        samples_df = new_df[(new_df['type'] == 's') & (new_df['rank'] < 2)];
+        samples_df = samples_df.groupby(['density', 'latitude', 'longitude', 'period', 'type']).first().reset_index();
+        controls_df = new_df[new_df['type'] == 'c'];
 
-        # remove duplicates
-        new_df = new_df.groupby(['density', 'latitude', 'longitude', 'period', 'type']).first().reset_index();
-        # print(new_df[new_df.type == 's'])
+        dataframe = pd.concat([samples_df, controls_df]);
+
         # save dataframe in processed_targets folder
         dataframe_filename = os.path.join(processed_targets_dir, directory + "_dataframe.csv")
         
         # WRITE PROCESSED TARGET DATEFRAME
-        new_df.to_csv(dataframe_filename, sep=";",quoting=csv.QUOTE_NONNUMERIC) #this is an addition to get file written in good format for excel
-        dataframe = new_df
-
+        dataframe.to_csv(dataframe_filename, sep=";",quoting=csv.QUOTE_NONNUMERIC) #this is an addition to get file written in good format for excel
 
         # save targets in processed_targets folder 
-        # targets_filename = directory + "_targets"
-        # save_target_list_to_csv(clustered_list, processed_targets_dir, targets_filename)
+        targets_filename = directory + "_targets"
+        save_target_list_to_csv(clustered_list, processed_targets_dir, targets_filename)
+        # exit()
 
 
     return folded_target_list, dataframe, globals_dataframe
@@ -137,9 +139,6 @@ def extract_dataframe(population_data, target_list, max_for_uninhabited, date_wi
     density_multiplier=population_data.density_multiplier
     smallest_time = min(time_np)*time_multiplier
 
-    print("TEST TEST")
-    print(len(target_list))
-
     ############################
     # Create Time Dictionaries #
     ############################
@@ -148,7 +147,11 @@ def extract_dataframe(population_data, target_list, max_for_uninhabited, date_wi
     time_dict, next_time_dict = create_time_dictionaries(time_np, time_multiplier, population_data.ascending_time)
              
     latlon_length = len(lat_np)
-    targets = []
+    target_location = [];
+    target_date_from = [];
+    target_date_to = [];
+    target_lats = [];
+    target_lons = [];
     periods = []
     densities = []
     pseudo_types = []
@@ -156,8 +159,6 @@ def extract_dataframe(population_data, target_list, max_for_uninhabited, date_wi
     contributions = []
     latitudes = []
     longitudes = []
-    target_lats = []
-    target_lons = [];
     dirs = []
     exacts = []
     cluster_ids = []
@@ -183,6 +184,8 @@ def extract_dataframe(population_data, target_list, max_for_uninhabited, date_wi
         # For every target in every cluster.. #
         #######################################
         for cluster in target_list:
+            # if cluster[0].cluster_id != 128:
+            #     continue;
             number_of_targets_in_cluster = len(cluster)
             for target in cluster:
 
@@ -221,7 +224,9 @@ def extract_dataframe(population_data, target_list, max_for_uninhabited, date_wi
                                 # save information only if density > max_for_uninhabited
                                 if density > max_for_uninhabited:
                                     cluster_ids.append(target.cluster_id);
-                                    targets.append(target)
+                                    target_location.append(target.location);
+                                    target_date_from.append(target.date_from);
+                                    target_date_to.append(target.date_to);
                                     latitudes.append(lat)
                                     longitudes.append(lon)
                                     target_lats.append(target.orig_lat);
@@ -254,10 +259,8 @@ def extract_dataframe(population_data, target_list, max_for_uninhabited, date_wi
                     except KeyError:
                         time = -1
     
-    new_df = pd.DataFrame({'target': targets, 'cluster_id': cluster_ids, 'density': densities, 'period': periods, 'latitude': latitudes, 'longitude': longitudes, 'target_lat': target_lats, 'target_lon': target_lons, 'pseudo_type':pseudo_types, 'type':types, 'contribution': contributions, 'is_dir': dirs, 'is_exact': exacts})
+    new_df = pd.DataFrame({'target_location': target_location, 'target_date_from': target_date_from, 'target_date_to': target_date_to, 'cluster_id': cluster_ids, 'density': densities, 'period': periods, 'latitude': latitudes, 'longitude': longitudes, 'target_lat': target_lats, 'target_lon': target_lons, 'pseudo_type':pseudo_types, 'type':types, 'contribution': contributions, 'is_dir': dirs, 'is_exact': exacts})
     
-    print("TEST TEST")
-    print(new_df.cluster_id.unique())
 
     return new_df
 
@@ -326,7 +329,7 @@ def load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date
 
     print("Masking lat, lon, time..")
     periods = time_np[valid_ind/(latlon_length)]*time_multiplier
-    print(periods)
+
     valid_latlon_ind = valid_ind%latlon_length
     latitudes = lat_np[valid_latlon_ind]
     longitudes = lon_np[valid_latlon_ind]
@@ -339,7 +342,7 @@ def load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date
     print("Filtering...")
     new_df = new_df[new_df.density > max_for_uninhabited];
     print("Globals dataframe generated.")
-    # print(new_df)
+
     return new_df
 
 
@@ -517,15 +520,7 @@ def in_target_location(target, lat, lon, is_global):
     lat_nw=target.lat_nw
     lat_se=target.lat_se
     lon_se=target.lon_se
-    # if we are testing whether a hexagon is in the_globals we use all possible longitudes
-    #would be better not to global logitudes at all
-    if is_global:
-        lon_nw=target.lon_se - 1
-        lon_se=lon_nw
-        lat_nw=lat_nw - 0.5
-        lat_se=lat_se + 0.5
-    else:
-        lon_nw=target.lon_nw
+    lon_nw=target.lon_nw
 
     if lat<-90 or lat>90:
         print('latitude out of range')
@@ -536,6 +531,8 @@ def in_target_location(target, lat, lon, is_global):
     
     if lat<=lat_nw:
         if lat>=lat_se:
+            if is_global:
+                return True;
             if lon_in_bin(lon_nw,lon_se,lon):
                 return(True)
     return(False)
@@ -772,26 +769,60 @@ def get_min_max_latitude_of_targets(target_list):
 
 def print_target(target, date_window):
     print(target.location,': cluster_id:',target.cluster_id, ' lat_nw:',target.lat_nw,' lon_nw:',target.lon_nw,'lat_se:',target.lat_se,'lon_se:',target.lon_se,'date_from:',target.date_from,'  date_to:',target.date_from+date_window)
-    
+
+def create_binned_column(dataframe, new_column_name, base_column_name, interval):
+
+    conditions = [];
+    choices = [];
+    min_val = int(dataframe[base_column_name].min()/interval);
+    max_val = int(dataframe[base_column_name].max()/interval) + 1;
+
+    for i in range(min_val, max_val):
+        lower_bound = i*interval;
+        upper_bound = i*interval + (interval-1);
+        condition = ((dataframe[base_column_name] >= lower_bound) & (dataframe[base_column_name] <= upper_bound));
+        choice = str(lower_bound) + "-" + str(upper_bound);
+        conditions.append(condition);
+        choices.append(choice);
+
+    dataframe[new_column_name] = np.select(conditions, choices);
+
+    return dataframe
 
 def generate_merged_dataframe(base_path,directory, dataframe, globals_dataframe):
     processed_targets_dir = os.path.join(base_path, "processed_targets")
-    merged_df_filename= os.path.join(processed_targets_dir, directory + "_merged_df.csv") 
+    merged_df_filename = os.path.join(processed_targets_dir, directory + "_merged_df.csv") 
     if not os.path.exists(processed_targets_dir):
         os.makedirs(processed_targets_dir)
     temp_globals_df = globals_dataframe.copy();
-    temp_targets_df = dataframe.copy();
-    temp_globals_df['type'] = 'g';
-    temp_globals_df['pseudo_type'] = 'b';
-    # remove this line if you want to retain type 'c' (globals/'old controls' per target)
-    temp_targets_df = temp_targets_df[temp_targets_df.type == 's'];
-    # del temp_targets_df['location']
-    del temp_targets_df['cluster_id']
-    del temp_targets_df['contribution']
-    del temp_targets_df['is_dir'];
-    del temp_targets_df['is_exact'];
-    to_concat = [temp_globals_df, temp_targets_df]
-    merged_df = pd.concat(to_concat);
+    temp_samples_df = dataframe.copy();
+    temp_samples_df = temp_samples_df[temp_samples_df.type == 's'];
+
+
+
+    # is_sample
+    temp_globals_df['is_sample'] = 0;    
+    temp_samples_df['is_sample'] = 1;
+
+    # MERGE
+    to_concat = [temp_globals_df, temp_samples_df]
+    merged_df = pd.concat(to_concat, sort=True);
+
+    # id (change column name)
+    merged_df.rename(columns = {'cluster_id': 'id'}, inplace = True);
+    
+    # abs lat
+    merged_df['abs_latitude'] = merged_df['latitude'].abs();
+
+    # binned_period
+    merged_df = create_binned_column(merged_df, 'binned_period', 'period', 1000);
+
+    # binned_period
+    merged_df = create_binned_column(merged_df, 'binned_latitude', 'latitude', 10);
+
+    # DELETE COLUMNS
+    merged_df.drop(["contribution", "distance", "is_dir", "is_exact", "pseudo_type", "rank", "target_date_from", "target_date_to", "target_lat", "target_location", "target_lon","type"], axis=1, inplace = True)
+
     merged_df.to_csv(merged_df_filename, sep=";")
     print "merged df filename=",merged_df_filename
     return merged_df
