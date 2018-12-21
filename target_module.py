@@ -9,15 +9,15 @@ from os.path import isfile, join
 from clusterer import ClusterAnalysis
 from classes_module import Target, PopulationData
 
-def process_targets(base_path, population_data, original_target_list, dataframe, globals_dataframe, the_globals, dataframe_loaded, clustering_on, date_window, critical_distance, critical_time, directory, min_date_window, min_lat, max_lat, min_date, max_date, max_for_uninhabited, date_lag):
+def process_targets(base_path, population_data, original_target_list, dataframe, globals_dataframe, parameters, max_for_uninhabited, directory):
     
     #########################################
     # Cluster targets and group in clusters #
     #########################################
 
     my_cluster_analyzer=ClusterAnalysis()
-    if clustering_on:
-        clustered_list = my_cluster_analyzer.cluster_targets_by_dist_and_time(original_target_list, critical_distance, critical_time)
+    if parameters['clustering_on']:
+        clustered_list = my_cluster_analyzer.cluster_targets_by_dist_and_time(original_target_list, parameters['critical_distance'], parameters['critical_time'])
     else:
         clustered_list=original_target_list #uses default clustering used when list read from file
 
@@ -31,14 +31,22 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
     # - saves extracted dataframe as <directory>_dataframe.csv
     # - saves the_globals as <directory>_globals_df.csv
     # - saves target list as <directory>_targets.csv
-    if dataframe_loaded is False:
+    if parameters['dataframe_loaded'] is False:
 
         processed_targets_dir = os.path.join(base_path, "processed_targets")
 
         if not os.path.exists(processed_targets_dir):
             os.makedirs(processed_targets_dir)
 
+        date_window = parameters['date_window'];
+        date_lag = parameters['date_lag'];
+        min_date = parameters['min_date'];
+        max_date = parameters['max_date'];
+        min_lat = parameters['min_lat'];
+        max_lat = parameters['max_lat'];
+
         # extract the_globals dataframe depending on the_globals parameter
+        the_globals = parameters['globals_type']
         if the_globals == "Australia":
             globals_dataframe = load_bin_globals_for_australia(population_data, clustered_list, date_window, min_date, max_date)
         elif the_globals == "France and Spain":
@@ -51,14 +59,15 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
             globals_dataframe = load_bin_globals_for_trial_latitudes2(population_data, clustered_list, date_window)
         elif the_globals == "All":
             globals_dataframe = load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date, max_for_uninhabited)
-            # globals_dataframe = load_bin_globals_for_all(population_data, clustered_list, date_window,min_lat, max_lat, min_date, max_date)
-        # save the_globals dataframe in processed_targets folder
+
         globals_dataframe_filename = os.path.join(processed_targets_dir, directory + "_globals_df.csv") 
         
+        print("Saving globals dataframe...")
         # WRITE PROCESSED GLOBALS
         globals_dataframe.to_csv(globals_dataframe_filename, sep=";")
 
         # extract dataframe rank
+        print("Extracting sites from targets...")
         new_df = extract_dataframe(population_data, folded_target_list, max_for_uninhabited, date_window, date_lag)
         
         # get closest site to target
@@ -69,14 +78,16 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
         samples_df = samples_df.groupby(['density', 'latitude', 'longitude', 'period', 'type']).first().reset_index();
         controls_df = new_df[new_df['type'] == 'c'];
 
-        dataframe = pd.concat([samples_df, controls_df]);
+        dataframe = pd.concat([samples_df, controls_df], sort=True);
 
+        print("Saving sites dataframe...")
         # save dataframe in processed_targets folder
         dataframe_filename = os.path.join(processed_targets_dir, directory + "_dataframe.csv")
         
         # WRITE PROCESSED TARGET DATEFRAME
         dataframe.to_csv(dataframe_filename, sep=";",quoting=csv.QUOTE_NONNUMERIC) #this is an addition to get file written in good format for excel
 
+        print("Saving target list...")
         # save targets in processed_targets folder 
         targets_filename = directory + "_targets"
         save_target_list_to_csv(clustered_list, processed_targets_dir, targets_filename)
@@ -84,6 +95,11 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
 
 
     return folded_target_list, dataframe, globals_dataframe
+
+def reset_cluster_id_values(target_list):
+    for i in range(0, len(target_list)):
+        target_list[i].cluster_id = i;
+    return target_list;
 
 def limit_target_list_to_oldest(target_list):
     new_target_list = []
@@ -184,7 +200,7 @@ def extract_dataframe(population_data, target_list, max_for_uninhabited, date_wi
         # For every target in every cluster.. #
         #######################################
         for cluster in target_list:
-            # if cluster[0].cluster_id != 128:
+            # if cluster[0].cluster_id != 18:
             #     continue;
             number_of_targets_in_cluster = len(cluster)
             for target in cluster:
@@ -535,7 +551,9 @@ def in_target_location(target, lat, lon, is_global):
                 return True;
             if lon_in_bin(lon_nw,lon_se,lon):
                 return(True)
-    return(False)
+            # if lon >= lon_nw and lon <= lon_se:
+            #     return True;
+    return False
 
 def lon_in_bin(target_nw,target_se,lon):
  # calculates if a longtitude lies between lon_nw and lon_se moving eastwards
@@ -650,7 +668,6 @@ def save_target_list_to_csv(target_list, directory, filename):
         headers='location,latitude,longitude,date_from, date_to, country, is_direct,age_estimation,calibrated,kind, figurative, cluster_id'
         my_writer.writerow(headers)
         for target in target_list:
-            print('saving ',target.location)
             row=[]
             row.append(target.location)
             row.append(target.orig_lat)
@@ -767,8 +784,6 @@ def get_min_max_latitude_of_targets(target_list):
             minimum_lat = target.orig_lat;
     return minimum_lat, maximum_lat;
 
-def print_target(target, date_window):
-    print(target.location,': cluster_id:',target.cluster_id, ' lat_nw:',target.lat_nw,' lon_nw:',target.lon_nw,'lat_se:',target.lat_se,'lon_se:',target.lon_se,'date_from:',target.date_from,'  date_to:',target.date_from+date_window)
 
 def create_binned_column(dataframe, new_column_name, base_column_name, interval):
 
@@ -798,7 +813,8 @@ def generate_merged_dataframe(base_path,directory, dataframe, globals_dataframe)
     temp_samples_df = dataframe.copy();
     temp_samples_df = temp_samples_df[temp_samples_df.type == 's'];
 
-
+     # DELETE COLUMNS
+    temp_samples_df.drop(["cluster_id","samples_growth_coefficient", "contribution", "distance", "is_dir", "is_exact", "pseudo_type", "rank", "target_date_from", "target_date_to", "target_lat", "target_location", "target_lon","type"], axis=1, inplace = True)
 
     # is_sample
     temp_globals_df['is_sample'] = 0;    
@@ -807,9 +823,6 @@ def generate_merged_dataframe(base_path,directory, dataframe, globals_dataframe)
     # MERGE
     to_concat = [temp_globals_df, temp_samples_df]
     merged_df = pd.concat(to_concat, sort=True);
-
-    # id (change column name)
-    merged_df.rename(columns = {'cluster_id': 'id'}, inplace = True);
     
     # abs lat
     merged_df['abs_latitude'] = merged_df['latitude'].abs();
@@ -820,9 +833,7 @@ def generate_merged_dataframe(base_path,directory, dataframe, globals_dataframe)
     # binned_period
     merged_df = create_binned_column(merged_df, 'binned_latitude', 'latitude', 10);
 
-    # DELETE COLUMNS
-    merged_df.drop(["contribution", "distance", "is_dir", "is_exact", "pseudo_type", "rank", "target_date_from", "target_date_to", "target_lat", "target_location", "target_lon","type"], axis=1, inplace = True)
 
     merged_df.to_csv(merged_df_filename, sep=";")
-    print "merged df filename=",merged_df_filename
+    print("merged df filename: " + merged_df_filename);
     return merged_df

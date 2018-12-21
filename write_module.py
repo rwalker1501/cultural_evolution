@@ -127,8 +127,17 @@ def write_information(a_file, labels, values, delimiter):
     a_file.write(information_str)
     a_file.write('\n')
 
+def write_parameters(a_file, parameters):
+    for key, value in parameters.iteritems():
+        if isinstance(value, basestring):
+            a_file.write(key + ": " + value);
+        else:
+            a_file.write(key + ": " + str(value));
+        a_file.write("\n");
 
-def write_cluster_table(a_file, dataframe, sample_growth_coefficients, date_lag, date_window):
+def write_cluster_table(a_file, dataframe, parameters):
+    date_window = parameters['date_window'];
+    date_lag = parameters['date_lag'];
     cluster_headers=["Name of Site", "Latitude", "Longitude", "TargetDateFrom", "TargetDateTo", "AnalysisDateFrom", "AnalysisDateTo", "Direct", "Exact", "Population density", "Controls population density", "Growth Coefficient"]
     write_headers(a_file, cluster_headers, ';')
 
@@ -144,8 +153,8 @@ def write_cluster_table(a_file, dataframe, sample_growth_coefficients, date_lag,
     # print("ClusterID")
     # print(cluster_ids)
 
-    for i in range(0, len(cluster_ids)):
-        cluster_df = dataframe[dataframe.cluster_id == cluster_ids[i]] 
+    for cluster_id in cluster_ids:
+        cluster_df = dataframe[dataframe.cluster_id == cluster_id] 
         # print(cluster_df)
         location = cluster_df['target_location'].values[0];
         latitude = cluster_df['target_lat'].values[0];
@@ -162,13 +171,12 @@ def write_cluster_table(a_file, dataframe, sample_growth_coefficients, date_lag,
 
         exact = 'not exact';
         if cluster_df['is_exact'].values[0]:
-            direct = 'exact'
+            exact = 'exact'
 
         sample_mean = cluster_df[cluster_df.type == 's']['density'].values[0];
-        # print(cluster_ids[i])
         controls_mean = cluster_df[cluster_df.type == 'c']['density'].values[0];
 
-
+        sample_growth_coefficient = cluster_df['samples_growth_coefficient'].values[0]
 
         a_file.write("\"" + str(location) + "\";")
         # a_file.write(str(cluster_ids[i]) + ";")
@@ -182,13 +190,9 @@ def write_cluster_table(a_file, dataframe, sample_growth_coefficients, date_lag,
         a_file.write(str(exact) + ";")
         a_file.write(str(sample_mean) + ";")
         a_file.write(str(controls_mean) + ";")
-        a_file.write(str(sample_growth_coefficients[i]))
+        a_file.write(str(sample_growth_coefficient))
         a_file.write("\n")
-# =============================================================================
-#         if i != 0 and i%2==1:
-#             a_file.write("\n")   #I was getting an unexplained CR on every two lines - think this is responsible.
-# =============================================================================
-
+        
 def write_bin_table(a_file, bin_values_df, minimum_globals):
 
     write_label(a_file, "Distribution of values for samples and globals - Minimum_globals="+str(minimum_globals))

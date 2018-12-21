@@ -33,7 +33,20 @@ class Target():
         self.age_estimation = age_estimation;
         self.cluster_id=cluster_id
 
-        
+    def __str__(self):
+        ret = self.location + "\n";
+        # ret += "    Cluster ID: " + str(self.cluster_id) + "\n"
+        ret += "    Actual Latitude: " + str(self.orig_lat) + "\n"
+        ret += "    Actual Longitude: " + str(self.orig_lon) + "\n"
+        ret += "    Latitude (NW): " + str(self.lat_nw) + "\n"
+        ret += "    Latitude (SE): " + str(self.lat_se) + "\n"
+        ret += "    Longitude (NW): " + str(self.lon_nw) + "\n"
+        ret += "    Longitude (SE): " + str(self.lon_se) + "\n"
+        ret += "    Date From: " + str(self.date_from) + "\n"
+        ret += "    Date To: " + str(self.date_to)
+
+        return ret;
+
 class PopulationData():
 
     def __init__(self, name, is_active, lat_array, lon_array, time_array, density_array, time_multiplier, density_multiplier,bin_size, max_population, max_for_uninhabited, ascending_time):

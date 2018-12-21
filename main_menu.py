@@ -18,13 +18,12 @@ class Driver:
 		base_path = self.main_program.get_base_path()
 
 		print('')
-		self.print_label('Population analysis tool v. 0.1 by Richard Walker')
+		self.print_label('Population analysis tool v. 1 by Richard Walker')
 		user_option = 0
-		while user_option != '11':
+		while user_option != '9':
 			target_list = self.main_program.get_current_target_list()
 			population_data = self.main_program.get_population_data()
-			dataframe_loaded = self.main_program.get_dataframe_loaded()
-			filters_applied = self.main_program.get_filters_applied()
+			parameters = self.main_program.get_parameters();
 
 			print("Active Population Data")
 			for pop_data in population_data:
@@ -33,20 +32,23 @@ class Driver:
 
 			self.print_target_list(target_list)
 
-			print("\nProcessed targets loaded: " + str(dataframe_loaded))
-			print("Filters applied: " + str(filters_applied))
+			print("\nProcessed targets loaded: " + str(parameters['dataframe_loaded']))
+			filters_applied = parameters['filters_applied']
+			if len(filters_applied) > 0:
+				print("Filters applied: " + str(filters_applied));
+			else:
+				print("Filters applied: None");
+			
 			print('-----------------------')
 			print('1)    Define list of targets')
 			print('2)    Filter target list')
 			print('3)    Load processed targets')
 			print('4)    Set parameters')
-			print('5)    Plot population by time')
+			print('5)    Create density map plots')
 			print('6)    Clear processed targets')
 			print('7)    Generate results')
-			print('8)    Generate confounder analysis')
-			print('9)    Generate random weighted analysis')
-			print('10)    Add new population data source')
-			print('11)   Exit')
+			print('8)    Add new population data source')
+			print('9)   Exit')
 			random.seed(2002)
 			user_option = raw_input("Choose an option: ")
 			if user_option=='1':
@@ -58,10 +60,7 @@ class Driver:
 			elif user_option=='4':
 				self.set_parameters()
 			elif user_option=='5':
-				time = self.get_number("Input time: ", 0, 150000)
-				for population_data_source in population_data:
-					if population_data_source.is_active:
-						self.main_program.plot_population_by_time(population_data_source, time)
+				self.create_map_plots();
 			elif user_option=='6':
 				user_option = ""
 				while user_option != 'y' and user_option != 'n':
@@ -72,24 +71,60 @@ class Driver:
 				for population_data_source in population_data:
 					if population_data_source.is_active:
 						directory=raw_input("Insert directory name: ")
-						report = self.main_program.generate_results(population_data_source, target_list, base_path, directory, False)
-						print(report)
+						report = self.main_program.generate_results(population_data_source, target_list, base_path, directory)
+						print(report);
 			elif user_option=='8':
-				for population_data_source in population_data:
-					if population_data_source.is_active:
-						directory=raw_input("Insert directory name: ")
-						report = self.main_program.generate_confounder_analysis(population_data_source, target_list, base_path, directory)
-						print(report)
-			elif user_option=='9':
-				for population_data_source in population_data:
-					if population_data_source.is_active:
-						directory=raw_input("Insert directory name: ")
-						report = self.main_program.generate_reweighted_data(population_data_source, target_list, base_path, directory)
-						print(report)	
-			elif user_option=='10':
 				self.add_population_data()
-			elif user_option!='11':
+			elif user_option!='9':
 				print("Invalid option. Try again.")
+
+	def create_map_plots(self):
+		self.print_label("Create Density Map Plots")
+		print()
+
+
+		population_data = self.main_program.get_population_data()
+		print("Active Population Data")
+		for pop_data in population_data:
+			if pop_data.is_active:
+				print("   " + pop_data.name)
+
+		print("\n------")
+		print("1) Plot densities on map by time point")
+		print("2) Plot densities on map by time range")
+		print("3) Plot densities on map by density and time range")
+		print("4) Cancel")
+
+		plot_option = self.get_number("Insert option: ", 1, 4)
+		if plot_option == 1:
+			time = self.get_number("Input time point: ", 0, 150000)
+			for population_data_source in population_data:
+				if population_data_source.is_active:
+					self.main_program.plot_population_by_time(population_data_source, time);
+		elif plot_option == 2:
+			start_time = self.get_number("Input start time: ", 0, 150000)
+			end_time = self.get_number("Input end time: ", 0, 150000)
+			for population_data_source in population_data:
+				if population_data_source.is_active:
+					self.main_program.plot_population_by_time_range(population_data_source, start_time, end_time);
+		elif plot_option == 3:
+			min_density = self.get_number("Input min density: ", 0, 150000)
+			max_density = self.get_number("Input max density: ", 0, 150000)
+			start_time = self.get_number("Input start time: ", 0, 150000)
+			end_time = self.get_number("Input end time: ", 0, 150000)
+			for population_data_source in population_data:
+				if population_data_source.is_active:
+					self.main_program.plot_population_by_range(population_data_source, min_density, max_density, start_time, end_time);
+
+		if plot_option != 4:
+			print("Create another map plot?")
+			print("\n------")
+			print("1) Yes");
+			print("2) No");
+			plot_option = self.get_number("Insert option: ", 1, 2);
+			if plot_option == 1:
+				self.create_map_plots();
+			
 
 	def define_target_list(self, some_target_list):
 		self.print_label("Define target list")
@@ -118,21 +153,24 @@ class Driver:
 			elif user_option=='4':
 				self.main_program.set_target_list(new_list)
 
-
 	def filter_target_list(self, some_target_list):
 		self.print_label("Filter target list")
 
-		clustering = self.main_program.get_clustering()
-		critical_distance = self.main_program.get_critical_distance()
-		critical_time = self.main_program.get_critical_time()
+		parameters = self.main_program.get_parameters();
+		clustering = parameters['clustering_on'];
+		critical_distance = parameters['critical_distance'];
+		critical_time = parameters['critical_distance'];
+		filters_applied = parameters['filters_applied']
 
 		new_list = deepcopy(some_target_list)
 		user_option = ""
 		while user_option != '10' and user_option != '11':
-			filters_applied = self.main_program.get_filters_applied()
 
 			self.print_target_list(new_list)
-
+			if len(filters_applied) > 0:
+				print("\nFilters applied: " + str(filters_applied));
+			else:
+				print("\nFilters applied: None");
 			print("\nClustering: " + str(clustering))
 			print("Critical distance: " + str(critical_distance))
 			print("Critical time: " + str(critical_time))
@@ -177,11 +215,14 @@ class Driver:
 				clustering = False
 				critical_distance = 0
 			elif user_option=='11':
-				self.main_program.set_clustering(clustering)
-				self.main_program.set_critical_distance(critical_distance)
-				self.main_program.set_critical_time(critical_time)
-				self.main_program.set_filters_applied(filters_applied)
+				new_list = tam.reset_cluster_id_values(new_list);
+				self.main_program.set_parameter('clustering_on', clustering);
+				self.main_program.set_parameter('critical_distance', critical_distance);
+				self.main_program.set_parameter('critical_time', critical_time);
+				self.main_program.set_parameter('filters_applied', filters_applied);
 				self.main_program.set_target_list(new_list)
+
+			new_list = tam.reset_cluster_id_values(new_list);
 
 
 
@@ -212,45 +253,31 @@ class Driver:
 
 	def set_parameters(self):
 		user_option = ""
-		while user_option != '12':
+		while user_option != '10':
 			self.print_label("Set Parameters")
-			date_window = self.main_program.get_date_window()
-			mfu = self.main_program.get_user_max_for_uninhabited()
-			default_mfu = self.main_program.get_default_mfu()
-			perform_cv = self.main_program.get_perform_cross_validation()
-			num_kfolds = self.main_program.get_number_of_kfolds()
-			min_lat = self.main_program.get_min_lat();
-			max_lat = self.main_program.get_max_lat();
-			min_date = self.main_program.get_min_date();
-			max_date = self.main_program.get_max_date();
-			globals = self.main_program.get_globals()
+			parameters = self.main_program.get_parameters();
+
 			print("")
 			print("1) Set active population data")
-			print("2) Define date window for target: " + str(date_window))
-			print("3) Toggle default max population for areas considered as uninhabited: " + str(default_mfu) )
-			print("4) Define max population for areas considered as uninhabited (sets default=False): " + str(mfu))
-			print("5) Toggle perform cross validation: " + str(perform_cv))
-			print("6) Set folds for cross validation: " + str(num_kfolds))
-			print("7) Define globals range: " + str(globals))
-			print("8) Set minimum latitude for globals: " + str(min_lat))
-			print("9) Set maximum latitude for globals: " + str(max_lat) )
-			print("10) Set minimum date for globals: " + str(min_date))
-			print("11) Set maximum date for globals: " + str(max_date))
-			print("12) Save and exit")
+			print("2) Define date window for target: " + str(parameters['date_window']))
+			print("3) Toggle default max population for areas considered as uninhabited: " + str(parameters['default_max_for_uninhabited']) )
+			print("4) Define max population for areas considered as uninhabited (sets default=False): " + str(parameters['max_for_uninhabited']))
+			print("5) Define globals range: " + str(parameters['globals_type']))
+			print("6) Set minimum latitude for globals: " + str(parameters['min_lat']))
+			print("7) Set maximum latitude for globals: " + str(parameters['max_lat']) )
+			print("8) Set minimum date for globals: " + str(parameters['min_date']))
+			print("9) Set maximum date for globals: " + str(parameters['max_date']))
+			print("10) Save and exit")
 			user_option = raw_input("Choose an option: ")
 			if user_option=='1':
 				self.toggle_population_data()
 			elif user_option=='2':
-				self.main_program.set_date_window(self.get_number('Insert date window: ',0,150000))
+				self.main_program.set_parameter('date_window', self.get_number('Insert date window: ',0,150000))
 			elif user_option=='3':
-				self.main_program.set_default_mfu(not default_mfu)
+				self.main_program.set_parameter('default_max_for_uninhabited', not parameters['default_max_for_uninhabited'])
 			elif user_option=='4':
-				self.main_program.set_user_max_for_uninhabited(self.get_number('Insert max density for uninhabited - for no max write -1: ',-1,5000))
+				self.main_program.set_parameter('user_max_for_uninhabited', self.get_number('Insert max density for uninhabited - for no max write -1: ',-1,5000))
 			elif user_option=='5':
-				self.main_program.set_perform_cross_validation(not perform_cv)
-			elif user_option=='6':
-				self.main_program.set_number_of_kfolds(self.get_number("Insert number of kfolds: ", 1, 200))
-			elif user_option=='7':
 				globals_option = 1
 				self.print_label("Define globals Range")
 				print("1) All")
@@ -261,26 +288,26 @@ class Driver:
 				print("6) No Empty Lats (New globals)")
 				globals_option = self.get_number("Insert option: ", 1, 6)
 				if globals_option == 1:
-					self.main_program.set_globals("All")
+					self.main_program.set_parameter('globals_type', "All")
 				elif globals_option == 2:
-					self.main_program.set_globals("Australia")
+					self.main_program.set_parameter('globals_type', "Australia")
 				elif globals_option == 3:
-					self.main_program.set_globals("France and Spain")
+					self.main_program.set_parameter('globals_type', "France and Spain")
 				elif globals_option == 4:
-					self.main_program.set_globals("Trial Latitudes")
+					self.main_program.set_parameter('globals_type', "Trial Latitudes")
 				elif globals_option == 5:
-					self.main_program.set_globals("Trial Latitudes 2")
+					self.main_program.set_parameter('globals_type', "Trial Latitudes 2")
 				elif globals_option == 6:
-					self.main_program.set_globals("No Empty Lats")
+					self.main_program.set_parameter('globals_type', "No Empty Lats")
+			elif user_option=='6':
+				self.main_program.set_parameter('min_lat', self.get_number("Insert minimum latitude: ", -90, 90))
+			elif user_option=='7':
+				self.main_program.set_parameter('max_lat', self.get_number("Insert maximum latitude: ", -90, 90))
 			elif user_option=='8':
-				self.main_program.set_min_lat(self.get_number("Insert minimum latitude: ", -90, 90))
+				self.main_program.set_parameter('min_date', self.get_number("Insert minimum date: ", 0, 1000000))
 			elif user_option=='9':
-				self.main_program.set_max_lat(self.get_number("Insert maximum latitude: ", -90, 90))
-			elif user_option=='10':
-				self.main_program.set_min_date(self.get_number("Insert minimum date: ", 0, 1000000))
-			elif user_option=='11':
-				self.main_program.set_max_date(self.get_number("Insert maximum date: ", 0, 1000000))
-			elif user_option!='12':
+				self.main_program.set_parameter('max_date', self.get_number("Insert maximum date: ", 0, 1000000))
+			elif user_option!='10':
 				print("Invalid option. Try again.")
 
 
@@ -348,11 +375,13 @@ class Driver:
 		if len(target_list) == 0:
 			print("<Empty Target List>")
 			print("")
-		date_window = self.main_program.get_date_window()
+			return
 		for i in range(0, len(target_list)):
 			target = target_list[i]
-			print(str(i+1) + ")")
-			tam.print_target(target, date_window)
+			print(str(i+1) + ") ")
+			print(target);
+		print("\nNumber of Targets: " + str(len(target_list)));
+
 
 
 	def ask_filename(self, file_path):
