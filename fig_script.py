@@ -43,26 +43,28 @@ import main_module as mm
 base_path = os.getcwd()
 
 
-# mm.run_experiment(base_path, "rpv12", "rpv12",date_window=24);
+#mm.run_experiment(base_path, "rpv12", "rpv12",date_window=24);
 # mm.run_experiment(base_path, "rpv12", "rpv12_timmermann", population_data_name="Timmermann",date_window=999);
 
 # exit();
 
-for date_lag in range(4500, 5001, 500):
-
-	start = date_lag
-	if date_lag == 4500:
-		start = 7500
-	for date_window in range(start + 500, 10001, 500):
-		erik_fn = "rpv12_lag" + str(date_lag) + "_dw" + str(date_window);
-		print(erik_fn);
-		mm.run_experiment(base_path, "rpv12", erik_fn, date_window=date_window, date_lag=date_lag);
-
-		tim_fn = "rpv12_lag" + str(date_lag) + "_dw" + str(date_window) + "_timmermann";
-		print(tim_fn);
-		mm.run_experiment(base_path, "rpv12", tim_fn, population_data_name="Timmermann",date_window=date_window, date_lag=date_lag);
-		
-
+# =============================================================================
+# for date_lag in range(4500, 5001, 500):
+# 
+# 	start = date_lag
+# 	if date_lag == 4500:
+# 		start = 7500
+# 	for date_window in range(start + 500, 10001, 500):
+# 		erik_fn = "rpv12_lag" + str(date_lag) + "_dw" + str(date_window);
+# 		print(erik_fn);
+# 		mm.run_experiment(base_path, "rpv12", erik_fn, date_window=date_window, date_lag=date_lag);
+# 
+# 		tim_fn = "rpv12_lag" + str(date_lag) + "_dw" + str(date_window) + "_timmermann";
+# 		print(tim_fn);
+# 		mm.run_experiment(base_path, "rpv12", tim_fn, population_data_name="Timmermann",date_window=date_window, date_lag=date_lag);
+# 		
+# 
+# =============================================================================
 
 
 
@@ -91,10 +93,10 @@ for date_lag in range(4500, 5001, 500):
 
 
 # # FiG2E: OR graph for France + Spain, Eriksson
-#mm.run_experiment(base_path, "rpv12_fr_sp", "rpv12_fr_sp", the_globals="France and Spain")
+mm.run_experiment(base_path, "rpv12_fr_sp", "rpv12_fr_sp", globals_type="France and Spain")
 
 # # FIG2E: OR graph for Australia, Eriksson
-#mm.run_experiment(base_path, "rpv12_au", "rpv12_au", the_globals="Australia")
+mm.run_experiment(base_path, "rpv12_au", "rpv12_au", globals_type="Australia")
 
 # FIG2G: pGraph for world, Timmermann (as in Fig 2A)
 # FIG2H: OR graph for world, Timmermann (as in Fig2B)
