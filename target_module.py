@@ -48,9 +48,9 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
         # extract the_globals dataframe depending on the_globals parameter
         the_globals = parameters['globals_type']
         if the_globals == "Australia":
-            globals_dataframe = load_bin_globals_for_australia(population_data, clustered_list, date_window, min_date, max_date)
+            globals_dataframe = load_bin_globals_for_australia(population_data, clustered_list, date_window, min_date, max_date, max_for_uninhabited)
         elif the_globals == "France and Spain":
-            globals_dataframe = load_bin_globals_for_francespain(population_data, clustered_list, date_window, min_date, max_date)
+            globals_dataframe = load_bin_globals_for_francespain(population_data, clustered_list, date_window, min_date, max_date, max_for_uninhabited)
         elif the_globals == "Trial Latitudes":
             globals_dataframe = load_bin_globals_for_trial_latitudes(population_data, clustered_list, date_window, min_lat, max_lat, min_date, max_date)
         elif the_globals == "No Empty Lats":
@@ -78,7 +78,7 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
         samples_df = samples_df.groupby(['density', 'latitude', 'longitude', 'period', 'type']).first().reset_index();
         controls_df = new_df[new_df['type'] == 'c'];
 
-        dataframe = pd.concat([samples_df, controls_df], sort=True);
+        dataframe = pd.concat([samples_df, controls_df]);
 
         print("Saving sites dataframe...")
         # save dataframe in processed_targets folder
@@ -423,7 +423,7 @@ def load_bin_globals_for_all(population_data, target_list, date_window, min_lat,
 
     return df
 
-def load_bin_globals_for_australia(population_data, target_list, date_window, min_date, max_date):
+def load_bin_globals_for_australia(population_data, target_list, date_window, min_date, max_date, max_for_uninhabited):
     # maximum_latitude = -500;
     # minimum_latitude = 500
     minimum_date = min_date
@@ -455,11 +455,12 @@ def load_bin_globals_for_australia(population_data, target_list, date_window, mi
     time = minimum_date
     temp_target = Target(latitude,longitude,lat_nw,lon_nw,lat_se,lon_se,"location",maximum_date, time,"country","is_direct","calibrated","kind","figurative","source","is_controversial","age_estimation", 0)
 
-    df = extract_dataframe(population_data, [[temp_target]], date_window)
+    df = extract_dataframe(population_data, [[temp_target]], max_for_uninhabited, date_window, 0)
     df = df[df.type=='s']
-    del df['location']
+    del df['target_location']
+    del df['target_date_from']
+    del df['target_date_to']
     del df['cluster_id']
-    del df['pseudo_type']
     del df['type']
     del df['contribution']
     del df['is_dir'];
@@ -467,7 +468,7 @@ def load_bin_globals_for_australia(population_data, target_list, date_window, mi
     return df
 
 
-def load_bin_globals_for_francespain(population_data, target_list, date_window, min_date, max_date):
+def load_bin_globals_for_francespain(population_data, target_list, date_window, min_date, max_date, max_for_uninhabited):
     maximum_latitude = -500;
     minimum_latitude = 500
     minimum_date = min_date
@@ -501,12 +502,13 @@ def load_bin_globals_for_francespain(population_data, target_list, date_window, 
     target_east = Target(latitude,longitude,lat_nw,lon_nw,lat_se,359,"east_location",maximum_date, time,"country","is_direct","calibrated","kind","figurative","source","is_controversial","age_estimation", 0)
     target_west = Target(latitude,longitude,lat_nw,0,lat_se,lon_se,"west_location",maximum_date, time, "country","is_direct","calibrated","kind","figurative","source","is_controversial","age_estimation", 0)
 
-    df = extract_dataframe(population_data, [[target_east, target_west]], date_window)
+    df = extract_dataframe(population_data, [[target_east, target_west]], max_for_uninhabited, date_window, 0)
 
     df = df[df.type=='s']
-    del df['location']
+    del df['target_location']
+    del df['target_date_from']
+    del df['target_date_to']
     del df['cluster_id']
-    del df['pseudo_type']
     del df['type']
     del df['contribution']
     del df['is_dir'];
@@ -822,13 +824,13 @@ def generate_merged_dataframe(base_path,directory, dataframe, globals_dataframe)
 
     # MERGE
     to_concat = [temp_globals_df, temp_samples_df]
-    merged_df = pd.concat(to_concat, sort=True);
+    merged_df = pd.concat(to_concat);
     
     # abs lat
     merged_df['abs_latitude'] = merged_df['latitude'].abs();
 
     # binned_period
-    merged_df = create_binned_column(merged_df, 'binned_period', 'period', 1000);
+    merged_df = create_binned_column(merged_df, 'binned_period', 'period', 10000);
 
     # binned_period
     merged_df = create_binned_column(merged_df, 'binned_latitude', 'latitude', 10);
