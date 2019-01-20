@@ -47,18 +47,15 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
 
         # extract the_globals dataframe depending on the_globals parameter
         the_globals = parameters['globals_type']
+        brute_all_globals_df = load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date, max_for_uninhabited)
         if the_globals == "Australia":
-            globals_dataframe = load_bin_globals_for_australia(population_data, clustered_list, date_window, min_date, max_date)
+            globals_dataframe = load_bin_globals_for_australia(brute_all_globals_df);
         elif the_globals == "France and Spain":
-            globals_dataframe = load_bin_globals_for_francespain(population_data, clustered_list, date_window, min_date, max_date)
-        elif the_globals == "Trial Latitudes":
-            globals_dataframe = load_bin_globals_for_trial_latitudes(population_data, clustered_list, date_window, min_lat, max_lat, min_date, max_date)
-        elif the_globals == "No Empty Lats":
-            globals_dataframe = load_bin_globals_no_empty_lat(population_data, clustered_list, date_window, min_lat, max_lat, min_date, max_date)
-        elif the_globals == "Trial Latitudes 2":
-            globals_dataframe = load_bin_globals_for_trial_latitudes2(population_data, clustered_list, date_window)
+            globals_dataframe = load_bin_globals_for_francespain(brute_all_globals_df);
+        elif the_globals == "All Except Equatorials":
+            globals_dataframe = load_bin_globals_equatorials_exclusive(brute_all_globals_df);
         elif the_globals == "All":
-            globals_dataframe = load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date, max_for_uninhabited)
+            globals_dataframe = brute_all_globals_df;
 
         globals_dataframe_filename = os.path.join(processed_targets_dir, directory + "_globals_df.csv") 
         
@@ -78,7 +75,7 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
         samples_df = samples_df.groupby(['density', 'latitude', 'longitude', 'period', 'type']).first().reset_index();
         controls_df = new_df[new_df['type'] == 'c'];
 
-        dataframe = pd.concat([samples_df, controls_df], sort=True);
+        dataframe = pd.concat([samples_df, controls_df]);
 
         print("Saving sites dataframe...")
         # save dataframe in processed_targets folder
@@ -362,172 +359,40 @@ def load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date
     return new_df
 
 
-
-def load_globals_for_all(population_data, target_list, date_window, min_lat, max_lat, min_date, max_date):
-
-    lat_np = population_data.lat_array
-    lon_np = population_data.lon_array
-    time_np = population_data.time_array
-    den_np = population_data.density_array
-    time_multiplier = population_data.time_multiplier
-
-    pseudo_target_list = []
-
-    minimum_latitude = min_lat
-    maximum_latitude = max_lat
-    minimum_date = min_date
-    maximum_date = max_date
-
+def load_bin_globals_for_australia(brute_all_globals_df):
     
-    # Using date_from to date_from+dw
-    date_window = maximum_date - minimum_date
-    maximum_date = minimum_date
-
-    # ######################################
-    # # Getting the minimum/maximum values #
-    # ######################################
-    # for target in target_list:
-    #     if target.orig_lat > maximum_latitude:
-    #         maximum_latitude = target.orig_lat
-    #     if target.orig_lat < minimum_latitude:
-    #         minimum_latitude = target.orig_lat
-    #     if target.date_from > maximum_date:
-    #         maximum_date = target.date_from
-    #     if target.date_from < minimum_date:
-    #         minimum_date = target.date_from
-    # minimum_latitude = int(round(minimum_latitude))
-    # maximum_latitude = int(round(maximum_latitude)) 
-    # maximum_date=maximum_date+date_window
-    print('minimum date=', minimum_date)
-    print('maximum date=',maximum_date)
-    print('minimum latitude=', minimum_latitude)
-    print('maximum latitude=',maximum_latitude)
-    lat = (minimum_latitude+maximum_latitude)/2
-    time = 0
-    temp_target = Target(lat,0,maximum_latitude,-2, minimum_latitude,2,"location",maximum_date, minimum_date,"country","is_direct","calibrated","kind","figurative","source","is_controversial","age_estimation", 0)
-
-    df = extract_dataframe(population_data, [[temp_target]], date_window)
-    return df
-
-def load_bin_globals_for_all(population_data, target_list, date_window, min_lat, max_lat, min_date, max_date):
-
-    df = load_globals_for_all(population_data, target_list, date_window, min_lat, max_lat, min_date, max_date)
-    df = df[df.type=='c']
-    del df['location']
-    del df['cluster_id']
-    del df['pseudo_type']
-    del df['type']
-    del df['contribution']
-    del df['is_dir'];
-    del df['is_exact'];
-
-    return df
-
-def load_bin_globals_for_australia(population_data, target_list, date_window, min_date, max_date):
-    # maximum_latitude = -500;
-    # minimum_latitude = 500
-    minimum_date = min_date
-    maximum_date = max_date
-    
-    # Using date_from to date_from+dw
-    date_window = maximum_date - minimum_date
-    maximum_date = minimum_date
-
-    ######################################
-    # Getting the minimum/maximum values #
-    ######################################
-    # for target in target_list:
-    #     if target.orig_lat > maximum_latitude:
-    #         maximum_latitude = target.orig_lat
-    #     if target.orig_lat < minimum_latitude:
-    #         minimum_latitude = target.orig_lat
-    #     if target.date_from > maximum_date:
-    #         maximum_date = target.date_from
-    #     if target.date_from < minimum_date:
-    #         minimum_date = target.date_from
-
+    # Boundaries
     latitude = -25.27
-    lat_nw = -11.17
-    lat_se = -39.16
+    max_lat = -11.17
+    min_lat = -39.16
     longitude = 133.77
-    lon_nw = 112.14
-    lon_se = 154.86
-    time = minimum_date
-    temp_target = Target(latitude,longitude,lat_nw,lon_nw,lat_se,lon_se,"location",maximum_date, time,"country","is_direct","calibrated","kind","figurative","source","is_controversial","age_estimation", 0)
+    min_lon = 112.14
+    max_lon = 154.86
 
-    df = extract_dataframe(population_data, [[temp_target]], date_window)
-    df = df[df.type=='s']
-    del df['location']
-    del df['cluster_id']
-    del df['pseudo_type']
-    del df['type']
-    del df['contribution']
-    del df['is_dir'];
-    del df['is_exact'];
+    df = brute_all_globals_df[(brute_all_globals_df.latitude >= min_lat) & (brute_all_globals_df.latitude <= max_lat) & (brute_all_globals_df.longitude >= min_lon) & (brute_all_globals_df.longitude <= max_lon)]
     return df
 
 
-def load_bin_globals_for_francespain(population_data, target_list, date_window, min_date, max_date):
-    maximum_latitude = -500;
-    minimum_latitude = 500
-    minimum_date = min_date
-    maximum_date = max_date
+def load_bin_globals_for_francespain(brute_all_globals_df):
 
-
-    # Using date_from to date_from+dw
-    date_window = maximum_date - minimum_date
-    maximum_date = minimum_date
-
-    # ######################################
-    # # Getting the minimum/maximum values #
-    # ######################################
-    # for target in target_list:
-    #     if target.orig_lat > maximum_latitude:
-    #         maximum_latitude = target.orig_lat
-    #     if target.orig_lat < minimum_latitude:
-    #         minimum_latitude = target.orig_lat
-    #     if target.date_from > maximum_date:
-    #         maximum_date = target.date_from
-    #     if target.date_from < minimum_date:
-    #         minimum_date = target.date_from
-
+    # Boundaries 
     latitude = 42
-    lat_nw = 50.84
-    lat_se = 35
+    max_lat = 50.84
+    min_lat = 35
     longitude = 0
-    lon_nw = 350
-    lon_se = 7
-    time = minimum_date
-    target_east = Target(latitude,longitude,lat_nw,lon_nw,lat_se,359,"east_location",maximum_date, time,"country","is_direct","calibrated","kind","figurative","source","is_controversial","age_estimation", 0)
-    target_west = Target(latitude,longitude,lat_nw,0,lat_se,lon_se,"west_location",maximum_date, time, "country","is_direct","calibrated","kind","figurative","source","is_controversial","age_estimation", 0)
+    # 0 in between, special condition
+    min_lon = 350
+    max_lon = 7
 
-    df = extract_dataframe(population_data, [[target_east, target_west]], date_window)
-
-    df = df[df.type=='s']
-    del df['location']
-    del df['cluster_id']
-    del df['pseudo_type']
-    del df['type']
-    del df['contribution']
-    del df['is_dir'];
-    del df['is_exact'];
+    df = brute_all_globals_df[(brute_all_globals_df.latitude >= min_lat) & (brute_all_globals_df.latitude <= max_lat) & ((brute_all_globals_df.longitude >= min_lon) | (brute_all_globals_df.longitude <= max_lon))]
     return df
 
-def load_bin_globals_for_trial_latitudes(population_data, target_list, date_window, min_lat, max_lat, min_date, max_date):
-    df = load_bin_globals_for_all(population_data, target_list, date_window, min_lat, max_lat, min_date, max_date)
-    new_df = df.loc[~df.latitude.between(-10, 40)]
-    return new_df
+def load_bin_globals_equatorials_exclusive(brute_all_globals_df):
+    equatorial_north = 20;
+    equatorial_south = -10;
+    df = brute_all_globals_df[~((brute_all_globals_df.latitude <= equatorial_north) & (brute_all_globals_df.latitude >= equatorial_south))];
 
-def load_bin_globals_no_empty_lat(population_data, target_list, date_window, min_lat, max_lat, min_date, max_date):
-    df = load_bin_globals_for_all(population_data, target_list, date_window, min_lat, max_lat, min_date, max_date)
-    new_df = df.loc[~df.latitude.between(0, 20)]
-    return new_df
-
-def load_bin_globals_for_trial_latitudes2(population_data, target_list, date_window, min_lat, max_lat, min_date, max_date):
-    df = load_bin_globals_no_empty_lat(population_data, target_list, date_window, min_lat, max_lat, min_date, max_date)
-    new_df = df.loc[~df.latitude.between(-30, -10)]
-    new_df = df.loc[~df.latitude.between(40, 50)]
-    return new_df
+    return df;
 
 def in_target_location(target, lat, lon, is_global):
 # Used to deal to test if a particular hexagon with a particular density matches at least one of a list of targets in time and location

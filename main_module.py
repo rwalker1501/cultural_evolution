@@ -46,7 +46,7 @@ class MainProgram:
         parameters = {};
         parameters['filters_applied'] = "";
         parameters['dataframe_loaded'] = False;
-        parameters['globals_type'] = "All";
+        parameters['globals_type'] = "All Except Equatorials";
         parameters['date_window'] = 24
         parameters['date_lag'] = 0;
         parameters['user_max_for_uninhabited'] = 1;
@@ -287,7 +287,7 @@ class MainProgram:
 
         return "Generated results"
 
-def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", globals_type="All", date_window=24, date_lag = 0, user_max_for_uninhabited=-1, clustering_on = False, critical_distance=0, critical_time=10000, filter_date_before=-1, filter_not_direct=False, filter_not_exact=False, filter_not_figurative=False, filter_not_controversial = False,  filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False):
+def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", globals_type="All Except Equatorials", date_window=24, date_lag = 0, user_max_for_uninhabited=-1, clustering_on = False, critical_distance=0, critical_time=10000, filter_date_before=-1, filter_not_direct=False, filter_not_exact=False, filter_not_figurative=False, filter_not_controversial = False,  filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False):
   # Note: current setting of minimum_globals is overwritten in stats_modulegenera
     mp = MainProgram()
     base_path = mp.get_base_path()
