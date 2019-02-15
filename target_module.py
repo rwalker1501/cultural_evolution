@@ -49,6 +49,8 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
         the_globals = parameters['globals_type']
         if the_globals == "Australia":
             globals_dataframe = load_bin_globals_for_australia(population_data, clustered_list, date_window, min_date, max_date, max_for_uninhabited)
+        elif the_globals=="No equatorials":
+            globals_dataframe = load_bin_globals_for_no_equatorials(population_data, clustered_list, date_window, min_lat, max_lat,min_date, max_date,max_for_uninhabited)
         elif the_globals == "France and Spain":
             globals_dataframe = load_bin_globals_for_francespain(population_data, clustered_list, date_window, min_date, max_date, max_for_uninhabited)
         elif the_globals == "Trial Latitudes":
@@ -361,7 +363,10 @@ def load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date
 
     return new_df
 
-
+def load_bin_globals_for_no_equatorials (population_data, target_list, date_window, min_lat, max_lat, min_date, max_date, max_for_uninhabited):
+    df = load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date, max_for_uninhabited)
+    new_df = df.loc[~df.latitude.between(-10, 20)]
+    return new_df
 
 def load_globals_for_all(population_data, target_list, date_window, min_lat, max_lat, min_date, max_date):
 

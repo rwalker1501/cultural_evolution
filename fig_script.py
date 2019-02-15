@@ -93,10 +93,10 @@ base_path = os.getcwd()
 
 
 # # FiG2E: OR graph for France + Spain, Eriksson
-mm.run_experiment(base_path, "rpv12_fr_sp", "rpv12_fr_sp", globals_type="France and Spain")
+mm.run_experiment(base_path, "rpv12 no equatorials", "rpv12 no equatorials", globals_type="No equatorials")
 
 # # FIG2E: OR graph for Australia, Eriksson
-mm.run_experiment(base_path, "rpv12_au", "rpv12_au", globals_type="Australia")
+#mm.run_experiment(base_path, "rpv12_au", "rpv12_au", globals_type="Australia")
 
 # FIG2G: pGraph for world, Timmermann (as in Fig 2A)
 # FIG2H: OR graph for world, Timmermann (as in Fig2B)
