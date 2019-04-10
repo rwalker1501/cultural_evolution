@@ -13,17 +13,18 @@ import stats_module as stm
 import plot_module as plm
 import write_module as wrm
 import pandas as pd
+import math
 from os import listdir
 from os.path import isfile, join
 from copy import deepcopy
-from scipy.stats import binom_test,wilcoxon,linregress
+from scipy.stats import binom_test,wilcoxon,linregress,ks_2samp
 from scipy.optimize import curve_fit
 from sklearn.metrics import r2_score
 from sklearn.model_selection import RepeatedKFold
 from datetime import date
 from classes_module import Target, PopulationData
 from datetime import datetime
-
+from mpmath import mpf
 pd.options.mode.chained_assignment = None 
 
 
@@ -36,154 +37,152 @@ class MainProgram:
 
 
     def __init__(self):
-        self.base_path = os.getcwd()
-        self.filters_applied = ""
+        self.base_path = os.getcwd();
         self.population_data_sources = []
         self.target_list=[]
-        self.dataframe_loaded = False
         self.dataframe = pd.DataFrame()
-        self.controls = "No Empty Lats"
-        self.controls_dataframe = pd.DataFrame()
-        self.clustering_on=False
-        self.critical_distance=250
-        self.date_window=1500
-        self.number_of_kfolds = 10
-        self.minimum_likelihood_ratio = 0
-        self.perform_cross_validation = False
-        self.user_max_for_uninhabited = 1000
-        self.default_mfu = True
-        self.min_date_window = 0
-        self.critical_time = 10000
-        self.minimum_controls = 385 # check statistics power if correct
+        self.globals_dataframe = pd.DataFrame()
 
-    def set_critical_time(self, critical_time):
-        self.critical_time = critical_time
+        parameters = {};
+        parameters['filters_applied'] = "";
+        parameters['dataframe_loaded'] = False;
+        parameters['globals_type'] = "All";
+        parameters['date_window'] = 24
+        parameters['date_lag'] = 0;
+        parameters['user_max_for_uninhabited'] = 1;
+        parameters['default_max_for_uninhabited'] = False;
+        parameters['max_lat'] = 60;
+        parameters['min_lat'] = -40;
+        parameters['max_date'] = 50000;
+        parameters['min_date'] = 0;
+        parameters['min_globals'] = 1;
+        parameters['min_p'] = 0.01;
 
-    def set_clustering(self, clustering_on):
-        self.clustering_on = clustering_on
+        parameters['clustering_on'] = False;
+        parameters['critical_distance'] = 0;
+        parameters['critical_time'] = 10000;
 
-    def set_date_window(self, date_window):
-        self.date_window = date_window
-        
-    def set_critical_distance(self, critical_distance):
-        self.critical_distance = critical_distance
+        self.parameters = parameters;
 
-    def set_perform_cross_validation(self, perform_cv):
-        self.perform_cross_validation = perform_cv
+    ##################
+    # Setter Methods #
+    ##################
 
-    def set_number_of_kfolds(self, kfolds):
-        self.number_of_kfolds = kfolds
-
-    def set_minimum_likelihood_ratio(self, min_mult):
-        self.set_minimum_likelihood_ratio = min_mult
-
-    def set_user_max_for_uninhabited(self, mfi):
-        self.user_max_for_uninhabited = mfi
-        self.default_mfu = False
-
-    def set_default_mfu(self, d_mfi):
-        self.default_mfu = d_mfi
-
-    def set_filters_applied(self, filters_applied):
-        self.filters_applied = filters_applied
-
-    def set_target_list(self, some_target_list):
-        self.target_list = some_target_list
-
-    def set_dataframe(self, dataframe, controls_dataframe):
-        self.dataframe = dataframe
-        self.controls_dataframe = controls_dataframe
-        self.dataframe_loaded = True
-
-    def set_controls(self, controls):
-        self.controls = controls
-
-    def set_perform_cross_validation(self, perform_cv):
-        self.perform_cross_validation = perform_cv
-
-    def set_number_of_kfolds(self, num_kfolds):
-        self.number_of_kfolds = num_kfolds
 
     def set_population_data_active(self, is_active, index):
-        self.population_data_sources[index].is_active = is_active
+        self.population_data_sources[index].is_active = is_active;
+    
 
-    def set_min_date_window(self, min_date_window):
-        self.min_date_window = min_date_window
+    def set_target_list(self, some_target_list):
+        self.target_list = some_target_list;
 
-    def set_minimum_controls(self, minimum_controls):
-        self.minimum_controls = minimum_controls
+    def set_dataframe(self, dataframe, globals_dataframe):
+        self.dataframe = dataframe;
+        self.globals_dataframe = globals_dataframe;
+        self.dataframe_loaded = True;
 
-    def get_clustering(self):
-        return self.clustering_on
+    def set_user_max_for_uninhabited(self, mfi):
+        self.parameters['user_max_for_uninhabited'] = mfi;
+        self.parameters['default_max_for_uninhabited'] = False;
 
-    def get_critical_distance(self):
-        return self.critical_distance
+    def set_parameter(self, parameter_name, value):
+        self.parameters[parameter_name] = value;
 
-    def get_critical_time(self):
-        return self.critical_time
-
-    def get_current_target_list(self):
-        return self.target_list
-
-    def get_population_data(self):
-        return self.population_data_sources
-
-    def get_date_window(self):
-        return self.date_window
-
-    def get_dataframe_loaded(self):
-        return self.dataframe_loaded
-
-    def get_filters_applied(self):
-        return self.filters_applied
+    ##################
+    # Getter Methods #
+    ##################
 
     def get_base_path(self):
-        return self.base_path
+        return self.base_path;
 
-    def get_user_max_for_uninhabited(self):
-        return self.user_max_for_uninhabited
+    def get_population_data(self):
+        return self.population_data_sources;
 
-    def get_default_mfu(self):
-        return self.default_mfu
+    def get_current_target_list(self):
+        return self.target_list;
 
-    def get_minimum_likelihood_ratio(self):
-        return self.minimum_likelihood_ratio
+    def get_parameters(self):
+        return self.parameters;
 
-    def get_perform_cross_validation(self):
-        return self.perform_cross_validation
 
-    def get_number_of_kfolds(self):
-        return self.number_of_kfolds
-
-    def get_controls(self):
-        return self.controls
-
-    def get_minimum_controls(self):
-        return self.minimum_controls
+    #############################
+    # Population Data Functions #
+    #############################
 
     def load_population_data(self):
         self.population_data_sources = pdm.load_population_data(self.base_path, self.population_data_sources)
 
-    def plot_population(self, time):
-        plm.plot_densities_on_map_by_time(self.population_data_sources[1], time)
-                
+    def add_population_data(self, name, binary_path, info_path):
+        new_population_data = pdm.load_population_data_source(name, binary_path, info_path)
+        self.population_data_sources.append(new_population_data)
+
+    #########################
+    # Target List Functions #
+    #########################
+
     def read_target_list(self, filename):
         new_list=tam.read_target_list_from_csv(filename)
-        filters_applied=""
-        dataframe = pd.DataFrame()
-        dataframe_loaded = False;
+        self.filters_applied=""
+        self.dataframe = pd.DataFrame()
+        self.dataframe_loaded = False;
         return new_list
 
     def save_target_list(self, filename, some_target_list):
         tests_path=os.path.join(self.base_path,"targets")
         tam.save_target_list_to_csv(some_target_list, tests_path, filename)
-        dataframe = pd.DataFrame()
-        dataframe_loaded = False;
+        self.dataframe = pd.DataFrame()
+        self.dataframe_loaded = False;
 
-    def add_population_data(self, name, binary_path, info_path):
+    ##################
+    # Plot Functions #
+    ##################
 
-        new_population_data = pdm.load_population_data_source(name, binary_path, info_path)
-        self.population_data_sources.append(new_population_data)
+    def adjust_time_value(self, time, time_multiplier):
+        if  time % time_multiplier != 0:
+            time = time + (time_multiplier - time % time_multiplier)
+        return time
+
+    def plot_population_by_time(self, population_data, time):
+        name = population_data.name
+        time = self.adjust_time_value(time, population_data.time_multiplier)
+
+
+        print("Plotting map...")
+        print("Time: " + str(time))
+        print("Source: " + name)
+        plm.plot_densities_on_map_by_time_point(population_data, time)
+
+    def plot_population_by_time_range(self, population_data, start_time, end_time):
+        name = population_data.name
+        time_multiplier = population_data.time_multiplier
+        start_time = self.adjust_time_value(start_time, population_data.time_multiplier)
+        end_time = self.adjust_time_value(end_time, population_data.time_multiplier)
+
+        print("Plotting map...")
+        print("Start Time: " + str(start_time))
+        print("End Time: " + str(end_time))
+        print("Source: " + name)
+        plm.plot_densities_on_map_by_time_range(population_data, start_time, end_time)
+
+    def plot_population_by_range(self, population_data, min_density, max_density, start_time, end_time):
+        name = population_data.name
+        time_multiplier = population_data.time_multiplier
+        start_time = self.adjust_time_value(start_time, population_data.time_multiplier)
+        end_time = self.adjust_time_value(end_time, population_data.time_multiplier)
+
+        print("Plotting map...")
+        print("Min Density: " + str(min_density))
+        print("Max Density: " + str(max_density))
+        print("Start Time: " + str(start_time))
+        print("End Time: " + str(end_time))
+        print("Source: " + name)
+        plm.plot_densities_on_map_by_range(population_data, min_density, max_density, start_time, end_time);
+
+     
+
+    #############################
+    # Generate Results Function #
+    #############################
 
     def generate_results(self, population_data, original_target_list, base_path, directory):
 
@@ -194,14 +193,10 @@ class MainProgram:
 
         # Use pre-set max_for_uninhabited per population data by default
         # If user set a max_for_uninhabited, use that value
-        if self.default_mfu:
+        if self.parameters['default_max_for_uninhabited']:
             max_for_uninhabited = population_data.max_for_uninhabited
         else:
-            max_for_uninhabited = self.user_max_for_uninhabited
-
-        print("Date window: " + str(self.date_window))
-        print("Max for uninhabited: " + str(max_for_uninhabited))
-        print("Clustering: " + str(self.clustering_on))
+            max_for_uninhabited = self.parameters['user_max_for_uninhabited'];
 
         #####################################
         # Create directory and results file #
@@ -226,17 +221,7 @@ class MainProgram:
         f2.write('Date: '+dateTime)
         f2.write('\n')
 
-        header_labels = ['population_data', 'max_for_uninhabited', 'date_window', 'critical_distance', "filters_applied", "minimum_controls"]
-        header_values = [population_data.name, max_for_uninhabited, self.date_window, self.critical_distance, self.filters_applied, self.minimum_controls]
-        wrm.write_information(f2, header_labels, header_values, ", ")
-
-        ##############################
-        # Write original target list #
-        ##############################
-        wrm.write_label(f2, "Target list")
-        f2.write('\n')
-        wrm.write_target_table(f2, original_target_list, self.date_window)
-        f2.write('\n\n')
+        wrm.write_parameters(f2, self.parameters);
 
         #######################
         # Process target list #
@@ -244,87 +229,107 @@ class MainProgram:
         #   - clusters targets and returns 2D array of targets grouped in clusters
         #   - If dataframe has not been loaded (through load processed targets), extracts dataframe and saves it.
         #   - dataframe: contains all locations and population densities in the population data that is relevant to the target list
-        clustered_target_list, self.dataframe, self.controls_dataframe = tam.process_targets(self.base_path, population_data, original_target_list, self.dataframe, self.controls_dataframe, self.controls, self.dataframe_loaded, self.clustering_on, self.date_window, self.critical_distance, self.critical_time, directory, self.min_date_window)
-
-        if self.dataframe.empty:
-            f2.write("No Geographic Points Fall in Target Areas")
+        clustered_target_list, self.dataframe, self.globals_dataframe = tam.process_targets(self.base_path, population_data, original_target_list, self.dataframe, self.globals_dataframe, self.parameters, max_for_uninhabited, directory)
+        if self.dataframe.empty or len(clustered_target_list)<10:
+            f2.write("Not enough sites in Target Areas")
             f2.close()
-            return "No Geographic Points Fall in Target Areas"
+            return "Not enough sites in target area"
 
-        #####################
-        # Process dataframe #
-        #####################
-        # - gets statistics (means, growth coefficients) of dataframe
-        # - filters target list/dataframe by removing clusters with 0 sample means 
-        all_sample_means, all_control_means, growth_coefficients, samples_gt_controls, n_targets_gt_0, self.dataframe = stm.process_dataframe(self.dataframe, max_for_uninhabited)
+        print("Processing sites and controls dataframe...")
+        self.dataframe = stm.process_dataframe(self.dataframe)
 
+        print("Saving merged sites and globals dataframes...")
+        merged_dataframe=tam.generate_merged_dataframe(base_path, directory, self.dataframe, self.globals_dataframe);
+       
         ########################################
         # Write filtered clustered target list #
         ########################################
+        print("Writing target list...")
         wrm.write_label(f2, "Target list after clustering")
-        wrm.write_cluster_table(f2, self.dataframe, growth_coefficients)
-
-        # plm.plot_confounder_likelihood_ratio(self.dataframe, original_target_list)
-        ################################
-        # Compute and write statistics #
-        ################################
-        # - binomial test
-        # - wilcoxon
-        wrm.write_label(f2, "Statistics")
-        p_binomial=binom_test(samples_gt_controls,n_targets_gt_0,0.5)
-        stats_header_labels = ["Number of successes", "Number of targets", "pBinomial"]
-        stats_header_values = [samples_gt_controls, n_targets_gt_0, p_binomial]
-        wrm.write_information(f2, stats_header_labels, stats_header_values, "   ")
-
-        t_wilcox,p_wilcox=wilcoxon(all_sample_means,all_control_means)
-        f2.write( 'Wilcoxon stat for sample vs controls means whole period:'+str(float(t_wilcox))+ '   p='+str(float(p_wilcox))+'\n')
-
-
-
+        wrm.write_cluster_table(f2, self.dataframe, self.parameters)
+        
         #################
         # Generate bins #
         #################
         # - extracts bin values
         # - write bin values to file
-        bin_array, sample_counts, control_counts, likelihood_ratios, p_samples, p_controls, p_likelihood_ratios = stm.generate_bin_values(self.dataframe, self.controls_dataframe, population_data, max_for_uninhabited, self.minimum_controls)
-        wrm.write_bin_table(f2, bin_array, sample_counts, control_counts, likelihood_ratios, p_samples, p_controls, p_likelihood_ratios)
+        print("Writing bins...")
+        bin_values_df = stm.generate_bin_values_dataframe(self.dataframe, self.globals_dataframe, population_data, self.parameters['min_globals'])
+        wrm.write_bin_table(f2, bin_values_df, self.parameters['min_globals'])
+
+
+        #################
+        # Stat Analysis #
+        #################
+        # - n, median, mean, std of samples and globals
+        # - K-S2 test for bin distribution of samples (p_samples) vs. bin distribution of globals (p_globals)
+        print("Calculating statistics...")
+        stat_dictionary, trimmed_bin_values_df = stm.generate_statistics(self.dataframe, self.globals_dataframe, bin_values_df, self.parameters['min_globals'])
         
+        if stat_dictionary is None:
+            f2.write('insufficient non-zero bins for analysis');
+            return 'insufficient non-zero bins for analysis';
+        
+        print("Writing analysis...")
+        wrm.write_analysis(f2, stat_dictionary, self.parameters['min_p']);
 
-        ##################################
-        # Generate graphs and statistics #
-        ##################################
-        # - plots likelihood ratios and sites graphs
-        stm.generate_stats_for_likelihood_ratio(bin_array, likelihood_ratios, sample_counts, control_counts, p_likelihood_ratios, p_samples, p_controls, f2, new_path, directory)
+        ###############
+        # Plot Graphs #
+        ###############
 
-        # - plots p_graphs and write statistics (binomial and wilcoxon)
-        threshold_binomial, threshold, threshold_success_count, threshold_trial_count, threshold_samples, threshold_controls = stm.generate_p_threshold_and_binomial(p_samples, p_controls, bin_array)
-        plm.plot_p_graphs(bin_array, p_samples, p_controls, threshold, directory, new_path)
+        print("Generating graphs...")
+        plm.plot_stat_graphs(stat_dictionary, trimmed_bin_values_df, population_data, directory, new_path);
 
-        t_threshold_wilcoxon, p_threshold_wilcoxon = wilcoxon(threshold_controls, threshold_samples)
+        # plots targets and globals on a map
+        plm.plot_targets_on_map(self.dataframe, self.globals_dataframe, new_path, directory)
 
-        wrm.write_label(f2, "Statistics for threshold bins")
-        f2.write("Threshold: " + str(threshold))
-        stats_header_labels = ["Number of successes", "Number of targets", "pBinomial"]
-        stats_header_values = [threshold_success_count, threshold_trial_count, threshold_binomial]
-        wrm.write_information(f2, stats_header_labels, stats_header_values, "   ")
-        f2.write( 'Wilcoxon stat for pControls vs pSamples:'+str(float(t_threshold_wilcoxon))+ '   p='+str(float(p_threshold_wilcoxon))+'\n')
+        f2.close();
+        
+         #####################################
+        # Create directory and working data file for likelihood analysis #
+        #####################################
+        results_path = os.path.join(base_path, "working data")
+        if not os.path.exists(results_path):
+            os.makedirs(results_path)
 
+        new_path = os.path.join(results_path, directory)
+        if not os.path.exists(new_path):
+            os.makedirs(new_path)
+        working_data_filename= os.path.join(new_path, directory + "working data") 
 
-        # - plots growth coefficients
-        plm.plot_growth_coefficient_boxplot(growth_coefficients, new_path)
+        print("Working data_file_name: " + working_data_filename)
+        
+          ###############
+        # Compute likelihood of model #
+        ###############
+ #       rho_bins=np.arange(2,3001)# creates numbers (2...3000). Note: in the matlab this is a COLUMN VECTOR
+        rho_bins=np.arange(2,3001)# creates numbers (2...3000). Note: in the matlab this is a COLUMN VECTOR - can't see why we need 3000 when using timmermann data
+  #      rho_bins_4_python=np.append(rho_bins,3001)  
+        rho_bins_4_python=np.append(rho_bins,3001)  
+   #     bin_width=300 #This is obviously wide for timmermann data
+        bin_width=300
+  #      bin_boundaries2_4_python=np.arange(0,3001,bin_width) 
+        bin_boundaries2_4_python=np.arange(2,3001,bin_width) 
+        samples_counts=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==1],bins=rho_bins_4_python)[0] #Column  vector This is not strict translation of mathlab code. In mathlab the last bin contains 3000. In python it contains 2999-3000
+        print "len sample counts=", len(samples_counts)
+        controls_counts=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==0],bins=rho_bins_4_python) [0] #Column  vector
+        print 'len sample counts=',len(samples_counts)
+        globals_counts=np.histogram(merged_dataframe['density'],bins=rho_bins_4_python)[0]
+        control_counts2=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==0],bins=bin_boundaries2_4_python)[0]
+        sample_counts2=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==1],bins=bin_boundaries2_4_python)[0]
+   #     counts2=np.array((control_counts2,sample_counts2)).T
+# =============================================================================
+#  #       rho_bins=np.arange(2,31)
+#         rho_bins_4_python=np.append(rho_bins,3001)
+#   #      rho_bins_4_python=np.append(rho_bins,31)
+# =============================================================================
+        merged_dataframe=[] #Hoping it will now be garbage collected
+        stm.compute_likelihood_model(working_data_filename, samples_counts, controls_counts, globals_counts,sample_counts2,control_counts2,rho_bins_4_python,bin_boundaries2_4_python,bin_width,rho_bins,False,low_res=True)  #Not elegant - should have same datastructure for both counts
 
-        # - plots targets and controls on a map
-        plm.plot_targets_on_map(self.dataframe, self.controls_dataframe, new_path, directory)
+        return "Generated results"
 
-
-        plm.plot_densities_on_map_by_range(population_data, 5700, 5800, 75, 44000)
-        f2.close()
-
-        return "Generated results."
-
-
-def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", controls="All", date_window=1500, user_max_for_uninhabited=-1, clustering_on = False, critical_distance=1, filter_date_before=-1, filter_not_direct=False, filter_not_figurative=False, filter_not_controversial = False, perform_cross_validation=False, number_of_kfolds = 100, minimum_controls=385, min_date_window=0, critical_time=10000, filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False):
-    
+def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", globals_type="All", date_window=24, date_lag = 0, user_max_for_uninhabited=-1, clustering_on = False, critical_distance=0, critical_time=10000, filter_date_before=-1, filter_not_direct=False, filter_not_exact=False, filter_not_figurative=False, filter_not_controversial = False,  filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False):
+  # Note: current setting of minimum_globals is overwritten in stats_modulegenera
     mp = MainProgram()
     base_path = mp.get_base_path()
     pop_data_path = os.path.join(base_path, "population_data")
@@ -341,24 +346,23 @@ def run_experiment(results_path, target_list_file, output_directory, population_
         dens_ncf=data['dens_ncf']
 
         tim_info_path = os.path.join(pop_data_path, "timmermann_info.txt") #base_path+'/population_data/timmermann_info.txt'
-        time_likelihood_ratio, bin_size, max_population, max_for_uninhabited, is_active, ascending_time = pdm.read_population_data_info(tim_info_path)
-        population_data = PopulationData("Timmermann", is_active, lats_ncf, lons_ncf, ts_ncf, dens_ncf, time_likelihood_ratio, bin_size, max_population, max_for_uninhabited, ascending_time)
+        # time_likelihood_ratio should be time_multiplier
+        time_likelihood_ratio, density_multiplier,bin_size, max_population, max_for_uninhabited, is_active, ascending_time = pdm.read_population_data_info(tim_info_path)
+        population_data = PopulationData("Timmermann", is_active, lats_ncf, lons_ncf, ts_ncf, dens_ncf, time_likelihood_ratio, density_multiplier,bin_size, max_population, max_for_uninhabited, ascending_time)
             
 
-    mp.set_date_window(date_window)
-    mp.set_min_date_window(min_date_window)
+    mp.set_parameter('date_window', date_window)
+    mp.set_parameter('date_lag', date_lag)
     if user_max_for_uninhabited != -1:
-        mp.set_user_max_for_uninhabited(user_max_for_uninhabited)
-    mp.set_clustering(clustering_on)
-    mp.set_critical_distance(critical_distance)
-    mp.set_critical_time(critical_time)
-    mp.set_controls(controls)
-    mp.set_minimum_controls(minimum_controls)
-
+        mp.set_parameter('user_max_for_uninhabited', user_max_for_uninhabited)
+    mp.set_parameter('clustering_on', clustering_on)
+    mp.set_parameter('critical_distance', critical_distance)
+    mp.set_parameter('critical_time', critical_time)
+    mp.set_parameter('globals_type', globals_type)
     if processed_targets:
-        target_list, dataframe, controls_dataframe = tam.load_processed_targets(results_path, output_directory)
+        target_list, dataframe, globals_dataframe = tam.load_processed_targets(results_path, output_directory)
         mp.set_target_list(target_list)
-        mp.set_dataframe(dataframe, controls_dataframe)
+        mp.set_dataframe(dataframe, globals_dataframe)
     else:
         filters_applied = ""
         target_list = tam.read_target_list_from_csv(base_path+"/targets/" + target_list_file)
@@ -368,6 +372,8 @@ def run_experiment(results_path, target_list_file, output_directory, population_
             target_list, filters_applied = tam.filter_targets_for_date_before(target_list, filter_date_before, filters_applied)
         if filter_not_direct:
             target_list, filters_applied = tam.filter_targets_for_not_direct(target_list, filters_applied)
+        if filter_not_exact:
+            target_list, filters_applied = tam.filter_targets_for_not_exact_age(target_list, filters_applied)
         if filter_not_figurative:
             target_list, filters_applied = tam.filter_targets_for_not_figurative(target_list, filters_applied)
         if filter_not_controversial:
@@ -376,13 +382,11 @@ def run_experiment(results_path, target_list_file, output_directory, population_
             target_list, filters_applied = tam.filter_targets_for_date(target_list, filter_min_date, filter_max_date, filters_applied)
         if filter_min_lat != -1:
             target_list, filters_applied = tam.filter_targets_for_latitude(target_list, filter_min_lat, filter_max_lat, filters_applied)
-        mp.set_filters_applied(filters_applied)
+        mp.set_parameter('filters_applied', filters_applied)
 
     # mp.set_perform_cross_validation(perform_cross_validation)
     # if perform_cross_validation:
     #     mp.set_number_of_kfolds(number_of_kfolds)
     #     mp.set_minimum_likelihood_ratio(minimum_likelihood_ratio)
+    mp.generate_results(population_data, target_list, results_path, output_directory)
 
-    print(len(target_list))
-
-    return mp.generate_results(population_data, target_list, results_path, output_directory)

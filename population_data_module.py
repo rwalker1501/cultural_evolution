@@ -2,7 +2,7 @@ from classes_module import Target, PopulationData
 import numpy as np
 import os
 def load_population_data_source(name, file_path, info_file_path):
-    time_multiplier, bin_size, max_population, max_for_uninhabited, is_active, ascending_time = read_population_data_info(info_file_path)
+    time_multiplier, density_multiplier,bin_size, max_population, max_for_uninhabited, is_active, ascending_time = read_population_data_info(info_file_path)
 
     filename=file_path
     data=np.load(filename)
@@ -10,7 +10,7 @@ def load_population_data_source(name, file_path, info_file_path):
     lons_txt=data['lons_txt']
     ts_txt=data['ts_txt']
     dens_txt=data['dens_txt']
-    new_population_data = PopulationData(name, is_active, lats_txt, lons_txt, ts_txt, dens_txt,  time_multiplier, bin_size, max_population, max_for_uninhabited, ascending_time)
+    new_population_data = PopulationData(name, is_active, lats_txt, lons_txt, ts_txt, dens_txt,  time_multiplier, density_multiplier,bin_size, max_population, max_for_uninhabited, ascending_time)
     return new_population_data
     
 
@@ -39,8 +39,9 @@ def load_population_data(base_path, population_data_sources):
     dens_ncf=data['dens_ncf']
 
     tim_info_path = os.path.join(pop_data_path, 'timmermann_info.txt')
-    time_multiplier, bin_size, max_population, max_for_uninhabited, is_active, ascending_time = read_population_data_info(tim_info_path)
-    timmermann = PopulationData("Timmermann", is_active, lats_ncf, lons_ncf, ts_ncf, dens_ncf, time_multiplier, bin_size, max_population, max_for_uninhabited, ascending_time)
+    time_multiplier, density_multiplier,bin_size, max_population, max_for_uninhabited, is_active, ascending_time = read_population_data_info(tim_info_path)
+     # why do we use a different method to load timmermann data?
+    timmermann = PopulationData("Timmermann", is_active, lats_ncf, lons_ncf, ts_ncf, dens_ncf, time_multiplier, density_multiplier,bin_size, max_population, max_for_uninhabited, ascending_time)
     population_data_sources.append(timmermann)
 
     return population_data_sources
@@ -52,6 +53,13 @@ def read_population_data_info(file_path):
     line = info_file.readline()
     data = line.split("\t")
     time_multiplier = float(data[1])
+    
+    # density multiplier
+    
+    line = info_file.readline()
+    data = line.split("\t")
+    density_multiplier = float(data[1])
+    
 
     # bin size
     line = info_file.readline()
@@ -78,4 +86,4 @@ def read_population_data_info(file_path):
     data = line.strip().split("\t")
     ascending_time = data[1] == 'True'
 
-    return time_multiplier, bin_size, max_population, max_for_uninhabited, is_active, ascending_time
+    return time_multiplier, density_multiplier, bin_size, max_population, max_for_uninhabited, is_active, ascending_time

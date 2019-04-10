@@ -9,118 +9,72 @@ from matplotlib.font_manager import FontProperties
 from mpl_toolkits.basemap import Basemap
 # import seaborn
 
-    
-def plot_time_clusters(time, labels):
-    n = np.array(labels).max() + 1
-    colors = cm.rainbow(np.linspace(0,1,n))
 
-    fig = plt.figure(figsize=(11,8))
-    ax = fig.add_subplot(111)
-    for i in range(0, len(time)):
-        ax.scatter(time[i], 5, c=colors[labels[i]])
+def plot_stat_graphs(stat_dictionary, bin_values_df, population_data, directory, new_path):
 
-    plt.show()
+    bin_array = bin_values_df['bin_array'];
+    p_samples = bin_values_df['p_samples'];
+    p_globals = bin_values_df['p_globals'];
+    cum_p_samples = bin_values_df['cum_p_samples'];
+    cum_p_globals = bin_values_df['cum_p_globals'];
+    likelihood_ratios = bin_values_df['likelihood_ratios'];
+    median_samples = stat_dictionary['median_samples'];
+    median_globals = stat_dictionary['median_globals'];
 
-
-
-
-def plot_histogram(values, titles, title, file_path):
-    fig = plt.figure(figsize=(11,8))
-    ax = fig.add_subplot(111)
-    bins=np.histogram(np.hstack((values[0],values[1])), bins=50)[1]
-    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
-    mean_patches = []
-    std_patches = []
-
-    for i in range(0, len(values)):
-        plt.hist(values[i], bins, alpha=0.5, label=titles[i])
-        mean = round(values[i].mean(),2)
-        mean_patches.append(mpatches.Patch(label=mean, alpha=0.5, color=colors[i]))
-        std = round(values[i].std(),2)
-        std_patches.append(mpatches.Patch(label=std, alpha=0.5, color=colors[i]))
+    # plot graphs
+    plot_p_graphs(bin_array, p_samples, p_globals, population_data.bin_size, directory, new_path)
+    plot_cumulative_p_graphs(bin_array, cum_p_samples,cum_p_globals, population_data.bin_size, median_samples, median_globals, directory, new_path)
+    plot_detection_frequencies(bin_array, likelihood_ratios, population_data.bin_size, population_data.max_population-population_data.bin_size*2, directory, new_path)
 
 
-    main_legend = plt.legend(title= "Legend")
-    mean_legend = plt.legend(loc=(1.01, 0.2), handles=mean_patches, title="Mean")
-    std_legend = plt.legend(loc=(1.01, 0), handles=std_patches, title="STD")
-    ax.add_artist(main_legend)
-    ax.add_artist(mean_legend)
-    ax.add_artist(std_legend)
-    png_path = os.path.join(file_path , "histogram-" + title + ".png")
-    # plt.tight_layout()
-    fig.savefig(png_path)
-    plt.close()
 
-def plot_boxplot(values, titles, title, file_path):
+def plot_detection_frequencies(bins, actual_ratios, bin_size, max_xaxis, identifier, file_path):
+    fig = plt.figure();
+    add=bin_size/2
+    bins=[x+add for x in bins]
+    label = "detection_frequencies";
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    # ax.set_title(title)
-    ax.boxplot(values)
-    ticks = [i+1 for i in range(0, len(titles))]
-    plt.xticks(ticks, titles)
-    plt.ylabel("value")
-    filename = title.lower().replace(" ", "_")
-    fig.savefig(os.path.join(file_path, filename+".png"))
-
-
-def plot_likelihood_ratio(bins, actual_multipliers, lambda_tau, predicted_multipliers, label, identifier, file_path):
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-
-    plt.scatter(bins, actual_multipliers, label=label)
-    if label=="threshold":
-        ax.axvline(lambda_tau, color='k', linestyle='--')
-    ax.axhline(1, color='k', linestyle='--')
-    ax.plot(bins, predicted_multipliers, 'g')
-    plt.ylabel("p Likelihood Ratio")
-    plt.xlabel("Population density")
-    plt.gca().set_ylim(bottom=0)
-    fig.savefig(os.path.join(file_path, str(identifier) + "_" + label + "_ratio.png"))
-    plt.close()
-
-def plot_sites_graph(bins, actual_sites, predicted_sites, label, identifier, title, file_path):
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    # ax.set_title(title)
-    ax.plot(bins,actual_sites,'r', label="actual")
-    if label=="threshold":
-        ax.plot(bins, predicted_sites,'g',label=label)
-    else:
-        ax.plot(bins, predicted_sites,'b',label=label)
-    plt.ylabel("Count")
-    plt.xlabel("Population density")
+    ax.plot(bins,actual_ratios,'bo',label='Observations')
+    plt.ylabel(label)
+    plt.xlabel("Population density per cell")
     plt.legend(title= "Legend")
-    fig.savefig(os.path.join(file_path, str(identifier) + "_" + label + "_sites.png"))
+    y_lim=max(actual_ratios)
+    plt.gca().set_ylim(0,y_lim)
+    fig.savefig(os.path.join(file_path, str(identifier) + "_" + label + ".png"))
     plt.close()
 
-def plot_p_graphs(bins, p_samples, p_controls, threshold, identifier, file_path):
+def plot_p_graphs(bins, p_samples, p_globals, bin_size,identifier, file_path):
+    add=bin_size/2
+    bins=[x+add for x in bins]
     fig = plt.figure()
     ax = fig.add_subplot(111)
     # ax.set_title(title)
-    ax.plot(bins,p_samples,'b', label="samples")
-    ax.plot(bins, p_controls,'r',label="controls")
-    ax.axvline(threshold, color='k', linestyle='--')
-
-    # text = "Threshold: " + str(threshold) + "\nSuccesses: " + str(success) + "\n Trials: " + str(trials) + "\nBinomial: " + str(binomial)
+    ax.plot(bins,p_samples,'b', label="Samples")
+    ax.plot(bins, p_globals,'r',label="Globals")
+    plt.gca().set_ylim(0, 0.40)
     
-    plt.ylabel("p")
-    plt.xlabel("Population density")
+    plt.ylabel("Relative detection frequency")
+    plt.xlabel("Population density per cell")
     plt.legend(title= "Legend")
-    # plt.text(2, 2, text, horizontalalignment='center', verticalalignment='center', transform = ax.transAxes)
     fig.savefig(os.path.join(file_path, str(identifier) + "_p_graph.png"))
     plt.close()
-
-def plot_growth_coefficient_boxplot(data, file_path):
+    
+def plot_cumulative_p_graphs(bins, cum_p_samples, cum_p_globals, bin_size, median_samples,median_globals,identifier, file_path):
+    add=bin_size/2
+    bins=[x+add for x in bins]
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    # ax.set_title("Growth Coefficients")
-    sample = data[0::2]
-    controls = data[1::2]
-    agg_data = [sample, controls]
-    ax.boxplot(agg_data)
-    plt.ylabel("value")
-    plt.xticks([1,2],['Samples', 'Controls'])
-    fig.savefig(os.path.join(file_path,"gc_boxplot.png"))
+
+    ax.plot(bins,cum_p_samples,'b', label="Samples")
+    ax.plot(bins, cum_p_globals,'r',label="Globals")
+    plt.gca().set_ylim(0, 1.0);
+    ax.axvline(median_samples, color='b', linestyle='--',label="Median samples")
+    ax.axvline(median_globals, color='r', linestyle='--', label="Median globals")
+    plt.ylabel("Cumulated relative detection frequency")
+    plt.xlabel("Population density per cell")
+    plt.legend(title= "Legend")
+    fig.savefig(os.path.join(file_path, str(identifier) + "_cum_p_graph.png"))
     plt.close()
 
 
@@ -139,24 +93,33 @@ def plot_targets_on_map(dataframe, controls_dataframe, dir_path, directory):
     my_map.drawparallels(np.arange(-90, 90, 30))
 
 
-    grouped_dataframe = dataframe[dataframe.type=='s'].groupby("cluster_id").first()
-    lats = grouped_dataframe['latitude'].values
-    lons = grouped_dataframe['longitude'].values
+    grouped_dataframe = dataframe[dataframe.type=='s']
+    dir_exact_lats = grouped_dataframe[(grouped_dataframe.is_dir == True) & (grouped_dataframe.is_exact == True)]['latitude'].values
+    dir_exact_lons = grouped_dataframe[(grouped_dataframe.is_dir == True) & (grouped_dataframe.is_exact == True)]['longitude'].values
+    not_dir_exact_lats = grouped_dataframe[~((grouped_dataframe.is_dir == True) & (grouped_dataframe.is_exact == True))]['latitude'].values
+    not_dir_exact_lons = grouped_dataframe[~((grouped_dataframe.is_dir == True) & (grouped_dataframe.is_exact == True))]['longitude'].values
+
 
 
     controls_lats = controls_dataframe['latitude'].values
     controls_lons = controls_dataframe['longitude'].values
 
 
-    x,y = my_map(lons, lats)
+    t_x,t_y = my_map(dir_exact_lons, dir_exact_lats)
+    f_x,f_y = my_map(not_dir_exact_lons, not_dir_exact_lats)
     c_x, c_y = my_map(controls_lons, controls_lats)
-    my_map.plot(c_x, c_y, 'ro', markersize=3)
-    my_map.plot(x, y, 'go', markersize=3)
-
+    my_map.plot(c_x, c_y, 'ro', markersize=3, label="globals")
+    my_map.plot(t_x, t_y, 'yo', markersize=3, label="dir and exact")
+    my_map.plot(f_x, f_y, 'bo', markersize=3, label="not dir and exact")
+    
+    fontP = FontProperties()
+    fontP.set_size('small')
+    plt.legend(title="Legend", loc='lower center', prop=fontP, ncol=3)
     plt.savefig(os.path.join(dir_path, directory + "_target_on_map.png"))
     plt.close()
 
-def plot_densities_on_map_by_time(population_data, time):
+def plot_densities_on_map_by_time_point(population_data, time):
+    plt.figure(figsize=(14,8))
     my_map = Basemap(projection='robin', lat_0=57, lon_0=-135,
     resolution = 'l', area_thresh = 1000.0,
     llcrnrlon=-136.25, llcrnrlat=56,
@@ -164,7 +127,7 @@ def plot_densities_on_map_by_time(population_data, time):
      
     my_map.drawcoastlines()
     my_map.drawcountries()
-    my_map.fillcontinents(color='lightgray')
+    my_map.fillcontinents(color='lightgray', zorder=0)
     my_map.drawmapboundary()
      
     my_map.drawmeridians(np.arange(0, 360, 30))
@@ -186,10 +149,30 @@ def plot_densities_on_map_by_time(population_data, time):
             lons.append(population_data.lon_array[i])
             dens.append(density)
 
-    x,y = my_map(lons, lats)
-    my_map.plot(x, y, 'go', markersize=10)
+    cmap = cm.get_cmap('jet')
 
-    plt.show()
+    dens = np.array(dens).astype(float)/3000;
+    x,y = my_map(lons, lats)
+    rgba = cmap(dens);
+
+
+
+    ax = my_map.scatter(x, y, marker='o', c=rgba, s=3, zorder=1)
+
+
+    sm = cm.ScalarMappable(cmap=cmap)
+    sm.set_array([])
+
+    sm.set_clim([0, 3000])
+    plt.colorbar(sm, orientation='horizontal', pad=0.03, aspect=50)
+
+
+    plt.savefig("densitites_on_map_" + population_data.name + "_" + str(time) + "Kya.png");
+    
+    map_path = get_map_file_path(population_data.name.lower() + "_densitites_on_map_" + str(time) + ".png");
+    print("Map filepath: " + map_path);
+    plt.savefig(map_path, dpi=500);
+    plt.close();
 
 
 def plot_densities_on_map_by_range(population_data, min_density, max_density, start_time, end_time):
@@ -239,10 +222,12 @@ def plot_densities_on_map_by_range(population_data, min_density, max_density, st
     x,y = my_map(lons, lats)
     my_map.plot(x, y, 'yo', markersize=1)
 
-    plt.savefig("densities_on_range_" + str(min_density) + "-" + str(max_density) + "_and_" + str(start_time) + "-" + str(end_time) + ".png", dpi=500)
+    map_path = get_map_file_path(population_data.name.lower() + "_densities_on_den_range_" + str(min_density) + "-" + str(max_density) + "_and_time_range_" + str(start_time) + "-" + str(end_time) + ".png");
+    print("Map filepath: " + map_path);
+    plt.savefig(map_path, dpi=500)
     plt.close()
 
-def plot_densities_on_map_snapshot(population_data, start_time, end_time):
+def plot_densities_on_map_by_time_range(population_data, start_time, end_time):
     my_map = Basemap(projection='robin', lat_0=57, lon_0=-135,
     resolution = 'l', area_thresh = 1000.0,
     llcrnrlon=-136.25, llcrnrlat=56,
@@ -295,42 +280,20 @@ def plot_densities_on_map_snapshot(population_data, start_time, end_time):
     x,y = my_map(high_lons, high_lats)
     my_map.plot(x, y, 'ro', markersize=1)
 
-    plt.savefig("densities_snapshot_" + str(start_time) + "-" + str(end_time) + ".png", dpi=500)
+    map_path = get_map_file_path(population_data.name.lower() + "_densities_time_range_" + str(start_time) + "-" + str(end_time) + ".png");
+    print("Map filepath: " + map_path);
+    plt.savefig(map_path, dpi=500)
     plt.close()
 
-
-def plot_boxplot_from_bin_file(bin_file_path):
-    bins = []
-    samples = []
-    controls = []
-
-    bin_file = open(bin_file_path)
-
-    line = "-1"
-    while line != '':
-        line = bin_file.readline()
-        line = bin_file.readline()
-        line = bin_file.readline()
-        line = bin_file.readline()
-
-        line = bin_file.readline()
-        line_values = line.split(";")
-        bins.append(int(line_values[0]))
-        samples.append(int(line_values[1]))
-        controls.append(int(line_values[2]))
-
-    dataframe = pd.DataFrame({'bins': bins, 'samples': samples, 'controls': controls})
-
-
+def get_map_file_path(filename):
+    base_path = os.getcwd();
+    map_path = os.path.join(base_path, "maps")
+    if not os.path.exists(map_path):
+        os.makedirs(map_path);
+    file_path = os.path.join(map_path, filename);
+    return file_path
 
 if __name__ == '__main__':
         main()
-        # df = pd.read_csv("r2_200_cross_validation_results.csv", sep=",")
-        # r2_linear = df['r2_linear'].values
-        # r2_threshold = df['r2_threshold'].values
-        # values = [r2_linear, r2_threshold]
-        # titles = ["linear", "threshold"]
-        # file_path = os.getcwd()
-        # plot_histogram(values, titles, "histo", file_path)
 
 

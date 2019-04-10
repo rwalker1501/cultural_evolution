@@ -1,81 +1,289 @@
+from __future__ import division #This means division always gives a floating result
 import numpy as np
-import plot_module as plm
+import pandas as pd;
+from scipy.stats import linregress, ks_2samp,poisson;
+from scipy.sparse import spdiags
+from math import *
+import sys
+import cPickle as pkl
+import json
+from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
-from classes_module import Target, PopulationData
-from scipy.optimize import curve_fit
-from scipy.stats import linregress, chisquare, binom_test, levene
-from sklearn.metrics import r2_score
-from sklearn.model_selection import RepeatedKFold
+from matplotlib.patches import Polygon
+from matplotlib.collections import PatchCollection
 
 
-def process_dataframe(data, max_for_uninhabited):
-    all_sample_means=[]
-    all_control_means=[]
-    growth_coefficients = []
-    samples_gt_controls = 0
-    n_targets_gt_0 = 0
-
-    max_cluster_id = data['cluster_id'].max()
-    if np.isnan(max_cluster_id):
-        max_cluster_id = 0
 
 
-    for i in range(0,max_cluster_id+1):
 
-        ######################
-        # For each cluster.. #
-        ######################
-        cluster_df = data[data.cluster_id==i]
-        # consider only data where densities > max_for_uninhabited
-        cluster_df = cluster_df[cluster_df.density > max_for_uninhabited]
+def compute_likelihood_model(working_data_filename,samples_counts, controls_counts, globals_counts,samples_counts2, controls_counts2,rho_bins_4_python,bin_boundaries2_4_python,bin_width,rho_bins,work_data_available,low_res=False):
+ # fix parameter values for scan
+ # when the low_res parameter is set to true, the system produces low_res graphs. Used for system testing and exploratory testing
+    if low_res:
+        lambda_v=np.arange(25,50,1)
+        eps_v=np.linspace(0,0.1,num=11,endpoint=False)
+        zetta_v=np.exp(np.linspace(log(1e-5),log(1e-3),num=11,endpoint=False))  
+    else:
+        lambda_v=np.arange(25,50,0.1)
+        eps_v=np.linspace(0,0.1,num=101,endpoint=False)
+        zetta_v=np.exp(np.linspace(log(1e-5),log(1e-3),num=101,endpoint=False))      
+    print 'length binboundaries2_4_python=',len(bin_boundaries2_4_python)
+    rho_bins2=bin_boundaries2_4_python+bin_width/2
+    print 'length rho_bins2=', len(rho_bins2)
+    if not work_data_available:
+        n_controls=np.sum(controls_counts)  
+        n_samples=np.sum(samples_counts) 
+        n_globals=n_controls+n_samples # not sure these are needed
+        rho_bins2=bin_boundaries2_4_python[0:len(bin_boundaries2_4_python)-1]+bin_width/2 #This is EC2 not sure this is correct - depends on usage later on, needs to be adjusted to take account of nature of bins
+        l_shift=n_samples*(log(float(n_samples)/float(n_controls))-1)
+        print 'l_shift=',l_shift
+  #      lambda_v=np.arange(25,50,0.1)
+        
+  #      lambda_v=np.arange(2,4,0.25) #This is completely different from Eriksson code
+  #      eps_v=np.linspace(0,0.1,num=10,endpoint=False)  #shortened for debugging purposes
+        
+        n_lambda=len(lambda_v)
+        n_eps=len(eps_v)
+        n_zetta=len(zetta_v)
+ #       y_acc=np.linspace(0,10e-2,num=1001) #COLUMN VECTOR
+        y_acc=np.linspace(0,1e-4,num=401) #COLUMN VECTOR. In Tindbergen program he had different values that generated a lot of zeros. These in turn created problems when we had to divide by last element in yy
+        acc=np.zeros((len(y_acc),len(rho_bins)))
+        anElement=np.zeros(len(rho_bins))
+        print 'an element completed'
+        aRow=[]
+        lnL=np.zeros((n_lambda,n_eps,n_zetta))
+        print 'lnl completed'
+   #     zetta_opt=0*lnL - this is never used - have comented it.
+        sqrt_rho_bins=np.sqrt(rho_bins) #These are the values we are computing - rhobins_4_python are intervals for histogram only. In original program were inside loop. Have moved it outside
+   #     for i_lambda in range (0,n_lambda-1):
+        for i_lambda in range (0,n_lambda):
+            my_lambda=float(lambda_v[i_lambda]) 
+            bin_zeros=np.zeros(len(sqrt_rho_bins)) #in python I can't compare a vector with a scalar
+            pI=np.maximum(bin_zeros,1-my_lambda/sqrt_rho_bins)  #COLUMN VECTOR
+    #        for i_zetta in range(0,n_zetta-1):
+            for i_zetta in range(0,n_zetta):
+                print "i_lambda,i_zetta", i_lambda,",",i_zetta
+    #            for i_eps in range (0, n_eps-1):
+                for i_eps in range (0, n_eps):
+                     pObs=np.zeros(len(pI)).astype(float)                
+                     pObs=zetta_v[i_zetta]*((1-eps_v[i_eps])*pI+eps_v[i_eps]) #COLUMN VECTOR (scalars * a column vector)
+                     pObs_small=np.zeros(len(pObs))
+                     pObs_small.fill(1e-20)
+                     pObs=np.maximum(pObs,pObs_small)
+                     pObs=pObs.astype(float)
+                     log_samples=np.dot(samples_counts,np.log(pObs)) 
+                     log_controls=np.dot(controls_counts,np.log(1-pObs)) 
+                     LL=log_samples+log_controls
+                     L=np.exp(LL-l_shift)
+                     lnL[i_lambda,i_eps,i_zetta]=LL # This is different from original datastructure. Will require change of later code. I could also assign using an array op.
+                     zz=pObs  #should be able to get rid of this
+                     rhs=np.floor(1+zz/y_acc[1]).astype(int) #This is original code - yields a 1-based index
+               #       print 'rhs=',rhs
+                     len_y_acc=np.array(len(y_acc))
+                     len_y_acc.fill(len(y_acc))
+                     i_acc=np.minimum(len_y_acc,rhs) #vThis yields column vector of indexes corresponding to different values of pObs. ector length =401. Maximum value of index =400 (zero based vector).I am keeping it 1-based
+                     for i in range(0,len(i_acc)):
+                         x_coord=i_acc[i]-1
+                         y_coord=i
+                         acc[x_coord,y_coord]=acc[x_coord,y_coord]+L
+# =============================================================================
+#                      a_range=np.arange(0,len(rho_bins)) #I have taken off the minus 1 in the original - because ranges in matlab are inclusive. Here they are not. But I am not confident
+#                      second_term=a_range* len(acc[:,0])
+#                      i_s=((i_acc-1).T+second_term).T +1  #This is original code - but doesn't take account of nature of matlab indices - 
+#                      
+#                      for i in range (0,len(i_acc)): #I am suspcious about this - not sure x and y are right way round. is[0]=-1. I don't like this either
+#                          x_coord=(i_s[i]-1)/29 #all this is correct if i_s starts at zero
+#                          x_coord=x_coord.astype(int) #This is temporary - will need to generate it dynamicallyx_coord=i_s[i] % 29  #This is temporary - will need to generate it dynamically. Not sure on division by 28
+#                          y_coord=(i_s[i]-1)%29
+#  #                        print 'i_s,x,y=(',i_s[i],',',x_coord,',',y_coord,')'
+#                          acc[x_coord,y_coord]=acc[x_coord,y_coord]+L
+#                      print '.'
+# =============================================================================
+# loops seem to conclude correctly - but not certain of value of acc  
+    max_acc=acc.max(axis=0) *1e-10   #largest accumulated likelihood for a given rho multiplied by a small constant - gives roughly constant result
+    acc_plus=(acc+max_acc)
+    yy=np.cumsum(acc_plus,axis=0) #This will give me cumulated likelihood for each column as in mathlab but is going to lead to shape problems. May need transpose
+    yy_pre_div=yy
+    np.seterr(divide='ignore',invalid='ignore')
+    yy=np.divide(yy,yy[len(yy)-1:]) # Should give me cumulated likelihood up to 1 - seems to work
+    pred_int=np.zeros((len(rho_bins),6)) #Not sure about size of this - in the original looks like an empty matrix - NOW LESS SURE
+    for k in range (0,len(rho_bins)):
+        first_sub=np.array((0)) # 0;
+        second_sub=yy[0:(len(yy)-1),k] #yy(1:end-1,k)] I am suspicious of this. Sometimes suddenly jumps to 1,
+        data_x=np.hstack((first_sub,second_sub)) #[0; yy(1:end-1,k)]. This looks OK
+        interpolated=np.interp([0.025, 0.25, 0.5, 0.75, 0.975], data_x,y_acc) #Not sure I have interpreted this correctly. 
+        #interpolated=np.interp([0.025, 0.25, 0.5, 0.75, 0.975], y_acc,data_y)
+        # python interpolation function says data_x must be increasing - but here it is non-monotonic
+        first_sub2=y_acc[0:(len(y_acc)-1)]+y_acc[1:len(y_acc)] #*(yacc(1:end-1)+yacc(2:end)))
+        second_sub2=acc[0:len(acc)-1,k] #Acc(1:end-1,k))This is mostly zeros in current version
+        third_sub2=np.sum(acc[0:(len(acc)-1),k],axis=0) #sum(Acc(1:end-1,k))]; yields a single small float
+        term2_1=np.dot(first_sub2,second_sub2) #unsure about this. Is it a dot or a matrix multiplicaiton. It also works as a matrix multiplication but that is not what I am using now
+        if(term2_1==0) and (third_sub2==0):
+            term2=0
+        else:
+            term2=((0.5*term2_1/third_sub2))
+            #term2=((0.5*test/third_sub2))
+        test=np.hstack((interpolated,term2)) #This is one dimensional - correct - but not sure why it is doing this. Adds a 6th element which is not in sequence with the others and which seems to be  never used.
+        
+        pred_int[k,:]=test 
+    scale = (2/sqrt(3))/100 #  convert from hexagon pop size to Timmermann units, inds/100 km^2
+    lambda_v = lambda_v*sqrt(scale)
+    rho_bins = rho_bins*scale
+    rho_bins2=rho_bins2*scale
+  #     Figure 1 - in the end we will move this into plot library
+    patches=[]
+    term1=rho_bins
+    term2=np.flip(rho_bins,0)
+    h1_x=np.hstack((term1,term2))
+    h1_y=np.hstack((pred_int[:,0],np.flip(pred_int[:,4],0)))
+    h1_array=np.vstack((h1_x,h1_y)).T
+    h1 = Polygon(h1_array,linewidth=1,edgecolor='r',facecolor='none',closed=True,antialiased=True)
+    patches.append(h1)
+    h2_x = np.hstack((rho_bins,np.flip(rho_bins,0))) 
+    h2_y=np.hstack((pred_int[:,1],np.flip(pred_int[:,3],0)))
+    h2_array=np.vstack((h2_x,h2_y)).T
+    h2 = Polygon(h2_array,linewidth=1,edgecolor='g',facecolor='none',closed=True,antialiased=True)
+    patches.append(h2)
+    fig1 = plt.figure();
+    ax = fig1.add_subplot(111)
+ #   p = PatchCollection(patches, alpha=0.4)
+#    ax.add_collection(p)
+    ax.add_patch(h1)
+    ax.add_patch(h2)
+    ax.plot(rho_bins,pred_int[:,2],linewidth=2, color='blue',antialiased=True)
+    ax.plot(rho_bins2,samples_counts2/(samples_counts2+controls_counts2),color='black', marker='o', markersize=6,linestyle='None',antialiased=True)
+    
+    plt.show
+  #     Figure 2 - in the end we will move this into plot library
+    fig2 = plt.figure();
+    lnlminusmax=lnL-np.amax(lnL)
+    exp_lnlminusmax=np.exp(lnlminusmax)
+    dim1=np.mean(exp_lnlminusmax,axis=2)  #up to here - look at definition of dimension
+    p_lambda = np.squeeze(np.mean(dim1,axis=1))
+    p_lambda=np.true_divide(p_lambda,np.trapz(p_lambda,lambda_v))
+    ax2=fig2.add_subplot(111)
+    ax2.plot(lambda_v,p_lambda)
+    plt.xlabel('lambda')
+    plt.show
+     #     Figure 3 - in the end we will move this into plot library
+    fig3 = plt.figure();
+    dim1=np.mean(exp_lnlminusmax,axis=2) 
+    print 'shape dim1 fig3=',np.shape(dim1)
+    p_eps = np.squeeze(np.mean(dim1,axis=0))
+    print 'shape p_eps=',np.shape(p_eps)
+    print "p_eps=", p_eps
+    p_eps=np.true_divide(p_eps,np.trapz(p_eps,eps_v))
+    ax3=fig3.add_subplot(111)
+    ax3.plot(eps_v,p_eps)
+    plt.xlabel('epsilon')
+    plt.show
+     #     Figure 4 - in the end we will move this into plot library
+    fig4 = plt.figure();
+    dim1=np.mean(exp_lnlminusmax,axis=0) 
+    print 'shape dim1 fig4=',np.shape(dim1)
+    p_zetta = np.squeeze(np.mean(dim1,axis=0))
+    print 'shape p_zetta=', np.shape (p_zetta) #p_zetta is identical to p_eps - this can't possibly be right . but dim1 seems to be different
+    print "p_zettta=", p_zetta
+    trapz=np.trapz(p_zetta,np.log10(zetta_v))
+    print "trapz=",trapz
+    p_zetta=np.true_divide(p_zetta,trapz)
+    x_data=np.log10(zetta_v)
+    trapz=np.trapz(p_zetta,np.log10(zetta_v))
+    y_data=np.true_divide(p_zetta,trapz)
+    print 'x_data=', x_data
+    ax4=fig4.add_subplot(111)
+    ax4.set_xlabel("log10 zetta")
+    print "y_data=",y_data
+    ax4.plot(x_data, y_data)
+    plt.show
+    
+    
+   
+        
+        
+        
+        
+        
+        
+        
+    
+    
+    
+    
+    
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                    
+                    
+                
+            
+            
+        
+        
+        
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+     
+    
+    
+    
+    
 
-        #########################################
-        # Get the mean for samples and controls #
-        #########################################
-        # Get every sample in the cluster..
+def process_dataframe(dataframe):
+
+    conditions = [];
+    samples_growth_coefficients = []
+    valid_ids = []
+
+    cluster_ids = dataframe.cluster_id.unique();
+
+
+    for cluster_id in cluster_ids:
+        cluster_df = dataframe[dataframe.cluster_id==cluster_id]
         sample_cluster_df = cluster_df[cluster_df.type == 's']
-        # take the mean of these samples
-        sample_mean = sample_cluster_df['density'].mean()
-
-        #if the sample mean is zero we do not consider the sample or the related control
-        if np.isnan(sample_mean): 
-            sample_mean=0
-            # we delete the cluster from the original dataframe
-            data = data[data.cluster_id != i]
-            continue
-        n_targets_gt_0 += 1
-
-        # Get every control in the cluster..
-        control_cluster_df = cluster_df[cluster_df.type == 'c']
-        # take the mean of these controls
-        control_mean = control_cluster_df['density'].mean()
-        if np.isnan(control_mean):
-            control_mean=0
-
-        all_sample_means.append(sample_mean)
-        all_control_means.append(control_mean)
-
-
-        ###############################
-        # Compute growth coefficients #
-        ###############################
+        if np.isnan(sample_cluster_df['density'].median()):
+            print("Removing cluster " + str(cluster_id));
+            dataframe = dataframe[dataframe.cluster_id != cluster_id];
+            continue;
 
         # extract all periods and all population as arrays from the samples dataframe
         sample_times = sample_cluster_df['period'].values
         sample_populations = sample_cluster_df['density'].values
 
-        # extract all periods and all population as arrays from the controls dataframe
-        control_times = control_cluster_df['period'].values
-        control_populations = control_cluster_df['density'].values
+        # compute growth coefficients for samples
+        growth_coefficient_samples=compute_growth_coefficient(sample_times, sample_populations)
 
-        # compute growth coefficients for samples and controls
-        growth_coefficients.append(compute_growth_coefficient(sample_times, sample_populations))
-        growth_coefficients.append(compute_growth_coefficient(control_times, control_populations))
-            
-        if sample_mean>control_mean:
-            samples_gt_controls += 1
+        valid_ids.append(cluster_id);
+        samples_growth_coefficients.append(growth_coefficient_samples)
 
-    return all_sample_means, all_control_means, growth_coefficients, samples_gt_controls, n_targets_gt_0, data
+    for cluster_id in valid_ids:
+        conditions.append((dataframe['cluster_id'] == cluster_id));
+
+    dataframe['samples_growth_coefficient'] = np.select(conditions, samples_growth_coefficients);
+    return dataframe;
 
 def compute_growth_coefficient(times, populations):
     if len(times)>=2:
@@ -88,8 +296,7 @@ def compute_growth_coefficient(times, populations):
         return -1.
 
 
-
-def generate_bin_values(dataframe, controls_dataframe, population_data, max_for_uninhabited, minimum_controls):
+def generate_bin_values_dataframe(dataframe, globals_dataframe, population_data, minimum_globals):
     bin_size = population_data.bin_size
     max_population = population_data.max_population
     # minimum_bin=max_for_uninhabited
@@ -107,31 +314,28 @@ def generate_bin_values(dataframe, controls_dataframe, population_data, max_for_
     dataframe = dataframe[dataframe.bin_index >= 0]
     dataframe['bin'] = dataframe.bin_index*bin_size+minimum_bin
 
-    # controls dataframe
-    controls_dataframe['bin_index'] = (controls_dataframe.density/bin_size)-bins_to_omit
-    controls_dataframe['bin_index'] = controls_dataframe.bin_index.astype(int)
-    controls_dataframe['bin'] = controls_dataframe.bin_index*bin_size+minimum_bin
-
-
-
+    # globals dataframe
+    globals_dataframe['bin_index'] = (globals_dataframe.density/bin_size)-bins_to_omit
+    globals_dataframe['bin_index'] = globals_dataframe.bin_index.astype(int)
+    #we add bin_size/2 to get midpoint of each bin
+    globals_dataframe['bin'] = globals_dataframe.bin_index*bin_size+minimum_bin
     bin_array = []
     sample_counts = []
-    control_counts = []
+    global_counts = []
     likelihood_ratios = []
     p_samples = []
-    p_controls = []
-    p_likelihood_ratios = []
+    p_globals = []
 
     ##############
     # Get Totals #
     ##############
     # total samples by summing contributions
-    # total controls by counting rows
+    # total globals by counting rows
     total_samples = dataframe[dataframe.type=='s']['contribution'].sum()
-    total_controls = controls_dataframe['density'].count()
-
+    total_globals = globals_dataframe['density'].count()
+    
     #########################
-    # Loop through each bin #
+    # Loop through each bin . data untrimmed - would be better to filter here#
     #########################
     current_bin = minimum_bin
     while(current_bin < max_population):
@@ -144,17 +348,16 @@ def generate_bin_values(dataframe, controls_dataframe, population_data, max_for_
             current_sample_count = 0;
         sample_counts.append(current_sample_count)
         
-        # control count: count all controls dataframe rows in the bin
-        current_control_count = controls_dataframe[controls_dataframe.bin == current_bin]['density'].count()
-        if np.isnan(current_control_count):
-            current_control_count = 0;
-        control_counts.append(current_control_count)
-
+        # global count: count all globals dataframe rows in the bin
+        current_global_count = globals_dataframe[globals_dataframe.bin == current_bin]['density'].count()
+        if np.isnan(current_global_count):
+            current_global_count = 0;
+        global_counts.append(current_global_count)
         
-        # likelihood ratio: sample_count/control_count
+        # likelihood ratio: sample_count/global_count
         likelihood_ratio = -1
-        if(current_control_count != 0):
-            likelihood_ratio = float(current_sample_count)/current_control_count
+        if(current_global_count != 0):
+            likelihood_ratio = float(current_sample_count)/current_global_count
         likelihood_ratios.append(likelihood_ratio)
         
         # p_sample: sample_count/total_samples
@@ -163,258 +366,124 @@ def generate_bin_values(dataframe, controls_dataframe, population_data, max_for_
             p_sample = float(current_sample_count)/total_samples
         p_samples.append(p_sample)
         
-        # p_control: control_count/total_controls
-        p_control = -1
-        if total_controls > 0:
-            p_control = float(current_control_count)/total_controls
-        p_controls.append(p_control)
-
-        p_likelihood_ratio = -1
-        if p_control > 0:
-            p_likelihood_ratio = float(p_sample)/p_control
-        if current_control_count <= minimum_controls:
-            p_likelihood_ratio = "NA" 
-        p_likelihood_ratios.append(p_likelihood_ratio)
+        # p_global: global_count/total_globals
+        p_global = -1
+        if total_globals > 0:
+            p_global = float(current_global_count)/total_globals
+        p_globals.append(p_global)
 
         current_bin += bin_size
 
-    return bin_array, sample_counts, control_counts, likelihood_ratios, p_samples, p_controls, p_likelihood_ratios
+    df = pd.DataFrame({'bin_array': bin_array, 'sample_counts': sample_counts, 'global_counts': global_counts, 'likelihood_ratios': likelihood_ratios, 'p_samples': p_samples, 'p_globals': p_globals})
 
+    return df;
 
-def trim_values(bins, likelihood_ratios, n_samples, n_controls, p_likelihood_ratios, p_samples, p_controls):
-    # minimum_value = np.percentile(n_controls, removed_percentile)
-    trimmed_bins = []
-    trimmed_likelihood_ratios = []
-    trimmed_n_samples = []
-    trimmed_n_controls = []
-    trimmed_p_likelihood_ratios = []
-    trimmed_p_samples = []
-    trimmed_p_controls = []
-    for x in range(0, len(bins)):
-        if p_likelihood_ratios[x] != "NA":
-            trimmed_bins.append(bins[x])
-            trimmed_likelihood_ratios.append(likelihood_ratios[x])
-            trimmed_n_samples.append(n_samples[x])
-            trimmed_n_controls.append(n_controls[x])
-            trimmed_p_likelihood_ratios.append(p_likelihood_ratios[x])
-            trimmed_p_samples.append(p_samples[x])
-            trimmed_p_controls.append(p_controls[x])
+def generate_statistics(dataframe, globals_dataframe, bin_values_df, minimum_globals):
 
-    return trimmed_bins, trimmed_likelihood_ratios, trimmed_n_samples, trimmed_n_controls, trimmed_p_likelihood_ratios, trimmed_p_samples, trimmed_p_controls
+    trimmed_bin_values_df = bin_values_df[bin_values_df.global_counts > minimum_globals];
+    trimmed_bin_values_df['cum_p_samples'] = trimmed_bin_values_df.p_samples.cumsum();
+    trimmed_bin_values_df['cum_p_globals'] = trimmed_bin_values_df.p_globals.cumsum();
 
-def divide_graph(bins, samples, controls, p_likelihood_ratios, divider):
-    left_samples_array = []
-    left_controls_array = []
-    left_p_array = []
-    right_samples_array = []
-    right_controls_array = []
-    right_p_array = []
-    for x in range(0, len(bins)):
-        if bins[x] < divider:
-            left_samples_array.append(samples[x])
-            left_controls_array.append(controls[x])
-            left_p_array.append(p_likelihood_ratios[x])
-        else:
-            right_samples_array.append(samples[x])
-            right_controls_array.append(controls[x])
-            right_p_array.append(p_likelihood_ratios[x])
-
-    return left_samples_array, left_controls_array, left_p_array, right_samples_array, right_controls_array, right_p_array
-
-def compute_divided_graph_variance(left_array, right_array):
-    left_variance = np.var(left_array)
-    right_variance = np.var(right_array)
-    lev_stat, lev_p = levene(left_array, right_array)
-    return left_variance, right_variance, lev_stat, lev_p
-
-def compute_divided_graph_ratio(left_samples_array, left_controls_array, right_samples_array, right_controls_array):
-
-    left_samples_sum = float(sum(left_samples_array))
-    right_samples_sum = float(sum(right_samples_array))
     
-    left_controls_sum = float(sum(left_controls_array))
-    right_controls_sum = float(sum(right_controls_array))
+    if len(trimmed_bin_values_df.index) < len(bin_values_df.index)/2:
+        return None, None;
 
-    left_p_samples = left_samples_sum/(left_samples_sum+right_samples_sum)
-    right_p_samples = right_samples_sum/(left_samples_sum+right_samples_sum)
-    left_p_controls = left_controls_sum/(left_controls_sum+right_controls_sum)
-    right_p_controls = right_controls_sum/(left_controls_sum+right_controls_sum)
+    stat_dictionary = {};
 
-    left_p_likelihood_ratio = -1
-    if left_p_controls != 0:
-       left_p_likelihood_ratio = left_p_samples/left_p_controls
-    right_p_likelihood_ratio = -1
-    if right_p_controls != 0:
-        right_p_likelihood_ratio = right_p_samples/right_p_controls
+    stat_dictionary['trimmed_bin_values_df'] = trimmed_bin_values_df;
 
-    return left_p_likelihood_ratio, right_p_likelihood_ratio
+    stat_dictionary['total_samples'] = dataframe[dataframe.type=='s']['density'].sum()
+    stat_dictionary['total_globals'] = globals_dataframe ['density'].sum()
 
-def generate_stats_for_likelihood_ratio(bins,likelihood_ratios,n_samples,n_controls, p_likelihood_ratios, p_samples, p_controls, a_file, file_path, directory): 
+    stat_dictionary['median_samples'] = dataframe[dataframe.type=='s']['density'].median()
+    stat_dictionary['median_globals'] = globals_dataframe ['density'].median()
 
-    ###############
-    # Trim Arrays #
-    ###############
-    # trimmed arrays: values where controls <= minimum_controls
 
-    trimmed_bins, trimmed_likelihood_ratios, trimmed_n_samples, trimmed_n_controls, trimmed_p_likelihood_ratios, trimmed_p_samples, trimmed_p_controls = trim_values(bins, likelihood_ratios, n_samples, n_controls, p_likelihood_ratios, p_samples, p_controls)
+    stat_dictionary['mean_samples'] = dataframe[dataframe.type=='s']['density'].mean()
+    stat_dictionary['mean_globals'] = globals_dataframe ['density'].mean()
 
+    stat_dictionary['std_samples'] = dataframe[dataframe.type=='s']['density'].std()
+    stat_dictionary['std_globals'] = globals_dataframe ['density'].std();
+
+
+    trimmed_p_samples = trimmed_bin_values_df['p_samples'].values;
+    trimmed_p_globals = trimmed_bin_values_df['p_globals'].values;
+
+
+    ks_d,ks_p= ks_2samp(trimmed_p_samples,trimmed_p_globals)
+
+    stat_dictionary['ks_d'] = ks_d;
+    stat_dictionary['ks_p'] = ks_p;
+
+    return stat_dictionary, trimmed_bin_values_df;
+
+
+
+
+def write_results(aFile,anIdentifier, aPath,dataframe, globals_dataframe,population_data, min_globals, min_p):
+    
+    bin_array, sample_counts, global_counts, likelihood_ratios, p_samples, p_globals = generate_bin_values(dataframe, globals_dataframe, population_data, min_globals);
+    wrm.write_bin_table(aFile, bin_array, sample_counts, global_counts, likelihood_ratios, p_samples, p_globals, min_globals)
+    
     ################################
-    # Fitting and Comparing Models #
+    # Compute and write statistics #
     ################################
-
-    # linear
-    slope, intercept, r, p, stderr=linregress(trimmed_bins,trimmed_p_likelihood_ratios)
-    linear_predicted_p_likelihood_ratios =np.asarray(linear_model2(trimmed_bins,intercept,slope))
-
-    # threshold
-    max_lambda_tau = max(trimmed_bins)
-    threshold_parameters, threshold_covariance = threshold_fit2(trimmed_bins, trimmed_p_likelihood_ratios, max_lambda_tau)
-    threshold_predicted_p_likelihood_ratios = threshold_model2(trimmed_bins, threshold_parameters[0], threshold_parameters[1], threshold_parameters[2])
-
-    r2_linear = r2_score(trimmed_p_likelihood_ratios, linear_predicted_p_likelihood_ratios)
-    r2_threshold = r2_score(trimmed_p_likelihood_ratios, threshold_predicted_p_likelihood_ratios)
-
-    chi_linear, p = chisquare(linear_predicted_p_likelihood_ratios, trimmed_p_likelihood_ratios)
-    chi_threshold, p = chisquare(threshold_predicted_p_likelihood_ratios, trimmed_p_likelihood_ratios)
-
-    ########################
-    # Computing Statistics #
-    ########################
-    # - Divide graph by lambda_tau
-    #   - get value for lambda_tau 
-    #   - get arrays left and right of lambda_tau
-    # - get variances of arrays
-    # - get levene score of arrays
+    # - binomial test
+    # - wilcoxon
+    wrm.write_label(aFile, "Statistics")
 
 
-    lambda_tau = threshold_parameters[1]
+    #######################
+    # Statistics
+    #######################
 
-    left_samples_array, left_controls_array, left_p_array, right_samples_array, right_controls_array, right_p_array = divide_graph(trimmed_bins, trimmed_n_samples, trimmed_n_controls, trimmed_p_likelihood_ratios, lambda_tau)
+    wrm.write_label(aFile, "Statistics");
 
-    left_variance, right_variance, lev_stat, lev_p = compute_divided_graph_variance(left_p_array, right_p_array)
+    total_samples=dataframe[dataframe.type=='s']['density'].sum()
+    total_globals=globals_dataframe ['density'].sum()
+    aFile.write('Total sites: '+str(total_samples)+'\n')
+    aFile.write('Total globals: '+str(total_globals)+'\n\n')
 
-
-    left_p_likelihood_ratio, right_p_likelihood_ratio = compute_divided_graph_ratio(left_samples_array, left_controls_array, right_samples_array, right_controls_array)
-
-
-    ###############
-    # Plot graphs #
-    ###############
-    plm.plot_likelihood_ratio(trimmed_bins, trimmed_p_likelihood_ratios, 0, linear_predicted_p_likelihood_ratios, "linear", directory, file_path)
-
-    plm.plot_likelihood_ratio(trimmed_bins, trimmed_p_likelihood_ratios, lambda_tau, threshold_predicted_p_likelihood_ratios, "threshold", directory, file_path)
-
-
-    ############################
-    # Write Statistics to File #
-    ############################
-    
-    a_file.write('*********************' +'\n')
-    a_file.write('curve fitting'+'\n')
-    a_file.write('*********************' +'\n')
-    a_file.write('LMS linear model for multiplier:'+"{:8.7f}".format(lms(trimmed_p_likelihood_ratios,linear_predicted_p_likelihood_ratios))+'\n')
-    a_file.write('LMS threshold model for multiplier:'+"{:8.7f}".format(lms(trimmed_p_likelihood_ratios,threshold_predicted_p_likelihood_ratios))+'\n')
-    a_file.write('Coefficients for linear fit: slope=' + str(slope) + " intercept=" + str(intercept) + "\n")
-    a_file.write('Coefficients for threshold fit: ' + "scaling_factor=" + str(threshold_parameters[0]) + " lambda_tau=" + str(threshold_parameters[1]) + " alpha=" + str(threshold_parameters[2]) + "\n")
-    a_file.write("r2_threshold: " + str(r2_threshold) + "  r2_linear: " + str(r2_linear) + "\n")
-    a_file.write("chi_threshold: " + str(chi_threshold) + "  chi_linear: " + str(chi_linear) + "\n")
-
-    a_file.write('*************************' +'\n')
-    a_file.write('Divided Graph Statistics'+'\n')
-    a_file.write('*************************' +'\n')
-    a_file.write('Variance (lambda_tau as divider): left=' + str(left_variance) + "  right=" + str(right_variance) + "  levene_stat=" + str(lev_stat) + " levene_p=" + str(lev_p) + "\n")
-    a_file.write('p_likelihood_ratio (lambda_tau as divider): left=' + str(left_p_likelihood_ratio) + "  right=" + str(right_p_likelihood_ratio) + "\n")
+    median_samples=dataframe[dataframe.type=='s']['density'].median()
+    median_globals=globals_dataframe ['density'].median()
+    aFile.write('Median density for sites: '+str(median_samples)+'\n')
+    aFile.write('Median density for globals: '+str(median_globals)+'\n\n')
 
 
-def generate_p_threshold_and_binomial(p_samples, p_controls, bin_array):
-    binomial = 100
-    threshold = 0
-    threshold_trial_count = 0
-    threshold_success_count = 0
-    threshold_samples = []
-    threshold_controls = []
+    mean_samples=dataframe[dataframe.type=='s']['density'].mean()
+    mean_globals=globals_dataframe ['density'].mean()
+    aFile.write('Mean density for sites: '+str(mean_samples)+'\n')
+    aFile.write('Mean density for globals: '+str(mean_globals)+'\n\n')
 
-    #########################
-    # For every bin value.. #
-    #########################
-    for i in range(1, len(bin_array)):
-        success = 0
-        trials = 0
-
-        ########################
-        # Count success/trials #
-        ########################
-        for x in range(0, i):
-            trials += 1
-            if p_samples[x] <= p_controls[x]:
-                success += 1
-    
-        ###########################################
-        # Compute binomial for success and trials #
-        ###########################################
-        temp = binom_test(success, trials, 0.5)
-
-        ################################################
-        # Save values if binomial is smaller than prev #
-        ################################################
-        if temp < binomial:
-            binomial = temp
-            threshold = bin_array[i]
-            threshold_trial_count = trials
-            threshold_success_count = success
-            threshold_samples = p_samples[:i]
-            threshold_controls = p_controls[:i]
-
-    return binomial, threshold, threshold_success_count, threshold_trial_count, threshold_samples, threshold_controls
+    std_samples=dataframe[dataframe.type=='s']['density'].std()
+    std_globals=globals_dataframe ['density'].std()
+    aFile.write('Mean density for sites: '+str(median_samples)+'\n')
+    aFile.write('Mean density for globals: '+str(median_globals)+'\n')
 
 
-def lms(data_y,predicted_y):
-    error=0
-    for i in range(0,len(data_y)-1):
-        error=error+(data_y[i]-predicted_y[i])**2
-    return error 
-    
-def threshold_fit(data_x,data_y):
-    p_opt,p_cov=curve_fit(threshold_model, data_x,data_y)
-    return p_opt, p_cov 
+    #######################
+    # Test distributions are different
+    #######################
 
-def threshold_fit2(data_x,data_y, max_lambda_tau):
-    p_opt,p_cov=curve_fit(threshold_model2, data_x,data_y, bounds=([0, 0, 0], [np.inf, 25, 1]))
-    return p_opt, p_cov
+    wrm.write_label(aFile, "K-S2 Test\n")
 
+    ks_d,ks_p=ks_2samp(trimmed_p_samples,trimmed_p_globals)
+    aFile.write( 'KS test  for samples vs globals with full controls:'+str(float(ks_d))+ '   p='+str(float(ks_p))+'\n')
+    if ks_p<min_p:
+        aFile.write('The two distribitions are significantly different p<0.001'+'\n')
+
+    ks_d,ks_p=ks_2samp(trimmed_p_samples,trimmed_p_globals)
+    f2.write( 'KS test for p_samples vs p_globals :'+str(float(ks_d))+ '   p='+str(float(ks_p))+'\n')
+    if ks_p<self.min_p:
+         f2.write('The two distribitions are significantly different p<0.001'+'\n')    
         
-def linear_model(x,beta):
-    results=[]
-    for an_x in x: 
-        result=float(an_x*beta)
-        results.append(result)
-    return (results)
+    # plot graphs
+    plm.plot_p_graphs(trimmed_bin_array, trimmed_p_samples, trimmed_p_globals,population_data.bin_size, anIdentifier, aPath)
+    plm.plot_cumulative_p_graphs(trimmed_bin_array, trimmed_p_samples, trimmed_p_globals, population_data.bin_size,median_samples,median_globals, anIdentifier, aPath)
+    plm.plot_detection_frequencies (trimmed_bin_array, trimmed_likelihood_ratios, population_data.bin_size, population_data.max_population-population_data.bin_size*2, anIdentifier, "detection_frequencies", aPath)
 
-def linear_model2(x,alpha,beta,):
-    results=[]
-    for an_x in x: 
-        result=float(alpha+an_x*beta)
-        results.append(result)
-        
-    return (results)
+    # - plots targets and globals on a map
+    plm.plot_targets_on_map(dataframe, globals_dataframe, aPath, anIdentifier)
+    
 
-def threshold_model(x, n_pop,lambda_tau):
-    results=[]
-    for an_x in x: 
-        result=n_pop*(1-lambda_tau*1/an_x)
-        if result<0:
-            result=0
-        results.append(result)
-    return(results)
-
-def threshold_model2(x, scaling_factor, lambda_tau, alpha):
-    results=[]
-    for an_x in x: 
-        if an_x - lambda_tau < 0:
-            results.append(alpha)
-        else:
-            result=alpha+scaling_factor*(an_x - lambda_tau)
-            if result<0:
-                result=alpha
-            results.append(result)
-    return(results)
+    
