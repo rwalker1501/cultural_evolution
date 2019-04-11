@@ -283,37 +283,17 @@ class MainProgram:
         # plots targets and globals on a map
         plm.plot_targets_on_map(self.dataframe, self.globals_dataframe, new_path, directory)
 
-        f2.close();
-        
-         #####################################
-        # Create directory and working data file for likelihood analysis #
-        #####################################
-        results_path = os.path.join(base_path, "working data")
-        if not os.path.exists(results_path):
-            os.makedirs(results_path)
-
-        new_path = os.path.join(results_path, directory)
-        if not os.path.exists(new_path):
-            os.makedirs(new_path)
-        working_data_filename= os.path.join(new_path, directory + "working data") 
-
-        print("Working data_file_name: " + working_data_filename)
         
           ###############
         # Compute likelihood of model #
         ###############
- #       rho_bins=np.arange(2,3001)# creates numbers (2...3000). Note: in the matlab this is a COLUMN VECTOR
         rho_bins=np.arange(2,3001)# creates numbers (2...3000). Note: in the matlab this is a COLUMN VECTOR - can't see why we need 3000 when using timmermann data
-  #      rho_bins_4_python=np.append(rho_bins,3001)  
         rho_bins_4_python=np.append(rho_bins,3001)  
    #     bin_width=300 #This is obviously wide for timmermann data
-        bin_width=300
-  #      bin_boundaries2_4_python=np.arange(0,3001,bin_width) 
+        bin_width=200 #This gives nicer looking graph
         bin_boundaries2_4_python=np.arange(2,3001,bin_width) 
         samples_counts=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==1],bins=rho_bins_4_python)[0] #Column  vector This is not strict translation of mathlab code. In mathlab the last bin contains 3000. In python it contains 2999-3000
-        print "len sample counts=", len(samples_counts)
         controls_counts=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==0],bins=rho_bins_4_python) [0] #Column  vector
-        print 'len sample counts=',len(samples_counts)
         globals_counts=np.histogram(merged_dataframe['density'],bins=rho_bins_4_python)[0]
         control_counts2=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==0],bins=bin_boundaries2_4_python)[0]
         sample_counts2=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==1],bins=bin_boundaries2_4_python)[0]
@@ -324,8 +304,13 @@ class MainProgram:
 #   #      rho_bins_4_python=np.append(rho_bins,31)
 # =============================================================================
         merged_dataframe=[] #Hoping it will now be garbage collected
-        stm.compute_likelihood_model(working_data_filename, samples_counts, controls_counts, globals_counts,sample_counts2,control_counts2,rho_bins_4_python,bin_boundaries2_4_python,bin_width,rho_bins,False,low_res=True)  #Not elegant - should have same datastructure for both counts
-
+        max_lambda, max_zetta, max_eps, opt_threshold=stm.compute_likelihood_model(directory,results_path, samples_counts, controls_counts, globals_counts,sample_counts2,control_counts2,rho_bins_4_python,bin_boundaries2_4_python,bin_width,rho_bins,False,low_res=True)  #Not elegant - should have same datastructure for both counts
+        wrm.write_label(f2, "Results of max likelihood analysis")
+        f2.write("Max lambda="+str(max_lambda)+"\n")
+        f2.write("Max zetta="+str(max_zetta)+"\n")
+        f2.write("Max eps="+str(max_eps)+"\n")
+        f2.write("Optimal_threshold="+str(opt_threshold)+"\n")
+        f2.close();
         return "Generated results"
 
 def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", globals_type="All", date_window=24, date_lag = 0, user_max_for_uninhabited=-1, clustering_on = False, critical_distance=0, critical_time=10000, filter_date_before=-1, filter_not_direct=False, filter_not_exact=False, filter_not_figurative=False, filter_not_controversial = False,  filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False):
