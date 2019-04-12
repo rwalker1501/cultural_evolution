@@ -16,108 +16,82 @@ from matplotlib.patches import Polygon
 
 
 
-def compute_likelihood_model(directory,results_path, samples_counts, controls_counts, globals_counts,samples_counts2, controls_counts2,rho_bins_4_python,bin_boundaries2_4_python,bin_width,rho_bins,work_data_available,low_res=False):
+def compute_likelihood_model(directory,results_path, merged_dataframe, low_res=False):
  # fix parameter values for scan
  # when the low_res parameter is set to true, the system produces low_res graphs. Used for system testing and exploratory testing
     if low_res:
-        lambda_v=np.arange(25,50,1)
-        eps_v=np.linspace(0,0.1,num=11,endpoint=False)
-        zetta_v=np.exp(np.linspace(log(1e-5),log(1e-3),num=11,endpoint=False))  
+        lambda_v=np.arange(25,50,1) #same for eriksson and timmermann 
+        eps_v=np.linspace(0,0.1,num=11,endpoint=False) #eriksson only
+ #       eps_v=np.linspace(0,0.5,num=11,endpoint=False) #timmermann
+        zetta_v=np.exp(np.linspace(log(1e-5),log(1e-3),num=11,endpoint=False)) #eriksson only
+       # zetta_v=np.exp(np.linspace(log(1e-4),log(1e-1),num=11,endpoint=False)) #timmermann  
     else:
         lambda_v=np.arange(25,50,0.1)
         eps_v=np.linspace(0,0.1,num=101,endpoint=False)
         zetta_v=np.exp(np.linspace(log(1e-5),log(1e-3),num=101,endpoint=False))      
-    rho_bins2=bin_boundaries2_4_python+bin_width/2
-    if not work_data_available:
-        n_controls=np.sum(controls_counts)  
-        n_samples=np.sum(samples_counts) 
-        n_globals=n_controls+n_samples # not sure these are needed
-        rho_bins2=bin_boundaries2_4_python[0:len(bin_boundaries2_4_python)-1]+bin_width/2 #This is EC2 not sure this is correct - depends on usage later on, needs to be adjusted to take account of nature of bins
-        l_shift=n_samples*(log(float(n_samples)/float(n_controls))-1)
-        n_lambda=len(lambda_v)
-        n_eps=len(eps_v)
-        n_zetta=len(zetta_v)
-        y_acc=np.linspace(0,1e-4,num=401) #COLUMN VECTOR. In Tindbergen program he had different values that generated a lot of zeros. These in turn created problems when we had to divide by last element in yy
-        acc=np.zeros((len(y_acc),len(rho_bins)))
-        anElement=np.zeros(len(rho_bins))
-        aRow=[]
-        lnL=np.zeros((n_lambda,n_eps,n_zetta))
-        sqrt_rho_bins=np.sqrt(rho_bins) #These are the values we are computing - rhobins_4_python are intervals for histogram only. In original program were inside loop. Have moved it outside
-        max_LL=-float('inf')
-        for i_lambda in range (0,n_lambda):
-            my_lambda=float(lambda_v[i_lambda]) 
-            bin_zeros=np.zeros(len(sqrt_rho_bins)) #in python I can't compare a vector with a scalar
-            pI=np.maximum(bin_zeros,1-my_lambda/sqrt_rho_bins)  #COLUMN VECTOR
-            for i_zetta in range(0,n_zetta):
-                for i_eps in range (0, n_eps):
-                     pObs=np.zeros(len(pI)).astype(float)                
-                     pObs=zetta_v[i_zetta]*((1-eps_v[i_eps])*pI+eps_v[i_eps]) #COLUMN VECTOR (scalars * a column vector)
-                     pObs_small=np.zeros(len(pObs))
-                     pObs_small.fill(1e-20)
-                     pObs=np.maximum(pObs,pObs_small)
-                     pObs=pObs.astype(float)
-                     log_samples=np.dot(samples_counts,np.log(pObs)) 
-                     log_controls=np.dot(controls_counts,np.log(1-pObs)) 
-                     LL=log_samples+log_controls
-                     if LL>max_LL:
-                         max_LL=LL
-                         max_lambda=lambda_v[i_lambda]
-                         max_zetta=zetta_v[i_zetta]
-                         max_eps=eps_v[i_eps]
-                     L=np.exp(LL-l_shift)
-                     lnL[i_lambda,i_eps,i_zetta]=LL # This is different from original datastructure. Will require change of later code. I could also assign using an array op.
-                     zz=pObs  #should be able to get rid of this
-                     rhs=np.floor(1+zz/y_acc[1]).astype(int) #This is original code - yields a 1-based index
-                     len_y_acc=np.array(len(y_acc))
-                     len_y_acc.fill(len(y_acc))
-                     i_acc=np.minimum(len_y_acc,rhs) #vThis yields column vector of indexes corresponding to different values of pObs. ector length =401. Maximum value of index =400 (zero based vector).I am keeping it 1-based
-                     for i in range(0,len(i_acc)):
-                         x_coord=i_acc[i]-1
-                         y_coord=i
-                         acc[x_coord,y_coord]=acc[x_coord,y_coord]+L
+    rho_bins=np.arange(2,3001)# creates numbers (2...3000). Note: in the matlab this is a COLUMN VECTOR - can't see why we need 3000 when using timmermann data
+    rho_bins_4_python=np.append(rho_bins,3001)  
+   #     bin_width=300 #This is obviously wide for timmermann data
+    bin_width=200 #This gives nicer looking graph
+    bin_boundaries2_4_python=np.arange(2,3001,bin_width) 
+    samples_counts=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==1],bins=rho_bins_4_python)[0] #Column  vector This is not strict translation of mathlab code. In mathlab the last bin contains 3000. In python it contains 2999-3000
+    controls_counts=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==0],bins=rho_bins_4_python) [0] #Column  vector
+    globals_counts=np.histogram(merged_dataframe['density'],bins=rho_bins_4_python)[0]
+    control_counts2=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==0],bins=bin_boundaries2_4_python)[0]
+    sample_counts2=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==1],bins=bin_boundaries2_4_python)[0]
+    n_controls=np.sum(controls_counts)  
+    n_samples=np.sum(samples_counts) 
+    n_globals=n_controls+n_samples # not sure these are needed
+    rho_bins2=bin_boundaries2_4_python[0:len(bin_boundaries2_4_python)-1]+bin_width/2 #This is EC2 not sure this is correct - depends on usage later on, needs to be adjusted to take account of nature of bins
+    l_shift=n_samples*(log(float(n_samples)/float(n_controls))-1)
+    n_lambda=len(lambda_v)
+    n_eps=len(eps_v)
+    n_zetta=len(zetta_v)
+    y_acc=np.linspace(0,1e-4,num=401) #COLUMN VECTOR. In Tindbergen program he had different values that generated a lot of zeros. These in turn created problems when we had to divide by last element in yy
+    acc=np.zeros((len(y_acc),len(rho_bins)))
+    lnL=np.zeros((n_lambda,n_eps,n_zetta))
+    sqrt_rho_bins=np.sqrt(rho_bins) #These are the values we are computing - rhobins_4_python are intervals for histogram only. In original program were inside loop. Have moved it outside
+    max_LL=-float('inf')
+    for i_lambda in range (0,n_lambda):
+        print '.'
+        my_lambda=float(lambda_v[i_lambda]) 
+        bin_zeros=np.zeros(len(sqrt_rho_bins)) #in python I can't compare a vector with a scalar
+        pI=np.maximum(bin_zeros,1-my_lambda/sqrt_rho_bins)  #COLUMN VECTOR
+        for i_zetta in range(0,n_zetta):
+            for i_eps in range (0, n_eps):
+                 pObs=np.zeros(len(pI)).astype(float)                
+                 pObs=zetta_v[i_zetta]*((1-eps_v[i_eps])*pI+eps_v[i_eps]) #COLUMN VECTOR (scalars * a column vector)
+                 pObs_small=np.zeros(len(pObs))
+                 pObs_small.fill(1e-20)
+                 pObs=np.maximum(pObs,pObs_small)
+                 pObs=pObs.astype(float)
+                 log_samples=np.dot(samples_counts,np.log(pObs)) 
+                 log_controls=np.dot(controls_counts,np.log(1-pObs)) 
+                 LL=log_samples+log_controls
+                 if LL>max_LL:
+                     max_LL=LL
+                     max_lambda=lambda_v[i_lambda]
+                     max_zetta=zetta_v[i_zetta]
+                     max_eps=eps_v[i_eps]
+                 L=np.exp(LL-l_shift)
+                 lnL[i_lambda,i_eps,i_zetta]=LL # This is different from original datastructure. Will require change of later code. I could also assign using an array op.
+        #         rhs=np.floor(1+pObs/y_acc[1]).astype(int) #This is original code - yields a 1-based index. I dont like y_acc[1]- This is actually y_acc step
+                 len_y_acc=np.array(len(y_acc))
+                 len_y_acc.fill(len(y_acc))
+                 i_acc=np.minimum(len_y_acc,np.floor(1+pObs/y_acc[1]).astype(int)) #vThis yields column vector of indexes corresponding to different values of pObs. ector length =401. Maximum value of index =400 (zero based vector).I am keeping it 1-based
+                 for i in range(0,len(i_acc)):
+                     x_coord=i_acc[i]-1
+                     y_coord=i
+                     acc[x_coord,y_coord]=acc[x_coord,y_coord]+L
     scale = (2/sqrt(3))/100 #  convert from hexagon pop size to Timmermann units, inds/100 km^2
     lambda_v = lambda_v*sqrt(scale)
     rho_bins = rho_bins*scale
     rho_bins2=rho_bins2*scale
     max_lambda=max_lambda*sqrt(scale)
     opt_threshold=max_lambda**2  #Not sure about this
-  #     Figure 1
-    plm.plot_maximum_likelihood(acc,rho_bins,rho_bins2,y_acc, lambda_v, opt_threshold, samples_counts2, controls_counts2, scale,directory,results_path)
-  #     Figure 2 - in the end we will move this into plot library
-    fig2 = plt.figure();
-    lnlminusmax=lnL-np.amax(lnL)
-    exp_lnlminusmax=np.exp(lnlminusmax)
-    dim1=np.mean(exp_lnlminusmax,axis=2)  #up to here - look at definition of dimension
-    p_lambda = np.squeeze(np.mean(dim1,axis=1))
-    p_lambda=np.true_divide(p_lambda,np.trapz(p_lambda,lambda_v))
-    ax2=fig2.add_subplot(111)
-    ax2.plot(lambda_v,p_lambda)
-    plt.xlabel('lambda')
-    plt.show
-     #     Figure 3 - in the end we will move this into plot library
-    fig3 = plt.figure();
-    dim1=np.mean(exp_lnlminusmax,axis=2) 
-    p_eps = np.squeeze(np.mean(dim1,axis=0))
-    p_eps=np.true_divide(p_eps,np.trapz(p_eps,eps_v))
-    ax3=fig3.add_subplot(111)
-    ax3.plot(eps_v,p_eps)
-    plt.xlabel('epsilon')
-    plt.show
-     #     Figure 4 - in the end we will move this into plot library
-    fig4 = plt.figure();
-    dim1=np.mean(exp_lnlminusmax,axis=0) 
-    p_zetta = np.squeeze(np.mean(dim1,axis=0))
-    trapz=np.trapz(p_zetta,np.log10(zetta_v))
-    p_zetta=np.true_divide(p_zetta,trapz)
-    x_data=np.log10(zetta_v)
-    trapz=np.trapz(p_zetta,np.log10(zetta_v))
-    y_data=np.true_divide(p_zetta,trapz)
-    ax4=fig4.add_subplot(111)
-    ax4.set_xlabel("log10 zetta")
-    ax4.plot(x_data, y_data)
-    plt.show
+    plm.plot_maximum_likelihood(acc,rho_bins,rho_bins2,y_acc, lambda_v, opt_threshold, sample_counts2, control_counts2, scale,directory,results_path)
+    plm.plot_parameter_values(lnL,lambda_v, zetta_v, eps_v,directory,results_path)
     return(max_lambda, max_zetta, max_eps, opt_threshold)
-     # compute optimal value of all parameters
     
  
 

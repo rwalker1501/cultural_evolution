@@ -295,21 +295,23 @@ def plot_maximum_likelihood(acc,rho_bins,rho_bins2,y_acc, lambda_v, opt_threshol
     yy=np.divide(yy,yy[len(yy)-1:]) # Should give me cumulated likelihood up to 1 - seems to work
     pred_int=np.zeros((len(rho_bins),6)) #Not sure about size of this - in the original looks like an empty matrix - NOW LESS SURE
     for k in range (0,len(rho_bins)):
-        first_sub=np.array((0)) # 0;
-        second_sub=yy[0:(len(yy)-1),k] #yy(1:end-1,k)] I am suspicious of this. Sometimes suddenly jumps to 1,
-        data_x=np.hstack((first_sub,second_sub)) #[0; yy(1:end-1,k)]. This looks OK
+# =============================================================================
+#         first_sub=np.array((0)) # 0;
+#         second_sub=yy[0:(len(yy)-1),k] #yy(1:end-1,k)] I am suspicious of this. Sometimes suddenly jumps to 1,
+# =============================================================================
+        data_x=np.hstack((np.array((0)),yy[0:(len(yy)-1),k])) #[0; yy(1:end-1,k)]. This looks OK
         interpolated=np.interp([0.025, 0.25, 0.5, 0.75, 0.975], data_x,y_acc) #Not sure I have interpreted this correctly. 
-        first_sub2=y_acc[0:(len(y_acc)-1)]+y_acc[1:len(y_acc)] #*(yacc(1:end-1)+yacc(2:end)))
-        second_sub2=acc[0:len(acc)-1,k] #Acc(1:end-1,k))This is mostly zeros in current version
-        third_sub2=np.sum(acc[0:(len(acc)-1),k],axis=0) #sum(Acc(1:end-1,k))]; yields a single small float
-        term2_1=np.dot(first_sub2,second_sub2) #unsure about this. Is it a dot or a matrix multiplicaiton. It also works as a matrix multiplication but that is not what I am using now
-        if(term2_1==0) and (third_sub2==0):
+# =============================================================================
+#         first_sub2=y_acc[0:(len(y_acc)-1)]+y_acc[1:len(y_acc)] #*(yacc(1:end-1)+yacc(2:end)))
+#         second_sub2=acc[0:len(acc)-1,k] #Acc(1:end-1,k))This is mostly zeros in current version
+#         third_sub2=np.sum(acc[0:(len(acc)-1),k],axis=0) #sum(Acc(1:end-1,k))]; yields a single small float
+# =============================================================================
+        term2_1=np.dot(y_acc[0:(len(y_acc)-1)]+y_acc[1:len(y_acc)],acc[0:len(acc)-1,k]) #unsure about this. Is it a dot or a matrix multiplicaiton. It also works as a matrix multiplication but that is not what I am using now
+        if(term2_1==0) and (np.sum(acc[0:(len(acc)-1),k],axis=0)==0):
             term2=0
         else:
-            term2=((0.5*term2_1/third_sub2))
-        test=np.hstack((interpolated,term2)) #This is one dimensional - correct - but not sure why it is doing this. Adds a 6th element which is not in sequence with the others and which seems to be  never used.
-        
-        pred_int[k,:]=test 
+            term2=((0.5*term2_1/np.sum(acc[0:(len(acc)-1),k],axis=0)))
+        pred_int[k,:]=np.hstack((interpolated,term2)) #This is one dimensional - correct - but not sure why it is doing this. Adds a 6th element which is not in sequence with the others and which seems to be  never used.
 # =============================================================================
 #     lambda_v = lambda_v*sqrt(scale)
 #     rho_bins = rho_bins*scale
@@ -330,6 +332,7 @@ def plot_maximum_likelihood(acc,rho_bins,rho_bins2,y_acc, lambda_v, opt_threshol
     patches.append(h2)
     fig1 = plt.figure();
     ax = fig1.add_subplot(111)
+    plt.gca().set_xlim(0, 30);
  #   p = PatchCollection(patches, alpha=0.4)
 #    ax.add_collection(p)
     ax.add_patch(h1)
@@ -338,9 +341,49 @@ def plot_maximum_likelihood(acc,rho_bins,rho_bins2,y_acc, lambda_v, opt_threshol
     ax.plot(rho_bins,pred_int[:,2],linewidth=1, color='blue',antialiased=True)
     ax.plot(rho_bins2,samples_counts2/(samples_counts2+controls_counts2),color='black', marker='o', markersize=3,linestyle='None',antialiased=True)
     fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_fit to model.png"
-    print 'fig_path=',fig_path
     fig1.savefig(fig_path)
     plt.close()
+    
+def plot_parameter_values(lnL,lambda_v, zetta_v, eps_v,directory,file_path):
+    #      Figure 2
+    fig2 = plt.figure();
+    lnlminusmax=lnL-np.amax(lnL)
+    exp_lnlminusmax=np.exp(lnlminusmax)
+    dim1=np.mean(exp_lnlminusmax,axis=2)  #up to here - look at definition of dimension
+    p_lambda = np.squeeze(np.mean(dim1,axis=1))
+    p_lambda=np.true_divide(p_lambda,np.trapz(p_lambda,lambda_v))
+    ax2=fig2.add_subplot(111)
+    ax2.plot(lambda_v,p_lambda)
+    plt.xlabel('lambda')
+    fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_lambda.png"
+    fig2.savefig(fig_path)
+    plt.show
+     #     Figure 3 - in the end we will move this into plot library
+    fig3 = plt.figure();
+    dim1=np.mean(exp_lnlminusmax,axis=2) 
+    p_eps = np.squeeze(np.mean(dim1,axis=0))
+    p_eps=np.true_divide(p_eps,np.trapz(p_eps,eps_v))
+    ax3=fig3.add_subplot(111)
+    ax3.plot(eps_v,p_eps)
+    plt.xlabel('epsilon')
+    fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_eps.png"
+    fig3.savefig(fig_path)
+    plt.show
+     #     Figure 4 - in the end we will move this into plot library
+    fig4 = plt.figure();
+    dim1=np.mean(exp_lnlminusmax,axis=0) 
+    p_zetta = np.squeeze(np.mean(dim1,axis=0))
+    trapz=np.trapz(p_zetta,np.log10(zetta_v))
+    p_zetta=np.true_divide(p_zetta,trapz)
+    x_data=np.log10(zetta_v)
+    trapz=np.trapz(p_zetta,np.log10(zetta_v))
+    y_data=np.true_divide(p_zetta,trapz)
+    ax4=fig4.add_subplot(111)
+    ax4.set_xlabel("log10 zetta")
+    ax4.plot(x_data, y_data)
+    fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_zetta.png"
+    fig4.savefig(fig_path)
+    plt.show
 
 def get_map_file_path(filename):
     base_path = os.getcwd();

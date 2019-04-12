@@ -287,24 +287,26 @@ class MainProgram:
           ###############
         # Compute likelihood of model #
         ###############
-        rho_bins=np.arange(2,3001)# creates numbers (2...3000). Note: in the matlab this is a COLUMN VECTOR - can't see why we need 3000 when using timmermann data
-        rho_bins_4_python=np.append(rho_bins,3001)  
-   #     bin_width=300 #This is obviously wide for timmermann data
-        bin_width=200 #This gives nicer looking graph
-        bin_boundaries2_4_python=np.arange(2,3001,bin_width) 
-        samples_counts=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==1],bins=rho_bins_4_python)[0] #Column  vector This is not strict translation of mathlab code. In mathlab the last bin contains 3000. In python it contains 2999-3000
-        controls_counts=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==0],bins=rho_bins_4_python) [0] #Column  vector
-        globals_counts=np.histogram(merged_dataframe['density'],bins=rho_bins_4_python)[0]
-        control_counts2=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==0],bins=bin_boundaries2_4_python)[0]
-        sample_counts2=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==1],bins=bin_boundaries2_4_python)[0]
-   #     counts2=np.array((control_counts2,sample_counts2)).T
 # =============================================================================
-#  #       rho_bins=np.arange(2,31)
-#         rho_bins_4_python=np.append(rho_bins,3001)
-#   #      rho_bins_4_python=np.append(rho_bins,31)
+#         rho_bins=np.arange(2,3001)# creates numbers (2...3000). Note: in the matlab this is a COLUMN VECTOR - can't see why we need 3000 when using timmermann data
+#         rho_bins_4_python=np.append(rho_bins,3001)  
+#    #     bin_width=300 #This is obviously wide for timmermann data
+#         bin_width=200 #This gives nicer looking graph
+#         bin_boundaries2_4_python=np.arange(2,3001,bin_width) 
+#         samples_counts=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==1],bins=rho_bins_4_python)[0] #Column  vector This is not strict translation of mathlab code. In mathlab the last bin contains 3000. In python it contains 2999-3000
+#         controls_counts=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==0],bins=rho_bins_4_python) [0] #Column  vector
+#         globals_counts=np.histogram(merged_dataframe['density'],bins=rho_bins_4_python)[0]
+#         control_counts2=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==0],bins=bin_boundaries2_4_python)[0]
+#         sample_counts2=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==1],bins=bin_boundaries2_4_python)[0]
+#    #     counts2=np.array((control_counts2,sample_counts2)).T
+# # =============================================================================
+# #  #       rho_bins=np.arange(2,31)
+# #         rho_bins_4_python=np.append(rho_bins,3001)
+# #   #      rho_bins_4_python=np.append(rho_bins,31)
+# # =============================================================================
+#         merged_dataframe=[] #Hoping it will now be garbage collected
 # =============================================================================
-        merged_dataframe=[] #Hoping it will now be garbage collected
-        max_lambda, max_zetta, max_eps, opt_threshold=stm.compute_likelihood_model(directory,results_path, samples_counts, controls_counts, globals_counts,sample_counts2,control_counts2,rho_bins_4_python,bin_boundaries2_4_python,bin_width,rho_bins,False,low_res=True)  #Not elegant - should have same datastructure for both counts
+        max_lambda, max_zetta, max_eps, opt_threshold=stm.compute_likelihood_model(directory,results_path, merged_dataframe,low_res=False)  #Not elegant - should have same datastructure for both counts
         wrm.write_label(f2, "Results of max likelihood analysis")
         f2.write("Max lambda="+str(max_lambda)+"\n")
         f2.write("Max zetta="+str(max_zetta)+"\n")
