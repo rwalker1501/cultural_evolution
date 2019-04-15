@@ -184,7 +184,7 @@ class MainProgram:
     # Generate Results Function #
     #############################
 
-    def generate_results(self, population_data, original_target_list, base_path, directory):
+    def generate_results(self, population_data, original_target_list, base_path, directory,low_res=True):
 
 
         # Check if a target list has been loaded, otherwise abort
@@ -306,7 +306,7 @@ class MainProgram:
 # # =============================================================================
 #         merged_dataframe=[] #Hoping it will now be garbage collected
 # =============================================================================
-        max_lambda, max_zetta, max_eps, opt_threshold=stm.compute_likelihood_model(directory,results_path, merged_dataframe,low_res=False)  #Not elegant - should have same datastructure for both counts
+        max_lambda, max_zetta, max_eps, opt_threshold=stm.compute_likelihood_model(directory,results_path, population_data,merged_dataframe,low_res)  #Not elegant - should have same datastructure for both counts
         wrm.write_label(f2, "Results of max likelihood analysis")
         f2.write("Max lambda="+str(max_lambda)+"\n")
         f2.write("Max zetta="+str(max_zetta)+"\n")
@@ -315,8 +315,8 @@ class MainProgram:
         f2.close();
         return "Generated results"
 
-def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", globals_type="All", date_window=24, date_lag = 0, user_max_for_uninhabited=-1, clustering_on = False, critical_distance=0, critical_time=10000, filter_date_before=-1, filter_not_direct=False, filter_not_exact=False, filter_not_figurative=False, filter_not_controversial = False,  filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False):
-  # Note: current setting of minimum_globals is overwritten in stats_modulegenera
+def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", globals_type="All", date_window=24, date_lag = 0, user_max_for_uninhabited=-1, clustering_on = False, critical_distance=0, critical_time=10000, filter_date_before=-1, filter_not_direct=False, filter_not_exact=False, filter_not_figurative=False, filter_not_controversial = False,  filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False,low_res=True):
+  # Note: current setting of minimum_globals is overwritten in stats_modulegenera - would be good to make this symmetrical so all data sources use same data loading procedure
     mp = MainProgram()
     base_path = mp.get_base_path()
     pop_data_path = os.path.join(base_path, "population_data")
@@ -325,19 +325,20 @@ def run_experiment(results_path, target_list_file, output_directory, population_
         eriksson_info_path = os.path.join(pop_data_path, "eriksson_info.txt") #base_path+'/population_data/eriksson_info.txt'
         population_data = pdm.load_population_data_source("Eriksson", eriksson_binary_path, eriksson_info_path)
     else:
-        tim_fn= os.path.join(pop_data_path, "timmermann.npz") #base_path+'population_data/timmermann.npz'
-        data=np.load(tim_fn)
-        lats_ncf=data['lats_ncf']
-        lons_ncf=data['lons_ncf']
-        ts_ncf=data['ts_ncf']
-        dens_ncf=data['dens_ncf']
-
-        tim_info_path = os.path.join(pop_data_path, "timmermann_info.txt") #base_path+'/population_data/timmermann_info.txt'
-        # time_likelihood_ratio should be time_multiplier
-        time_likelihood_ratio, density_multiplier,bin_size, max_population, max_for_uninhabited, is_active, ascending_time = pdm.read_population_data_info(tim_info_path)
-        population_data = PopulationData("Timmermann", is_active, lats_ncf, lons_ncf, ts_ncf, dens_ncf, time_likelihood_ratio, density_multiplier,bin_size, max_population, max_for_uninhabited, ascending_time)
-            
-
+        if population_data_name=="Timmermann":
+            tim_fn= os.path.join(pop_data_path, "timmermann.npz") #base_path+'population_data/timmermann.npz'
+            data=np.load(tim_fn)
+            lats_ncf=data['lats_ncf']
+            lons_ncf=data['lons_ncf']
+            ts_ncf=data['ts_ncf']
+            dens_ncf=data['dens_ncf']
+            tim_info_path = os.path.join(pop_data_path, "timmermann_info.txt") #base_path+'/population_data/timmermann_info.txt'
+            # time_likelihood_ratio should be time_multiplier
+            time_likelihood_ratio, density_multiplier,bin_size, max_population, max_for_uninhabited, is_active, ascending_time,likelihood_parameters = pdm.read_population_data_info(tim_info_path)
+            population_data = PopulationData("Timmermann", is_active, lats_ncf, lons_ncf, ts_ncf, dens_ncf, time_likelihood_ratio, density_multiplier,bin_size, max_population, max_for_uninhabited, ascending_time,likelihood_parameters)
+        else:
+            print "Unknown population data"
+            sys.exit()
     mp.set_parameter('date_window', date_window)
     mp.set_parameter('date_lag', date_lag)
     if user_max_for_uninhabited != -1:
@@ -375,5 +376,5 @@ def run_experiment(results_path, target_list_file, output_directory, population_
     # if perform_cross_validation:
     #     mp.set_number_of_kfolds(number_of_kfolds)
     #     mp.set_minimum_likelihood_ratio(minimum_likelihood_ratio)
-    mp.generate_results(population_data, target_list, results_path, output_directory)
+    mp.generate_results(population_data, target_list, results_path, output_directory,low_res)
 

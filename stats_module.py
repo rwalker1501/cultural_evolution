@@ -6,8 +6,6 @@ from scipy.stats import linregress, ks_2samp,poisson;
 from scipy.sparse import spdiags
 from math import *
 import sys
-import cPickle as pkl
-import json
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
@@ -16,80 +14,113 @@ from matplotlib.patches import Polygon
 
 
 
-def compute_likelihood_model(directory,results_path, merged_dataframe, low_res=False):
- # fix parameter values for scan
- # when the low_res parameter is set to true, the system produces low_res graphs. Used for system testing and exploratory testing
+def compute_likelihood_model(directory,results_path, population_data,merged_dataframe, low_res=False):
+ 
+ # This function computes the likelihood of our model and the most likely values for the model parameters. Data is stored in results path
+ 
+ # The input data is in the merged data_frame (Note for Camille: this is the data we gave Eriksson - should be possible to simplify)
+ # When the low_res parameter is set to true, the system produces low_res graphs. Used for system testing and exploratory testing
+ # Set up the ranges of values to be tested for the three parameters in the model
+ # In low_res we explore the same ranges as in high_res but with many fewer samples
+ # The parameter values are set up in the info files for the population_dats
+ # lambda is the death rate
+ # Zetta is the base probability that a  territorial unit) contains at least one site
+ # Eps is an error - means that there is a positive probability that a site is present even in a territory with below threshold population
+ 
     if low_res:
-        lambda_v=np.arange(25,50,1) #same for eriksson and timmermann 
-        eps_v=np.linspace(0,0.1,num=11,endpoint=False) #eriksson only
- #       eps_v=np.linspace(0,0.5,num=11,endpoint=False) #timmermann
-        zetta_v=np.exp(np.linspace(log(1e-5),log(1e-3),num=11,endpoint=False)) #eriksson only
-       # zetta_v=np.exp(np.linspace(log(1e-4),log(1e-1),num=11,endpoint=False)) #timmermann  
+        lambda_v=np.linspace(population_data.likelihood_parameters[0],population_data.likelihood_parameters[1],num=24)
+        zetta_v=np.exp(np.linspace(log(population_data.likelihood_parameters[2]),log(population_data.likelihood_parameters[3]),num=11,endpoint=False)) 
+        eps_v=np.linspace(population_data.likelihood_parameters[4],population_data.likelihood_parameters[5],num=11,endpoint=False) #eriksson only
     else:
-        lambda_v=np.arange(25,50,0.1)
-        eps_v=np.linspace(0,0.1,num=101,endpoint=False)
-        zetta_v=np.exp(np.linspace(log(1e-5),log(1e-3),num=101,endpoint=False))      
-    rho_bins=np.arange(2,3001)# creates numbers (2...3000). Note: in the matlab this is a COLUMN VECTOR - can't see why we need 3000 when using timmermann data
-    rho_bins_4_python=np.append(rho_bins,3001)  
-   #     bin_width=300 #This is obviously wide for timmermann data
-    bin_width=200 #This gives nicer looking graph
-    bin_boundaries2_4_python=np.arange(2,3001,bin_width) 
+        lambda_v=np.linspace(population_data.likelihood_parameters[0],population_data.likelihood_parameters[1],num=240)
+        zetta_v=np.exp(np.linspace(log(population_data.likelihood_parameters[2]),log(population_data.likelihood_parameters[3]),num=101,endpoint=False))
+        eps_v=np.linspace(population_data.likelihood_parameters[4],population_data.likelihood_parameters[5],num=101,endpoint=False)
+ # rho_bins are the bins where we count number of samples and controls. Note we use 3001 bins - probably more than necessary. 
+ # this gives the highest possible resolution using the Eriksson data
+    rho_bins=np.linspace(0,33,num=3001,endpoint=False)
+ # The bins in the python histogram function are open intervals - in matlab they are closed. We add the additional point to make sure the code is
+ # identical in both languages
+ 
+    rho_bins_4_python=np.append(rho_bins,33)
+# When we show the actual frequencies in Figure 1 - we use smaller bins - with a larger number of samples per bin. This makes the graph easier to read
+# bin_boundaries2_4_python contains the second type of bis
+    bin_width=2 
+    bin_boundaries2_4_python=np.linspace(0,33,num=16,endpoint=False) 
+    bin_boundaries2_4_python=np.append(bin_boundaries2_4_python,33)
+# rho_bins2 contains actual bins used for graphing actual frequencies - ugly and could be improved
+    rho_bins2=bin_boundaries2_4_python[0:len(bin_boundaries2_4_python)-1]+bin_width/2 #This is horribly complicated - needs to be cleaned up
+# Count the number of samples and controls in each bin
     samples_counts=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==1],bins=rho_bins_4_python)[0] #Column  vector This is not strict translation of mathlab code. In mathlab the last bin contains 3000. In python it contains 2999-3000
     controls_counts=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==0],bins=rho_bins_4_python) [0] #Column  vector
-    globals_counts=np.histogram(merged_dataframe['density'],bins=rho_bins_4_python)[0]
+# Repeat for the larger bins
     control_counts2=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==0],bins=bin_boundaries2_4_python)[0]
     sample_counts2=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==1],bins=bin_boundaries2_4_python)[0]
+# Compute total number of controls and samples
     n_controls=np.sum(controls_counts)  
     n_samples=np.sum(samples_counts) 
-    n_globals=n_controls+n_samples # not sure these are needed
-    rho_bins2=bin_boundaries2_4_python[0:len(bin_boundaries2_4_python)-1]+bin_width/2 #This is EC2 not sure this is correct - depends on usage later on, needs to be adjusted to take account of nature of bins
+# Meant to avoid underflow in calculations but not fully understood.
     l_shift=n_samples*(log(float(n_samples)/float(n_controls))-1)
+# Computes size of parameter ranges according to range actually chosen - could be cleaned up
     n_lambda=len(lambda_v)
     n_eps=len(eps_v)
     n_zetta=len(zetta_v)
-    y_acc=np.linspace(0,1e-4,num=401) #COLUMN VECTOR. In Tindbergen program he had different values that generated a lot of zeros. These in turn created problems when we had to divide by last element in yy
-    acc=np.zeros((len(y_acc),len(rho_bins)))
+# Set up a (population data specific) range of possible values for the likelihood of a given set of observations
+    acc_likelihoods=np.linspace(population_data.likelihood_parameters[6],population_data.likelihood_parameters[7],num=1001) 
+#  Set up an array representing the accumulated likelihood of a given set of sample and control counts 
+#  Across all possible values of the parameters
+    acc=np.zeros((len(acc_likelihoods),len(rho_bins)))
     lnL=np.zeros((n_lambda,n_eps,n_zetta))
     sqrt_rho_bins=np.sqrt(rho_bins) #These are the values we are computing - rhobins_4_python are intervals for histogram only. In original program were inside loop. Have moved it outside
-    max_LL=-float('inf')
+    max_LL=-float('inf') 
+    bin_zeros=np.zeros(len(sqrt_rho_bins))
+# Scan all possible values of the parameters
     for i_lambda in range (0,n_lambda):
         print '.'
         my_lambda=float(lambda_v[i_lambda]) 
-        bin_zeros=np.zeros(len(sqrt_rho_bins)) #in python I can't compare a vector with a scalar
-        pI=np.maximum(bin_zeros,1-my_lambda/sqrt_rho_bins)  #COLUMN VECTOR
+# Compute the predicted size of the infected population  as a proportion of population (p_infected) for all possible values of rho_bins, given the value of lambda. Guarantee it is always 0 or greater
+        p_infected=np.maximum(bin_zeros,1-my_lambda/sqrt_rho_bins)  #COLUMN VECTOR
+# Scan all possible values of lambda, zetta and eps
         for i_zetta in range(0,n_zetta):
             for i_eps in range (0, n_eps):
-                 pObs=np.zeros(len(pI)).astype(float)                
-                 pObs=zetta_v[i_zetta]*((1-eps_v[i_eps])*pI+eps_v[i_eps]) #COLUMN VECTOR (scalars * a column vector)
-                 pObs_small=np.zeros(len(pObs))
-                 pObs_small.fill(1e-20)
-                 pObs=np.maximum(pObs,pObs_small)
-                 pObs=pObs.astype(float)
-                 log_samples=np.dot(samples_counts,np.log(pObs)) 
-                 log_controls=np.dot(controls_counts,np.log(1-pObs)) 
+                 my_zetta=zetta_v[i_zetta]
+                 my_eps=eps_v[i_eps]
+# Predicts the probability of finding a site in a territory for each of the population densities in rho_bins. Make sure value is never too small
+                 p_predicted=np.zeros(len(p_infected)).astype(float) 
+                 p_predicted=my_zetta*((1-my_eps)*p_infected+my_eps)
+                 p_predicted_small=np.zeros(len(p_predicted))
+                 p_predicted_small.fill(1e-20)
+                 p_predicted=np.maximum(p_predicted,p_predicted_small)
+                 p_predicted=p_predicted.astype(float) #Probably not necessary
+# Computes the log likelihood of obtaining the OBSERVED number of samples at a given value of rho_bins, given the predicted number of samples
+                 log_samples=np.dot(samples_counts,np.log(p_predicted)) 
+# The same for controls
+                 log_controls=np.dot(controls_counts,np.log(1-p_predicted)) 
+# Computes the log likelihood of a certain number of samples AND a certain number of controls (for a given value of rho_bins)
                  LL=log_samples+log_controls
+# Finds the parameter values with the highest likelihood
                  if LL>max_LL:
                      max_LL=LL
-                     max_lambda=lambda_v[i_lambda]
-                     max_zetta=zetta_v[i_zetta]
-                     max_eps=eps_v[i_eps]
+                     max_lambda=my_lambda
+                     max_zetta=my_zetta
+                     max_eps=my_eps
+# Stores the log likelihood in an array indexed the position of the parameter values in the parameter ranges
+                 lnL[i_lambda,i_eps,i_zetta]=LL 
+# Computes the actual likelihood of the observations and applies a left shift to make sure it is not too large (This means values shown are relative only)
                  L=np.exp(LL-l_shift)
-                 lnL[i_lambda,i_eps,i_zetta]=LL # This is different from original datastructure. Will require change of later code. I could also assign using an array op.
-        #         rhs=np.floor(1+pObs/y_acc[1]).astype(int) #This is original code - yields a 1-based index. I dont like y_acc[1]- This is actually y_acc step
-                 len_y_acc=np.array(len(y_acc))
-                 len_y_acc.fill(len(y_acc))
-                 i_acc=np.minimum(len_y_acc,np.floor(1+pObs/y_acc[1]).astype(int)) #vThis yields column vector of indexes corresponding to different values of pObs. ector length =401. Maximum value of index =400 (zero based vector).I am keeping it 1-based
+                 len_acc_likelihoods=np.array(len(acc_likelihoods))
+                 len_acc_likelihoods.fill(len(acc_likelihoods))
+# Create a one dimensional array of indexes pointing to values in acc_likelihoods (e.g. possible likelihood values) corresponding to different values of pObs,COMPLEX - WOULD BE NICE TO HAVE EASIER APPROACH. 
+                 i_acc=np.minimum(len_acc_likelihoods,np.floor(1+p_predicted/acc_likelihoods[1]).astype(int)) #vThis yields column vector of indexes corresponding to different values of pObs. ector length =401. Maximum value of index =400 (zero based vector).I am keeping it 1-based
                  for i in range(0,len(i_acc)):
                      x_coord=i_acc[i]-1
                      y_coord=i
+# Accumulate likelihood values (x coord) for a each possible value of rho_bins (y_coord) across all values of the parameters
                      acc[x_coord,y_coord]=acc[x_coord,y_coord]+L
-    scale = (2/sqrt(3))/100 #  convert from hexagon pop size to Timmermann units, inds/100 km^2
-    lambda_v = lambda_v*sqrt(scale)
-    rho_bins = rho_bins*scale
-    rho_bins2=rho_bins2*scale
-    max_lambda=max_lambda*sqrt(scale)
+# Compute threshold from model - used in grap
     opt_threshold=max_lambda**2  #Not sure about this
-    plm.plot_maximum_likelihood(acc,rho_bins,rho_bins2,y_acc, lambda_v, opt_threshold, sample_counts2, control_counts2, scale,directory,results_path)
+# Plot maximum likelihood graph
+    plm.plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, lambda_v, opt_threshold, sample_counts2, control_counts2, directory,results_path)
+# Plot graphs for most likely values of each parameter
     plm.plot_parameter_values(lnL,lambda_v, zetta_v, eps_v,directory,results_path)
     return(max_lambda, max_zetta, max_eps, opt_threshold)
     
@@ -197,7 +228,7 @@ def generate_bin_values_dataframe(dataframe, globals_dataframe, population_data,
             current_global_count = 0;
         global_counts.append(current_global_count)
         
-        # likelihood ratio: sample_count/global_count
+        # likelihood ratio: sample_count/global_count - probably no lomger necessary
         likelihood_ratio = -1
         if(current_global_count != 0):
             likelihood_ratio = float(current_sample_count)/current_global_count

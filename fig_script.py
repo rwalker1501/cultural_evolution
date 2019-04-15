@@ -43,9 +43,9 @@ import main_module as mm
 base_path = os.getcwd()
 
 
-mm.run_experiment(base_path, "rpv12 no equatorials exact direct", "rpv12 no equatorials exact direct",globals_type="No equatorials",date_window=24);
+mm.run_experiment(base_path, "rpv12 no equatorials exact direct", "rpv12 no equatorials exact direct",globals_type="No equatorials",date_window=24,low_res=True);
 #mm.run_experiment(base_path, "rpv12 no equatorials", "rpv12 no equatorials",globals_type="No equatorials",date_window=24);
-#mm.run_experiment(base_path, "rpv12 no equatorials exact direct", "rpv12_timmermann", population_data_name="Timmermann",globals_type="No equatorials",date_window=999);
+#mm.run_experiment(base_path, "rpv12 no equatorials exact direct", "rpv12_timmermann", population_data_name="Timmermann",globals_type="No equatorials",date_window=999,low_res=True);
 
 # exit();
 

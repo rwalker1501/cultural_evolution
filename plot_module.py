@@ -1,4 +1,5 @@
 
+from __future__ import division
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import numpy as np
@@ -287,44 +288,38 @@ def plot_densities_on_map_by_time_range(population_data, start_time, end_time):
     plt.savefig(map_path, dpi=500)
     plt.close()
     
-def plot_maximum_likelihood(acc,rho_bins,rho_bins2,y_acc, lambda_v, opt_threshold, samples_counts2, controls_counts2, scale, directory,file_path):
+def plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, lambda_v, opt_threshold, samples_counts2, controls_counts2, directory,file_path):
+ # Adds a small positive contant to each item in acc. Not quite sure why.
     max_acc=acc.max(axis=0) *1e-10   #largest accumulated likelihood for a given rho multiplied by a small constant - gives roughly constant result
     acc_plus=(acc+max_acc)
-    yy=np.cumsum(acc_plus,axis=0) #This will give me cumulated likelihood for each column as in mathlab but is going to lead to shape problems. May need transpose
+ # Accumulates the likelihoods for all values of rho_bins and stores in yy
+    yy=np.cumsum(acc_plus,axis=0) 
     np.seterr(divide='ignore',invalid='ignore') #probably not necessary
-    yy=np.divide(yy,yy[len(yy)-1:]) # Should give me cumulated likelihood up to 1 - seems to work
+ # Transforms absolutde likelihoods into relative likelihoods on a scale from 0 to 1
+    yy=np.divide(yy,yy[len(yy)-1:]) 
+ # Represents likelihood of model at different values of rho_bins with p=0.025, 0.25, 0.5, 0.75, 0.975
     pred_int=np.zeros((len(rho_bins),6)) #Not sure about size of this - in the original looks like an empty matrix - NOW LESS SURE
     for k in range (0,len(rho_bins)):
-# =============================================================================
-#         first_sub=np.array((0)) # 0;
-#         second_sub=yy[0:(len(yy)-1),k] #yy(1:end-1,k)] I am suspicious of this. Sometimes suddenly jumps to 1,
-# =============================================================================
         data_x=np.hstack((np.array((0)),yy[0:(len(yy)-1),k])) #[0; yy(1:end-1,k)]. This looks OK
-        interpolated=np.interp([0.025, 0.25, 0.5, 0.75, 0.975], data_x,y_acc) #Not sure I have interpreted this correctly. 
-# =============================================================================
-#         first_sub2=y_acc[0:(len(y_acc)-1)]+y_acc[1:len(y_acc)] #*(yacc(1:end-1)+yacc(2:end)))
-#         second_sub2=acc[0:len(acc)-1,k] #Acc(1:end-1,k))This is mostly zeros in current version
-#         third_sub2=np.sum(acc[0:(len(acc)-1),k],axis=0) #sum(Acc(1:end-1,k))]; yields a single small float
-# =============================================================================
-        term2_1=np.dot(y_acc[0:(len(y_acc)-1)]+y_acc[1:len(y_acc)],acc[0:len(acc)-1,k]) #unsure about this. Is it a dot or a matrix multiplicaiton. It also works as a matrix multiplication but that is not what I am using now
+# Computes interpolated value of likelihood for different certainty levels for all values of rho_bins 
+        interpolated=np.interp([0.025, 0.25, 0.5, 0.75, 0.975], data_x,acc_likelihoods) #Not sure I have interpreted this correctly. 
+        term2_1=np.dot(acc_likelihoods[0:(len(acc_likelihoods)-1)]+acc_likelihoods[1:len(acc_likelihoods)],acc[0:len(acc)-1,k]) #unsure about this. Is it a dot or a matrix multiplicaiton. It also works as a matrix multiplication but that is not what I am using now
         if(term2_1==0) and (np.sum(acc[0:(len(acc)-1),k],axis=0)==0):
             term2=0
         else:
             term2=((0.5*term2_1/np.sum(acc[0:(len(acc)-1),k],axis=0)))
         pred_int[k,:]=np.hstack((interpolated,term2)) #This is one dimensional - correct - but not sure why it is doing this. Adds a 6th element which is not in sequence with the others and which seems to be  never used.
-# =============================================================================
-#     lambda_v = lambda_v*sqrt(scale)
-#     rho_bins = rho_bins*scale
-#     rho_bins2=rho_bins2*scale
-# =============================================================================
     patches=[]
+# For the x values we concatenate all values of rho_bins with the inverted list of rho_bin values
     term1=rho_bins
     term2=np.flip(rho_bins,0)
     h1_x=np.hstack((term1,term2))
+# Create a shaded polygon showing all values with certainty between 0.025 and 0.975
     h1_y=np.hstack((pred_int[:,0],np.flip(pred_int[:,4],0)))
     h1_array=np.vstack((h1_x,h1_y)).T
     h1 = Polygon(h1_array,linewidth=1,edgecolor='none',facecolor=(1,0.9,0.9),closed=True,antialiased=True)
     patches.append(h1)
+# Create a secibd shaded polygon showing all values with certainty between 0.25 and 0.75
     h2_x = np.hstack((rho_bins,np.flip(rho_bins,0))) 
     h2_y=np.hstack((pred_int[:,1],np.flip(pred_int[:,3],0)))
     h2_array=np.vstack((h2_x,h2_y)).T
@@ -332,14 +327,15 @@ def plot_maximum_likelihood(acc,rho_bins,rho_bins2,y_acc, lambda_v, opt_threshol
     patches.append(h2)
     fig1 = plt.figure();
     ax = fig1.add_subplot(111)
-    plt.gca().set_xlim(0, 30);
- #   p = PatchCollection(patches, alpha=0.4)
-#    ax.add_collection(p)
+    plt.gca().set_xlim(0, 33);
+# Add two polygons to plot
     ax.add_patch(h1)
     ax.add_patch(h2)
     ax.axvline(opt_threshold, color='g', linestyle='--',label="Threshold")
+# Add line showing best fit of model
     ax.plot(rho_bins,pred_int[:,2],linewidth=1, color='blue',antialiased=True)
-    ax.plot(rho_bins2,samples_counts2/(samples_counts2+controls_counts2),color='black', marker='o', markersize=3,linestyle='None',antialiased=True)
+# Add line showing (coursely binned) experimental values
+    ax.plot(rho_bins2,np.true_divide(samples_counts2, samples_counts2+controls_counts2),color='black', marker='o', markersize=3,linestyle='None',antialiased=True)
     fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_fit to model.png"
     fig1.savefig(fig_path)
     plt.close()
