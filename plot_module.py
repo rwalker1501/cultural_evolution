@@ -1,11 +1,9 @@
-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 from __future__ import division
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 import numpy as np
-import pandas as pd
 import os
-from math import *
 from matplotlib.pyplot import cm 
 from matplotlib.font_manager import FontProperties
 from mpl_toolkits.basemap import Basemap
@@ -288,7 +286,7 @@ def plot_densities_on_map_by_time_range(population_data, start_time, end_time):
     plt.savefig(map_path, dpi=500)
     plt.close()
     
-def plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, lambda_v, opt_threshold, samples_counts2, controls_counts2, directory,file_path):
+def plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, lambda_v, opt_threshold, samples_counts2, controls_counts2, model,directory,file_path):
  # Adds a small positive contant to each item in acc. Not quite sure why.
     max_acc=acc.max(axis=0) *1e-10   #largest accumulated likelihood for a given rho multiplied by a small constant - gives roughly constant result
     acc_plus=(acc+max_acc)
@@ -313,6 +311,7 @@ def plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, lambda_v, op
 # For the x values we concatenate all values of rho_bins with the inverted list of rho_bin values
     term1=rho_bins
     term2=np.flip(rho_bins,0)
+# This concatenates rho_bins with the inverse of row binds
     h1_x=np.hstack((term1,term2))
 # Create a shaded polygon showing all values with certainty between 0.025 and 0.975
     h1_y=np.hstack((pred_int[:,0],np.flip(pred_int[:,4],0)))
@@ -331,40 +330,53 @@ def plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, lambda_v, op
 # Add two polygons to plot
     ax.add_patch(h1)
     ax.add_patch(h2)
-    ax.axvline(opt_threshold, color='g', linestyle='--',label="Threshold")
+    plt.xlabel('Population density')
+    plt.ylabel('Site frequency')
+    plt.tight_layout()
+    if model=='epidemiological':
+        ax.axvline(opt_threshold, color='g', linestyle='--',label="Threshold")
 # Add line showing best fit of model
     ax.plot(rho_bins,pred_int[:,2],linewidth=1, color='blue',antialiased=True)
 # Add line showing (coursely binned) experimental values
     ax.plot(rho_bins2,np.true_divide(samples_counts2, samples_counts2+controls_counts2),color='black', marker='o', markersize=3,linestyle='None',antialiased=True)
-    fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_fit to model.png"
+    fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_fit to "+model+ " model.png"
     fig1.savefig(fig_path)
     plt.close()
     
-def plot_parameter_values(lnL,lambda_v, zetta_v, eps_v,directory,file_path):
-    #      Figure 2
-    fig2 = plt.figure();
+def plot_parameter_values(lnL,lambda_v, zetta_v, eps_v,model,directory,file_path):
+   
     lnlminusmax=lnL-np.amax(lnL)
     exp_lnlminusmax=np.exp(lnlminusmax)
     dim1=np.mean(exp_lnlminusmax,axis=2)  #up to here - look at definition of dimension
-    p_lambda = np.squeeze(np.mean(dim1,axis=1))
-    p_lambda=np.true_divide(p_lambda,np.trapz(p_lambda,lambda_v))
-    ax2=fig2.add_subplot(111)
-    ax2.plot(lambda_v,p_lambda)
-    plt.xlabel('lambda')
-    fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_lambda.png"
-    fig2.savefig(fig_path)
-    plt.show
+     #      Figure 2
+    if model=='epidemiological':
+        fig2 = plt.figure();
+        p_lambda = np.squeeze(np.mean(dim1,axis=1))
+        p_lambda=np.true_divide(p_lambda,np.trapz(p_lambda,lambda_v))
+        ax2=fig2.add_subplot(111)
+        ax2.plot(lambda_v,p_lambda);
+        plt.xlabel(r'$\lambda$')
+        plt.ylabel('Likelihood')
+        plt.xlim(min(lambda_v),max(lambda_v))
+        fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_epidemiological_lambda.png"
+        fig2.savefig(fig_path)
+        plt.close()
+       
      #     Figure 3 - in the end we will move this into plot library
-    fig3 = plt.figure();
-    dim1=np.mean(exp_lnlminusmax,axis=2) 
-    p_eps = np.squeeze(np.mean(dim1,axis=0))
-    p_eps=np.true_divide(p_eps,np.trapz(p_eps,eps_v))
-    ax3=fig3.add_subplot(111)
-    ax3.plot(eps_v,p_eps)
-    plt.xlabel('epsilon')
-    fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_eps.png"
-    fig3.savefig(fig_path)
-    plt.show
+    if model=='epidemiological' or model=='linear':
+        fig3 = plt.figure();
+        dim1=np.mean(exp_lnlminusmax,axis=2) 
+        p_eps = np.squeeze(np.mean(dim1,axis=0))
+        p_eps=np.true_divide(p_eps,np.trapz(p_eps,eps_v))
+        ax3=fig3.add_subplot(111)
+        ax3.plot(eps_v,p_eps);
+        plt.xlabel(r'$\epsilon$')
+        plt.ylabel('Likelihood')
+        plt.xlim(min(eps_v),max(eps_v))
+        fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+model+"_eps.png"
+        fig3.savefig(fig_path)
+        plt.close()
+        
      #     Figure 4 - in the end we will move this into plot library
     fig4 = plt.figure();
     dim1=np.mean(exp_lnlminusmax,axis=0) 
@@ -372,14 +384,17 @@ def plot_parameter_values(lnL,lambda_v, zetta_v, eps_v,directory,file_path):
     trapz=np.trapz(p_zetta,np.log10(zetta_v))
     p_zetta=np.true_divide(p_zetta,trapz)
     x_data=np.log10(zetta_v)
+    plt.xlim(min(x_data),max(x_data))
     trapz=np.trapz(p_zetta,np.log10(zetta_v))
     y_data=np.true_divide(p_zetta,trapz)
     ax4=fig4.add_subplot(111)
-    ax4.set_xlabel("log10 zetta")
-    ax4.plot(x_data, y_data)
-    fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_zetta.png"
+    plt.xlabel("log10 " + r"$\zeta$")
+    plt.ylabel('Likelihood')
+    ax4.plot(x_data, y_data);
+    fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+ model+"_zeta.png"
     fig4.savefig(fig_path)
-    plt.show
+    plt.close()
+    
 
 def get_map_file_path(filename):
     base_path = os.getcwd();

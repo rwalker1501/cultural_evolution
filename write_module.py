@@ -210,9 +210,9 @@ def write_bin_table(a_file, bin_values_df, minimum_globals):
         a_file.write(str(bin_array[i]) + ';')
         a_file.write(str(sample_counts[i]) + ';')
         a_file.write(str(global_counts[i]) + ';')
-        a_file.write(str(likelihood_ratios[i]) + ';')
-        a_file.write(str(p_samples[i]) + ';')
-        a_file.write(str(p_globals[i]) + ";")
+        a_file.write('{:.4f}'.format(likelihood_ratios[i]) + ';')
+        a_file.write('{:.4f}'.format(p_samples[i]) + ';')
+        a_file.write('{:.4f}'.format(p_globals[i]) + ";")
         a_file.write("\n")
 
 def write_analysis(f2, stat_dictionary, min_p):
@@ -222,21 +222,21 @@ def write_analysis(f2, stat_dictionary, min_p):
     f2.write('Total sites: '+str(stat_dictionary['total_samples'])+'\n')
     f2.write('Total globals: '+str(stat_dictionary['total_globals'])+'\n\n')
 
-    f2.write('Median density for sites: '+str(stat_dictionary['median_samples'])+'\n')
-    f2.write('Median density for globals: '+str(stat_dictionary['median_globals'])+'\n\n')
+    f2.write('Median density for sites: '+'{:.2f}'.format(stat_dictionary['median_samples'])+'\n')
+    f2.write('Median density for globals: '+'{:.2f}'.format(stat_dictionary['median_globals'])+'\n\n')
 
-    f2.write('Mean density for sites: '+str(stat_dictionary['mean_samples'])+'\n')
-    f2.write('Mean density for globals: '+str(stat_dictionary['mean_globals'])+'\n\n')
+    f2.write('Mean density for sites: '+'{:.2f}'.format(stat_dictionary['mean_samples'])+'\n')
+    f2.write('Mean density for globals: '+'{:.2f}'.format(stat_dictionary['mean_globals'])+'\n\n')
 
-    f2.write('Standard deviation of density for sites: '+str(stat_dictionary['std_samples'])+'\n')
-    f2.write('Standard deviation of density for globals: '+str(stat_dictionary['std_globals'])+'\n\n')
+    f2.write('Standard deviation of density for sites: '+'{:.2f}'.format(stat_dictionary['std_samples'])+'\n')
+    f2.write('Standard deviation of density for globals: '+'{:.2f}'.format(stat_dictionary['std_globals'])+'\n\n')
 
     ks_p = stat_dictionary['ks_p']
     ks_d = stat_dictionary['ks_d']
 
     f2.write('K S2 test for p_samples vs p_globals:\n');
-    f2.write('    ks_d: ' + str(float(ks_d)) + '\n')
-    f2.write('    ks_p: ' + str(float(ks_p)) + '\n')
+    f2.write('    ks_d: ' + '{:.4f}'.format(ks_d) + '\n')
+    f2.write('    ks_p: ' + '{:.4f}'.format(ks_p) + '\n')
     if ks_p < min_p:
         f2.write('    The two distribitions are significantly different p<0.001'+'\n')
 

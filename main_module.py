@@ -6,25 +6,13 @@
 import numpy as np
 import os
 import sys
-import random
 import target_module as tam
 import population_data_module as pdm
 import stats_module as stm
 import plot_module as plm
 import write_module as wrm
 import pandas as pd
-import math
-from os import listdir
-from os.path import isfile, join
-from copy import deepcopy
-from scipy.stats import binom_test,wilcoxon,linregress,ks_2samp
-from scipy.optimize import curve_fit
-from sklearn.metrics import r2_score
-from sklearn.model_selection import RepeatedKFold
-from datetime import date
-from classes_module import Target, PopulationData
 from datetime import datetime
-from mpmath import mpf
 pd.options.mode.chained_assignment = None 
 
 
@@ -210,7 +198,6 @@ class MainProgram:
             os.makedirs(new_path)
         results_filename= os.path.join(new_path, directory + "_results.csv") 
 
-        print("Results: " + results_filename)
         f2= open(results_filename, 'w')
 
 
@@ -273,6 +260,7 @@ class MainProgram:
         print("Writing analysis...")
         wrm.write_analysis(f2, stat_dictionary, self.parameters['min_p']);
 
+        
         ###############
         # Plot Graphs #
         ###############
@@ -282,38 +270,46 @@ class MainProgram:
 
         # plots targets and globals on a map
         plm.plot_targets_on_map(self.dataframe, self.globals_dataframe, new_path, directory)
+        
+        ###############
+        # Compare likelihoods of epidemiological, linear and constant models 
+        ###############
+        models=('epidemiological','linear','constant')
+        max_likelihood=np.zeros(3)
+        for i in range(0,len(models)):
+            print "model=",models[i]
+            max_lambda, max_zetta, max_eps, max_likelihood[i], opt_threshold=stm.compute_likelihood_model(directory,results_path, population_data,merged_dataframe,models[i],low_res)  #Not elegant - should have same datastructure for both counts
+            write_likelihood_results(f2,max_lambda, max_zetta, max_eps, max_likelihood[i], opt_threshold,models[i] )
+        epid_over_linear=np.exp(max_likelihood[0]-max_likelihood[1])
+        epid_over_constant=np.exp(max_likelihood[0]-max_likelihood[2])
+        wrm.write_label(f2,'Bayes factors')
+        f2.write( 'Bayes factor epidemiological over linear='+'{:.3g}'.format(epid_over_linear)+'\n')
+        f2.write( 'Bayes factor epidemiological over constant='+'{:.3g}'.format(epid_over_constant)+'\n')
+        f2.close();
+        return max_likelihood
 
         
-          ###############
-        # Compute likelihood of model #
-        ###############
-# =============================================================================
-#         rho_bins=np.arange(2,3001)# creates numbers (2...3000). Note: in the matlab this is a COLUMN VECTOR - can't see why we need 3000 when using timmermann data
-#         rho_bins_4_python=np.append(rho_bins,3001)  
-#    #     bin_width=300 #This is obviously wide for timmermann data
-#         bin_width=200 #This gives nicer looking graph
-#         bin_boundaries2_4_python=np.arange(2,3001,bin_width) 
-#         samples_counts=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==1],bins=rho_bins_4_python)[0] #Column  vector This is not strict translation of mathlab code. In mathlab the last bin contains 3000. In python it contains 2999-3000
-#         controls_counts=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==0],bins=rho_bins_4_python) [0] #Column  vector
-#         globals_counts=np.histogram(merged_dataframe['density'],bins=rho_bins_4_python)[0]
-#         control_counts2=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==0],bins=bin_boundaries2_4_python)[0]
-#         sample_counts2=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==1],bins=bin_boundaries2_4_python)[0]
-#    #     counts2=np.array((control_counts2,sample_counts2)).T
-# # =============================================================================
-# #  #       rho_bins=np.arange(2,31)
-# #         rho_bins_4_python=np.append(rho_bins,3001)
-# #   #      rho_bins_4_python=np.append(rho_bins,31)
-# # =============================================================================
-#         merged_dataframe=[] #Hoping it will now be garbage collected
-# =============================================================================
-        max_lambda, max_zetta, max_eps, opt_threshold=stm.compute_likelihood_model(directory,results_path, population_data,merged_dataframe,low_res)  #Not elegant - should have same datastructure for both counts
-        wrm.write_label(f2, "Results of max likelihood analysis")
-        f2.write("Max lambda="+str(max_lambda)+"\n")
-        f2.write("Max zetta="+str(max_zetta)+"\n")
-        f2.write("Max eps="+str(max_eps)+"\n")
-        f2.write("Optimal_threshold="+str(opt_threshold)+"\n")
-        f2.close();
-        return "Generated results"
+      
+
+def write_likelihood_results(aFile,max_lambda, max_zetta, max_eps, max_likelihood, opt_threshold,model ):
+        wrm.write_label(aFile, "Results of max likelihood analysis for "+model+" model")
+        if model=='epidemiological':
+            aFile.write("Max lambda="+'{:.2f}'.format(max_lambda)+"\n")
+            aFile.write("Optimal_threshold="+'{:.2f}'.format(opt_threshold)+"\n")
+        if model=='epidemiological' or model=='linear':
+            aFile.write("Max eps="+'{:.2f}'.format(max_eps)+"\n")
+        aFile.write("Max zetta="+'{:.2f}'.format(max_zetta)+"\n")
+        aFile.write("Max likelihood="+'{:.0f}'.format(max_likelihood)+"\n")
+        if model=='epidemiological':
+            k=3
+        else:
+            if model=='linear':
+                k=2
+            else:
+                if model=='constant':
+                    k=1                               
+        aFile.write("AIC="+ '{:.2f}'.format(2*k-2*max_likelihood)+"\n")
+    
 
 def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", globals_type="All", date_window=24, date_lag = 0, user_max_for_uninhabited=-1, clustering_on = False, critical_distance=0, critical_time=10000, filter_date_before=-1, filter_not_direct=False, filter_not_exact=False, filter_not_figurative=False, filter_not_controversial = False,  filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False,low_res=True):
   # Note: current setting of minimum_globals is overwritten in stats_modulegenera - would be good to make this symmetrical so all data sources use same data loading procedure
