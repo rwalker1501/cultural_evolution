@@ -49,21 +49,21 @@ class Target():
 
 class PopulationData():
 
-    def __init__(self, name, is_active, lat_array, lon_array, time_array, density_array, time_multiplier, density_multiplier,bin_size, max_population, max_for_uninhabited, ascending_time,likelihood_parameters):
+    def __init__(self, name, lat_array, lon_array, time_array, density_array, population_data_info):
         
         self.name = name
         self.lat_array = lat_array
         self.lon_array = lon_array
         self.time_array = time_array
         self.density_array = density_array
-        self.time_multiplier = time_multiplier
-        self.density_multiplier=density_multiplier
-        self.bin_size = bin_size
-        self.max_population = max_population
-        self.is_active = is_active
-        self.max_for_uninhabited = max_for_uninhabited
-        self.ascending_time = ascending_time
-        self.likelihood_parameters=likelihood_parameters
+        self.time_multiplier = population_data_info['time_multiplier']
+        self.density_multiplier= population_data_info['density_multiplier']
+        self.bin_size = population_data_info['bin_size']
+        self.max_population = population_data_info['max_population']
+        self.is_active = population_data_info['is_active']
+        self.max_for_uninhabited = population_data_info['max_for_uninhabited']
+        self.ascending_time = population_data_info['ascending_time']
+        self.likelihood_parameters= population_data_info['likelihood_parameters']
         
         
         

@@ -6,6 +6,7 @@
 import numpy as np
 import os
 import sys
+import json
 import target_module as tam
 import population_data_module as pdm
 import stats_module as stm
@@ -27,39 +28,20 @@ class MainProgram:
 
     def __init__(self):
         self.base_path = os.getcwd();
-        self.population_data_sources = []
+        self.population_data_sources = {}
         self.target_list=[]
         self.dataframe = pd.DataFrame()
         self.globals_dataframe = pd.DataFrame()
 
-        parameters = {};
-        parameters['filters_applied'] = "";
-        parameters['dataframe_loaded'] = False;
-        parameters['globals_type'] = "All";
-        parameters['date_window'] = 24
-        parameters['date_lag'] = 0;
-        parameters['user_max_for_uninhabited'] = 1;
-        parameters['default_max_for_uninhabited'] = False;
-        parameters['max_lat'] = 60;
-        parameters['min_lat'] = -40;
-        parameters['max_date'] = 50000;
-        parameters['min_date'] = 0;
-        parameters['min_globals'] = 1;
-        parameters['min_p'] = 0.01;
-
-        parameters['clustering_on'] = False;
-        parameters['critical_distance'] = 0;
-        parameters['critical_time'] = 10000;
-
-        self.parameters = parameters;
+        self.parameters = json.load(open('default_param.txt'));
 
     ##################
     # Setter Methods #
     ##################
 
 
-    def set_population_data_active(self, is_active, index):
-        self.population_data_sources[index].is_active = is_active;
+    def set_population_data_active(self, is_active, key):
+        self.population_data_sources[key].is_active = is_active;
     
 
     def set_target_list(self, some_target_list):
@@ -173,7 +155,7 @@ class MainProgram:
     # Generate Results Function #
     #############################
 
-    def generate_results(self, population_data, original_target_list, base_path, directory,low_res=True):
+    def generate_results(self, population_data, original_target_list, base_path, directory):
 
 
         # Check if a target list has been loaded, otherwise abort
@@ -233,7 +215,7 @@ class MainProgram:
         # Write filtered clustered target list #
         ########################################
         print("Writing target list...")
-        wrm.write_label(f2, "Target list after clustering")
+        wrm.write_label(f2, "Filtered Target List")
         wrm.write_cluster_table(f2, self.dataframe, self.parameters)
         
         #################
@@ -275,11 +257,12 @@ class MainProgram:
         ###############
         # Compare likelihoods of epidemiological, linear and constant models 
         ###############
+        print("Computing likelihoods Models")
         models=('epidemiological','linear','constant')
         max_likelihood=np.zeros(3)
         for i in range(0,len(models)):
             print "model=",models[i]
-            max_lambda, max_zetta, max_eps, max_likelihood[i], opt_threshold=stm.compute_likelihood_model(directory,results_path, population_data,merged_dataframe,models[i],low_res)  #Not elegant - should have same datastructure for both counts
+            max_lambda, max_zetta, max_eps, max_likelihood[i], opt_threshold=stm.compute_likelihood_model(directory,results_path, population_data,merged_dataframe,models[i], self.parameters['res_lambda'], self.parameters['res_zetta'], self.parameters['res_eps'])  #Not elegant - should have same datastructure for both counts
             write_likelihood_results(f2,max_lambda, max_zetta, max_eps, max_likelihood[i], opt_threshold,models[i] )
         epid_over_linear=np.exp(max_likelihood[0]-max_likelihood[1])
         epid_over_constant=np.exp(max_likelihood[0]-max_likelihood[2])
@@ -312,44 +295,46 @@ def write_likelihood_results(aFile,max_lambda, max_zetta, max_eps, max_likelihoo
         aFile.write("AIC="+ '{:.2f}'.format(2*k-2*max_likelihood)+"\n")
     
 
-def run_experiment(results_path, target_list_file, output_directory, population_data_name="Eriksson", globals_type="All", date_window=24, date_lag = 0, user_max_for_uninhabited=-1, clustering_on = False, critical_distance=0, critical_time=10000, filter_date_before=-1, filter_not_direct=False, filter_not_exact=False, filter_not_figurative=False, filter_not_controversial = False,  filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1, processed_targets=False,low_res=True):
-  # Note: current setting of minimum_globals is overwritten in stats_modulegenera - would be good to make this symmetrical so all data sources use same data loading procedure
+def run_experiment(results_path, target_list_file, output_directory, population_data_name='Eriksson', globals_type=None, date_window=None, date_lag=None, user_max_for_uninhabited=None, save_processed_targets=None, processed_targets=None, res_lambda=None, res_zetta=None, res_eps=None, max_date=None, max_lat=None, min_date=None, min_lat=None, min_p=None, min_globals=None, filter_date_before=-1, filter_not_direct=False, filter_not_exact=False, filter_not_figurative=False, filter_not_controversial = False,  filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1):
+
     mp = MainProgram()
-    base_path = mp.get_base_path()
-    pop_data_path = os.path.join(base_path, "population_data")
-    if population_data_name == "Eriksson":
-        eriksson_binary_path = os.path.join(pop_data_path, "eriksson.npz") #base_path+'/population_data/eriksson.npz'
-        eriksson_info_path = os.path.join(pop_data_path, "eriksson_info.txt") #base_path+'/population_data/eriksson_info.txt'
-        population_data = pdm.load_population_data_source("Eriksson", eriksson_binary_path, eriksson_info_path)
-    else:
-        if population_data_name=="Timmermann":
-            tim_fn= os.path.join(pop_data_path, "timmermann.npz") #base_path+'population_data/timmermann.npz'
-            data=np.load(tim_fn)
-            lats_ncf=data['lats_ncf']
-            lons_ncf=data['lons_ncf']
-            ts_ncf=data['ts_ncf']
-            dens_ncf=data['dens_ncf']
-            tim_info_path = os.path.join(pop_data_path, "timmermann_info.txt") #base_path+'/population_data/timmermann_info.txt'
-            # time_likelihood_ratio should be time_multiplier
-            time_likelihood_ratio, density_multiplier,bin_size, max_population, max_for_uninhabited, is_active, ascending_time,likelihood_parameters = pdm.read_population_data_info(tim_info_path)
-            population_data = PopulationData("Timmermann", is_active, lats_ncf, lons_ncf, ts_ncf, dens_ncf, time_likelihood_ratio, density_multiplier,bin_size, max_population, max_for_uninhabited, ascending_time,likelihood_parameters)
-        else:
-            print "Unknown population data"
-            sys.exit()
-    mp.set_parameter('date_window', date_window)
-    mp.set_parameter('date_lag', date_lag)
-    if user_max_for_uninhabited != -1:
-        mp.set_parameter('user_max_for_uninhabited', user_max_for_uninhabited)
-    mp.set_parameter('clustering_on', clustering_on)
-    mp.set_parameter('critical_distance', critical_distance)
-    mp.set_parameter('critical_time', critical_time)
-    mp.set_parameter('globals_type', globals_type)
+
+    if globals_type:
+        mp.set_parameter('globals_type', globals_type);
+    if date_window:
+        mp.set_parameter('date_window', date_window);
+    if date_lag:
+        mp.set_parameter('date_lag', date_lag);
+    if user_max_for_uninhabited:
+        mp.set_parameter('user_max_for_uninhabited', user_max_for_uninhabited);
+    if save_processed_targets:
+        mp.set_parameter('save_processed_targets', save_processed_targets);
+    if res_lambda:
+        mp.set_parameter('res_lambda', res_lambda);
+    if res_zetta:
+        mp.set_parameter('res_zetta', res_zetta);
+    if res_eps:
+        mp.set_parameter('res_eps', res_eps);
+    if max_date:
+        mp.set_parameter('max_date',  max_date);
+    if max_lat:
+        mp.set_parameter('max_lat', max_lat);
+    if min_date:
+        mp.set_parameter('min_date', min_date);
+    if min_lat:
+        mp.set_parameter('min_lat', min_lat);
+    if min_p:
+        mp.set_parameter('min_p');
+    if min_globals:
+        mp.set_parameter('min_globals');
     if processed_targets:
+        mp.set_parameter('processed_targets', processed_targets);
         target_list, dataframe, globals_dataframe = tam.load_processed_targets(results_path, output_directory)
         mp.set_target_list(target_list)
         mp.set_dataframe(dataframe, globals_dataframe)
     else:
         filters_applied = ""
+        base_path = mp.get_base_path();
         target_list = tam.read_target_list_from_csv(base_path+"/targets/" + target_list_file)
 
 
@@ -369,9 +354,11 @@ def run_experiment(results_path, target_list_file, output_directory, population_
             target_list, filters_applied = tam.filter_targets_for_latitude(target_list, filter_min_lat, filter_max_lat, filters_applied)
         mp.set_parameter('filters_applied', filters_applied)
 
-    # mp.set_perform_cross_validation(perform_cross_validation)
-    # if perform_cross_validation:
-    #     mp.set_number_of_kfolds(number_of_kfolds)
-    #     mp.set_minimum_likelihood_ratio(minimum_likelihood_ratio)
-    mp.generate_results(population_data, target_list, results_path, output_directory,low_res)
+    population_data = None;
+    if population_data_name == 'Eriksson' or population_data_name == 'Timmermann':
+        mp.load_population_data();
+        population_data = mp.population_data_sources[population_data_name];
+    else:
+        return;
+    mp.generate_results(population_data, target_list, results_path, output_directory)
 

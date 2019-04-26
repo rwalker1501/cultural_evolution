@@ -26,13 +26,13 @@ class Driver:
 			parameters = self.main_program.get_parameters();
 
 			print("Active Population Data")
-			for pop_data in population_data:
-				if pop_data.is_active:
-					print("   " + pop_data.name)
+			for key, val in population_data.iteritems():
+				if population_data[key].is_active:
+					print("   " + key)
 
 			self.print_target_list(target_list)
 
-			print("\nProcessed targets loaded: " + str(parameters['dataframe_loaded']))
+			print("\nProcessed targets loaded: " + str(parameters['processed_targets']))
 			filters_applied = parameters['filters_applied']
 			if len(filters_applied) > 0:
 				print("Filters applied: " + str(filters_applied));
@@ -68,10 +68,10 @@ class Driver:
 				if user_option == "y":
 					tam.clear_processed_targets(base_path)
 			elif user_option=='7':
-				for population_data_source in population_data:
-					if population_data_source.is_active:
+				for pop_data_name, pop_data in population_data.iteritems():
+					if pop_data.is_active:
 						directory=raw_input("Insert directory name: ")
-						report = self.main_program.generate_results(population_data_source, target_list, base_path, directory)
+						report = self.main_program.generate_results(pop_data, target_list, base_path, directory)
 						print(report);
 			elif user_option=='8':
 				self.add_population_data()
@@ -157,9 +157,6 @@ class Driver:
 		self.print_label("Filter target list")
 
 		parameters = self.main_program.get_parameters();
-		clustering = parameters['clustering_on'];
-		critical_distance = parameters['critical_distance'];
-		critical_time = parameters['critical_distance'];
 		filters_applied = parameters['filters_applied']
 
 		new_list = deepcopy(some_target_list)
@@ -171,9 +168,6 @@ class Driver:
 				print("\nFilters applied: " + str(filters_applied));
 			else:
 				print("\nFilters applied: None");
-			print("\nClustering: " + str(clustering))
-			print("Critical distance: " + str(critical_distance))
-			print("Critical time: " + str(critical_time))
 			print("\n------")
 			print("1) Exclude targets more recent than...")
 			print("2) Exclude targets with indirect measurements")
@@ -182,10 +176,8 @@ class Driver:
 			print("5) Exclude targets with controversial measurements")
 			print("6) Filter targets by date range")
 			print("7) Filter targets by latitude range")
-			print("8) Turn clustering ON")
-			print("9) Turn clustering OFF")
-			print("10) Cancel")
-			print("11) Save and exit")
+			print("8) Cancel")
+			print("9) Save and exit")
 
 			user_option = raw_input("Choose an option: ")
 			if user_option=='1':
@@ -207,18 +199,8 @@ class Driver:
 				minimum_latitude = self.get_number("Insert minimum latitude: ", -90, 90)
 				maximum_latitude = self.get_number("Insert maximum latitude: ", -90, 90)
 				new_list, filters_applied = tam.filter_targets_for_latitude(new_list, minimum_latitude, maximum_latitude, filters_applied)
-			elif user_option=='8':
-				critical_distance = self.get_number("Insert critical distance: ", 1, 1000)
-				critical_time = self.get_number("Insert critical time: ", 1, 150000)
-				clustering = True
 			elif user_option=='9':
-				clustering = False
-				critical_distance = 0
-			elif user_option=='11':
 				new_list = tam.reset_cluster_id_values(new_list);
-				self.main_program.set_parameter('clustering_on', clustering);
-				self.main_program.set_parameter('critical_distance', critical_distance);
-				self.main_program.set_parameter('critical_time', critical_time);
 				self.main_program.set_parameter('filters_applied', filters_applied);
 				self.main_program.set_target_list(new_list)
 
@@ -261,7 +243,7 @@ class Driver:
 			print("1) Set active population data")
 			print("2) Define date window for target: " + str(parameters['date_window']))
 			print("3) Toggle default max population for areas considered as uninhabited: " + str(parameters['default_max_for_uninhabited']) )
-			print("4) Define max population for areas considered as uninhabited (sets default=False): " + str(parameters['max_for_uninhabited']))
+			print("4) Define max population for areas considered as uninhabited (sets default=False): " + str(parameters['user_max_for_uninhabited']))
 			print("5) Define globals range: " + str(parameters['globals_type']))
 			print("6) Set minimum latitude for globals: " + str(parameters['min_lat']))
 			print("7) Set maximum latitude for globals: " + str(parameters['max_lat']) )
@@ -281,24 +263,18 @@ class Driver:
 				globals_option = 1
 				self.print_label("Define globals Range")
 				print("1) All")
-				print("2) Australia")
-				print("3) France and Spain")
-				print("4) Trial Latitudes")
-				print("5) Trial Latitudes 2")
-				print("6) No Empty Lats (New globals)")
+				print("2) No Equatorials")
+				print("3) Australia")
+				print("4) France and Spain")
 				globals_option = self.get_number("Insert option: ", 1, 6)
 				if globals_option == 1:
 					self.main_program.set_parameter('globals_type', "All")
 				elif globals_option == 2:
-					self.main_program.set_parameter('globals_type', "Australia")
+					self.main_program.set_parameter('globals_type', "No equatorials")
 				elif globals_option == 3:
-					self.main_program.set_parameter('globals_type', "France and Spain")
+					self.main_program.set_parameter('globals_type', "Australia")
 				elif globals_option == 4:
-					self.main_program.set_parameter('globals_type', "Trial Latitudes")
-				elif globals_option == 5:
-					self.main_program.set_parameter('globals_type', "Trial Latitudes 2")
-				elif globals_option == 6:
-					self.main_program.set_parameter('globals_type', "No Empty Lats")
+					self.main_program.set_parameter('globals_type', "France and Spain")
 			elif user_option=='6':
 				self.main_program.set_parameter('min_lat', self.get_number("Insert minimum latitude: ", -90, 90))
 			elif user_option=='7':
@@ -318,26 +294,30 @@ class Driver:
 			population_data_sources = self.main_program.get_population_data()
 			self.print_label("Toggle Active Population Data")
 			valid_number = True
+			pop_data_names = [];
 
-			for i in range(1, len(population_data_sources)):
-				population_data = population_data_sources[i]
-				to_print = str(i) + ") " + population_data.name + " - " + str(population_data.is_active)
-				print(to_print)
-			print(str(len(population_data_sources)) + ") Exit")
+			i = 0;
+			for key, val in population_data_sources.iteritems():
+				to_print = str(i) + ") " + key + " - " + str(population_data_sources[key].is_active);
+				pop_data_names.append(key)
+				print(to_print);
+				i+=1;
+			print(str(i) + ") Exit")
 
 			user_option = raw_input("Choose an option: ")
 			try:
 				user_int=int(user_option)
 
-				if user_int > len(population_data_sources):
+				if user_int > len(pop_data_names):
 					print('not a valid number')
 					valid_number=False
 
 				if valid_number:
-					if user_int == len(population_data_sources):
+					if user_int == len(pop_data_names):
 						return
-					user_active = population_data_sources[user_int].is_active
-					self.main_program.set_population_data_active(not user_active, user_int)
+					pop_data_name = pop_data_names[user_int]
+					pop_data_active_status = population_data_sources[pop_data_name].is_active
+					self.main_program.set_population_data_active(not pop_data_active_status, pop_data_name)
 					valid_number = False
 
 			except ValueError:

@@ -9,21 +9,9 @@ from os.path import isfile, join
 from clusterer import ClusterAnalysis
 from classes_module import Target, PopulationData
 
-def process_targets(base_path, population_data, original_target_list, dataframe, globals_dataframe, parameters, max_for_uninhabited, directory):
+def process_targets(base_path, population_data, target_list, dataframe, globals_dataframe, parameters, max_for_uninhabited, directory):
     
-    #########################################
-    # Cluster targets and group in clusters #
-    #########################################
-
-    my_cluster_analyzer=ClusterAnalysis()
-    if parameters['clustering_on']:
-        clustered_list = my_cluster_analyzer.cluster_targets_by_dist_and_time(original_target_list, parameters['critical_distance'], parameters['critical_time'])
-    else:
-        clustered_list=original_target_list #uses default clustering used when list read from file
-
-    # transform target list into a 2D array target list that groups clusters
-    folded_target_list = fold_target_list(clustered_list)
-    # clustered_list, folded_target_list = limit_target_list_to_oldest(folded_target_list)
+    folded_target_list = fold_target_list(target_list)
 
     ###################################################
     # Extract dataframe and save as processed targets #
@@ -31,7 +19,7 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
     # - saves extracted dataframe as <directory>_dataframe.csv
     # - saves the_globals as <directory>_globals_df.csv
     # - saves target list as <directory>_targets.csv
-    if parameters['dataframe_loaded'] is False:
+    if parameters['processed_targets'] is False:
 
         processed_targets_dir = os.path.join(base_path, "processed_targets")
 
@@ -48,17 +36,11 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
         # extract the_globals dataframe depending on the_globals parameter
         the_globals = parameters['globals_type']
         if the_globals == "Australia":
-            globals_dataframe = load_bin_globals_for_australia(population_data, clustered_list, date_window, min_date, max_date, max_for_uninhabited)
+            globals_dataframe = load_bin_globals_for_australia(population_data, target_list, date_window, min_date, max_date, max_for_uninhabited)
         elif the_globals=="No equatorials":
-            globals_dataframe = load_bin_globals_for_no_equatorials(population_data, clustered_list, date_window, min_lat, max_lat,min_date, max_date,max_for_uninhabited)
+            globals_dataframe = load_bin_globals_for_no_equatorials(population_data, target_list, date_window, min_lat, max_lat,min_date, max_date,max_for_uninhabited)
         elif the_globals == "France and Spain":
-            globals_dataframe = load_bin_globals_for_francespain(population_data, clustered_list, date_window, min_date, max_date, max_for_uninhabited)
-        elif the_globals == "Trial Latitudes":
-            globals_dataframe = load_bin_globals_for_trial_latitudes(population_data, clustered_list, date_window, min_lat, max_lat, min_date, max_date)
-        elif the_globals == "No Empty Lats":
-            globals_dataframe = load_bin_globals_no_empty_lat(population_data, clustered_list, date_window, min_lat, max_lat, min_date, max_date)
-        elif the_globals == "Trial Latitudes 2":
-            globals_dataframe = load_bin_globals_for_trial_latitudes2(population_data, clustered_list, date_window)
+            globals_dataframe = load_bin_globals_for_francespain(population_data, target_list, date_window, min_date, max_date, max_for_uninhabited)
         elif the_globals == "All":
             globals_dataframe = load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date, max_for_uninhabited)
 
@@ -92,7 +74,7 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
         print("Saving target list...")
         # save targets in processed_targets folder 
         targets_filename = directory + "_targets"
-        save_target_list_to_csv(clustered_list, processed_targets_dir, targets_filename)
+        save_target_list_to_csv(target_list, processed_targets_dir, targets_filename)
         # exit()
 
 

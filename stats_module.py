@@ -9,7 +9,7 @@ from scipy.interpolate import interp1d
 
 
 
-def compute_likelihood_model(directory,results_path, population_data,merged_dataframe,model,low_res=False):
+def compute_likelihood_model(directory,results_path, population_data,merged_dataframe,model, res_lambda, res_zetta, res_eps):
  
  # This function computes the likelihood of a model and the most likely values for the model parameters. Data is stored in results path
  # The procedure can compute the likelihood of three different classes of model: the epidemiological model, a linear model where the infected population is proportional
@@ -22,17 +22,14 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
  # Zetta is the base probability that a  territorial unit) contains at least one site
  # Eps is an error - means that there is a positive probability that a site is present even in a territory with below threshold population
  
- 
-    if low_res:
-        lambda_v=np.linspace(population_data.likelihood_parameters[0],population_data.likelihood_parameters[1],num=24)
-        zetta_v=np.exp(np.linspace(log(population_data.likelihood_parameters[2]),log(population_data.likelihood_parameters[3]),num=11,endpoint=False)) 
-        eps_v=np.linspace(population_data.likelihood_parameters[4],population_data.likelihood_parameters[5],num=11,endpoint=False) #eriksson only
-    else:
-        lambda_v=np.linspace(population_data.likelihood_parameters[0],population_data.likelihood_parameters[1],num=240)
-        zetta_v=np.exp(np.linspace(log(population_data.likelihood_parameters[2]),log(population_data.likelihood_parameters[3]),num=101,endpoint=False))
-        eps_v=np.linspace(population_data.likelihood_parameters[4],population_data.likelihood_parameters[5],num=101,endpoint=False)
+    lambda_v=np.linspace(population_data.likelihood_parameters['lambda_start'],population_data.likelihood_parameters['lambda_end'],num=res_lambda)
+    zetta_v=np.exp(np.linspace(log(population_data.likelihood_parameters['zetta_start']),log(population_data.likelihood_parameters['zetta_end']),num=res_zetta,endpoint=False)) 
+
+
     if model=='constant':
         eps_v=np.array([1])
+    else:
+        eps_v=np.linspace(population_data.likelihood_parameters['eps_start'],population_data.likelihood_parameters['eps_end'],num=res_eps,endpoint=False)
  # rho_bins are the bins where we count number of samples and controls. Note we use 3001 bins - probably more than necessary. 
  # this gives the highest possible resolution using the Eriksson data
     rho_bins=np.linspace(0,33,num=3001,endpoint=False)
@@ -62,21 +59,23 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
     n_lambda=len(lambda_v)
     n_eps=len(eps_v)
     n_zetta=len(zetta_v)
+    print("LAMBDA SIZE: " + str(n_lambda))
 #  Kills lambda loop for constant and linear models
     if model=='constant' or model=='linear':
         n_lambda=1
 # Set up a (population data specific) range of possible values for the likelihood of a given set of observations
-    acc_likelihoods=np.linspace(population_data.likelihood_parameters[6],population_data.likelihood_parameters[7],num=1001) 
+    acc_likelihoods=np.linspace(population_data.likelihood_parameters['y_acc_start'],population_data.likelihood_parameters['y_acc_end'],num=1001) 
 #  Set up an array representing the accumulated likelihood of a given set of sample and control counts 
 #  Across all possible values of the parameters
     acc=np.zeros((len(acc_likelihoods),len(rho_bins)))
     lnL=np.zeros((n_lambda,n_eps,n_zetta))
     sqrt_rho_bins=np.sqrt(rho_bins) #These are the values we are computing - rhobins_4_python are intervals for histogram only. In original program were inside loop. Have moved it outside
     max_LL=-float('inf') 
+    prev_LL = float('inf')
     bin_zeros=np.zeros(len(sqrt_rho_bins))
 # Scan all possible values of the parameters
     for i_lambda in range (0,n_lambda):
-        print '.'
+        # print('LAMBDA_BREAK')
         my_lambda=float(lambda_v[i_lambda]) 
 # Compute the predicted size of the infected population  as a proportion of population (p_infected) for all possible values of rho_bins, given the value of lambda. Guarantee it is always 0 or greater
         if model=='epidemiological':
@@ -86,6 +85,7 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
                 p_infected=rho_bins/max(rho_bins)
 # Scan all possible values of lambda, zetta and eps
         for i_zetta in range(0,n_zetta):
+            # print("ZETTA_BREAK")
             for i_eps in range (0, n_eps):
                  my_zetta=zetta_v[i_zetta]
                  my_eps=eps_v[i_eps]
@@ -102,19 +102,25 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
                              print "Model=",model
                              print "No model available"
                              sys.exit()
+
+
 # Computes the log likelihood of obtaining the OBSERVED number of samples at a given value of rho_bins, given the predicted number of samples
+                 
                  log_samples=np.dot(samples_counts,np.log(p_predicted)) 
 # The same for controls
                  log_controls=np.dot(controls_counts,np.log(1-p_predicted)) 
 # Computes the log likelihood of a certain number of samples AND a certain number of controls (for a given value of rho_bins)
                  LL=log_samples+log_controls
 # Finds the parameter values with the highest likelihood
+
+                 
                  if LL>max_LL:
                      max_LL=LL
                      max_lambda=my_lambda
                      max_zetta=my_zetta
                      max_eps=my_eps
                      max_likelihood=LL
+
 # Stores the log likelihood in an array indexed the position of the parameter values in the parameter ranges
                  lnL[i_lambda,i_eps,i_zetta]=LL 
 # Computes the actual likelihood of the observations and applies a left shift to make sure it is not too large (This means values shown are relative only)
@@ -128,7 +134,9 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
                      y_coord=i
 # Accumulate likelihood values (x coord) for a each possible value of rho_bins (y_coord) across all values of the parameters
                      acc[x_coord,y_coord]=acc[x_coord,y_coord]+L
+
 # Compute threshold from model - used in grap
+
     opt_threshold=max_lambda**2  #Not sure about this
 # Plot maximum likelihood graph
     plm.plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, lambda_v, opt_threshold, sample_counts2, control_counts2, model,directory,results_path)
