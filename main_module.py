@@ -275,17 +275,24 @@ class MainProgram:
         ###############
         # Compare likelihoods of epidemiological, linear and constant models 
         ###############
-        models=('epidemiological','linear','constant')
+   #     models=('epidemiological','linear','constant')
+        models=('richard','linear','constant')
         max_likelihood=np.zeros(3)
         for i in range(0,len(models)):
             print "model=",models[i]
             max_lambda, max_zetta, max_eps, max_likelihood[i], opt_threshold=stm.compute_likelihood_model(directory,results_path, population_data,merged_dataframe,models[i],low_res)  #Not elegant - should have same datastructure for both counts
             write_likelihood_results(f2,max_lambda, max_zetta, max_eps, max_likelihood[i], opt_threshold,models[i] )
-        epid_over_linear=np.exp(max_likelihood[0]-max_likelihood[1])
-        epid_over_constant=np.exp(max_likelihood[0]-max_likelihood[2])
+ #       richard_over_epid=np.exp(max_likelihood[0]-max_likelihood[1])
+        richard_over_linear=np.exp(max_likelihood[0]-max_likelihood[1])
+        richard_over_constant=np.exp(max_likelihood[0]-max_likelihood[2])
+ #       epid_over_linear=np.exp(max_likelihood[0]-max_likelihood[2])
+ #       epid_over_constant=np.exp(max_likelihood[0]-max_likelihood[3])
         wrm.write_label(f2,'Bayes factors')
-        f2.write( 'Bayes factor epidemiological over linear='+'{:.3g}'.format(epid_over_linear)+'\n')
-        f2.write( 'Bayes factor epidemiological over constant='+'{:.3g}'.format(epid_over_constant)+'\n')
+ #       f2.write( 'Bayes factor richard over epidemiological='+'{:.3g}'.format(richard_over_epid)+'\n')
+        f2.write( 'Bayes factor richard over linear='+'{:.3g}'.format(richard_over_linear)+'\n')
+        f2.write( 'Bayes factor richard over constant='+'{:.3g}'.format(richard_over_constant)+'\n')
+ #       f2.write( 'Bayes factor epid over linear='+'{:.3g}'.format(epid_over_linear)+'\n')
+  #      f2.write( 'Bayes factor epid over constant='+'{:.3g}'.format(epid_over_constant)+'\n')
         f2.close();
         return max_likelihood
 
@@ -294,21 +301,25 @@ class MainProgram:
 
 def write_likelihood_results(aFile,max_lambda, max_zetta, max_eps, max_likelihood, opt_threshold,model ):
         wrm.write_label(aFile, "Results of max likelihood analysis for "+model+" model")
-        if model=='epidemiological':
+        if model=='epidemiological' or model=='richard':
             aFile.write("Max lambda="+'{:.2f}'.format(max_lambda)+"\n")
             aFile.write("Optimal_threshold="+'{:.2f}'.format(opt_threshold)+"\n")
-        if model=='epidemiological' or model=='linear':
-            aFile.write("Max eps="+'{:.2f}'.format(max_eps)+"\n")
-        aFile.write("Max zetta="+'{:.2f}'.format(max_zetta)+"\n")
+        if model=='epidemiological' or model=='linear' or model=='richard':
+            aFile.write("Max eps="+'{:.5f}'.format(max_eps)+"\n")
+#            aFile.write("Max comm="+'{:.2f}'.format(max_comm)+"\n")
+        aFile.write("Max zetta="+'{:.7f}'.format(max_zetta)+"\n")
         aFile.write("Max likelihood="+'{:.0f}'.format(max_likelihood)+"\n")
         if model=='epidemiological':
             k=3
         else:
-            if model=='linear':
-                k=2
+            if model=='richard':
+                k=3
             else:
-                if model=='constant':
-                    k=1                               
+                if model=='linear':
+                    k=2
+                else:
+                    if model=='constant':
+                        k=1                               
         aFile.write("AIC="+ '{:.2f}'.format(2*k-2*max_likelihood)+"\n")
     
 
@@ -369,9 +380,6 @@ def run_experiment(results_path, target_list_file, output_directory, population_
             target_list, filters_applied = tam.filter_targets_for_latitude(target_list, filter_min_lat, filter_max_lat, filters_applied)
         mp.set_parameter('filters_applied', filters_applied)
 
-    # mp.set_perform_cross_validation(perform_cross_validation)
-    # if perform_cross_validation:
-    #     mp.set_number_of_kfolds(number_of_kfolds)
-    #     mp.set_minimum_likelihood_ratio(minimum_likelihood_ratio)
+    
     mp.generate_results(population_data, target_list, results_path, output_directory,low_res)
 

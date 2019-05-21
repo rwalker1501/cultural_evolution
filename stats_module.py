@@ -26,11 +26,13 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
     if low_res:
         lambda_v=np.linspace(population_data.likelihood_parameters[0],population_data.likelihood_parameters[1],num=24)
         zetta_v=np.exp(np.linspace(log(population_data.likelihood_parameters[2]),log(population_data.likelihood_parameters[3]),num=11,endpoint=False)) 
-        eps_v=np.linspace(population_data.likelihood_parameters[4],population_data.likelihood_parameters[5],num=11,endpoint=False) #eriksson only
+        eps_v=np.linspace(population_data.likelihood_parameters[4],population_data.likelihood_parameters[5],num=11,endpoint=False)#eriksson only
+  #      comm_v=np.linspace(0,2000,num=20)
     else:
-        lambda_v=np.linspace(population_data.likelihood_parameters[0],population_data.likelihood_parameters[1],num=240)
+        lambda_v=np.linspace(population_data.likelihood_parameters[0],population_data.likelihood_parameters[1],num=101)
         zetta_v=np.exp(np.linspace(log(population_data.likelihood_parameters[2]),log(population_data.likelihood_parameters[3]),num=101,endpoint=False))
         eps_v=np.linspace(population_data.likelihood_parameters[4],population_data.likelihood_parameters[5],num=101,endpoint=False)
+  #      comm_v=np.linspace(0,1,num=1)
     if model=='constant':
         eps_v=np.array([1])
  # rho_bins are the bins where we count number of samples and controls. Note we use 3001 bins - probably more than necessary. 
@@ -62,11 +64,12 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
     n_lambda=len(lambda_v)
     n_eps=len(eps_v)
     n_zetta=len(zetta_v)
+ #   n_comm=len(comm_v)
 #  Kills lambda loop for constant and linear models
     if model=='constant' or model=='linear':
         n_lambda=1
 # Set up a (population data specific) range of possible values for the likelihood of a given set of observations
-    acc_likelihoods=np.linspace(population_data.likelihood_parameters[6],population_data.likelihood_parameters[7],num=1001) 
+    acc_likelihoods=np.linspace(population_data.likelihood_parameters[6],population_data.likelihood_parameters[7],num=2001) 
 #  Set up an array representing the accumulated likelihood of a given set of sample and control counts 
 #  Across all possible values of the parameters
     acc=np.zeros((len(acc_likelihoods),len(rho_bins)))
@@ -76,12 +79,15 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
     bin_zeros=np.zeros(len(sqrt_rho_bins))
 # Scan all possible values of the parameters
     for i_lambda in range (0,n_lambda):
-        print '.'
+        print 'Percentage completed=', i_lambda/float(n_lambda)
         my_lambda=float(lambda_v[i_lambda]) 
 # Compute the predicted size of the infected population  as a proportion of population (p_infected) for all possible values of rho_bins, given the value of lambda. Guarantee it is always 0 or greater
         if model=='epidemiological':
             p_infected=np.maximum(bin_zeros,1-my_lambda/sqrt_rho_bins)  #COLUMN VECTOR
         else:
+            if model=='richard':
+#                i_star=np.maximum(bin_zeros,rho_bins-my_lambda*sqrt_rho_bins)
+                p_infected=np.maximum(bin_zeros,1-my_lambda/sqrt_rho_bins)  
             if model=='linear' or model=='constant':
                 p_infected=rho_bins/max(rho_bins)
 # Scan all possible values of lambda, zetta and eps
@@ -89,7 +95,12 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
             for i_eps in range (0, n_eps):
                  my_zetta=zetta_v[i_zetta]
                  my_eps=eps_v[i_eps]
-# Predicts the probability of finding a site in a territory for each of the population densities in rho_bins. Make sure value is never too small
+# =============================================================================
+#                  for i_comm in range(0, n_comm):
+#                      my_comm=comm_v[i_comm]
+#                      comm_mult=86.655/my_comm
+# =============================================================================
+# Predicts the probability of finding at least one site in a territory for each of the population densities in rho_bins. Make sure value is never too small
                  if model=='epidemiological':
                      p_predicted=compute_epidemiological_model(p_infected,my_zetta,my_eps)
                  else:
@@ -99,9 +110,12 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
                          if model=='constant':
                              p_predicted=compute_constant_model(p_infected,my_zetta,my_eps)
                          else:
-                             print "Model=",model
-                             print "No model available"
-                             sys.exit()
+                             if model=='richard':
+                                 p_predicted=compute_richard_model(p_infected,rho_bins,my_zetta,my_eps)
+                             else:
+                                 print "Model=",model
+                                 print "No model available"
+                                 sys.exit()
 # Computes the log likelihood of obtaining the OBSERVED number of samples at a given value of rho_bins, given the predicted number of samples
                  log_samples=np.dot(samples_counts,np.log(p_predicted)) 
 # The same for controls
@@ -114,6 +128,7 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
                      max_lambda=my_lambda
                      max_zetta=my_zetta
                      max_eps=my_eps
+ #                    max_comm=my_comm
                      max_likelihood=LL
 # Stores the log likelihood in an array indexed the position of the parameter values in the parameter ranges
                  lnL[i_lambda,i_eps,i_zetta]=LL 
@@ -139,6 +154,15 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
 def compute_epidemiological_model(p_infected, my_zetta,my_eps):
     p_predicted=np.zeros(len(p_infected)).astype(float) 
     p_predicted=my_zetta*((1-my_eps)*p_infected+my_eps)
+    p_predicted_small=np.zeros(len(p_predicted))
+    p_predicted_small.fill(1e-20)
+    p_predicted=np.maximum(p_predicted,p_predicted_small)
+    p_predicted=p_predicted.astype(float) #Probably not necessary
+    return(p_predicted)
+    
+def compute_richard_model(p_infected,rho_bins,my_zetta,my_eps):
+    p_predicted=np.zeros(len(rho_bins)).astype(float) 
+    p_predicted=my_zetta*((1-my_eps)*p_infected*rho_bins)+my_eps
     p_predicted_small=np.zeros(len(p_predicted))
     p_predicted_small.fill(1e-20)
     p_predicted=np.maximum(p_predicted,p_predicted_small)

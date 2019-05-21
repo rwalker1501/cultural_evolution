@@ -333,7 +333,7 @@ def plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, lambda_v, op
     plt.xlabel('Population density')
     plt.ylabel('Site frequency')
     plt.tight_layout()
-    if model=='epidemiological':
+    if model=='epidemiological' or model=='richard':
         ax.axvline(opt_threshold, color='g', linestyle='--',label="Threshold")
 # Add line showing best fit of model
     ax.plot(rho_bins,pred_int[:,2],linewidth=1, color='blue',antialiased=True)
@@ -343,30 +343,31 @@ def plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, lambda_v, op
     fig1.savefig(fig_path)
     plt.close()
     
-def plot_parameter_values(lnL,lambda_v, zetta_v, eps_v,model,directory,file_path):
+def plot_parameter_values(lnL,lambda_v, zetta_v, eps_v, model,directory,file_path):
    
     lnlminusmax=lnL-np.amax(lnL)
     exp_lnlminusmax=np.exp(lnlminusmax)
     dim1=np.mean(exp_lnlminusmax,axis=2)  #up to here - look at definition of dimension
      #      Figure 2
-    if model=='epidemiological':
+    if model=='epidemiological' or model=='richard':
         fig2 = plt.figure();
-        p_lambda = np.squeeze(np.mean(dim1,axis=1))
+        p_lambda = np.squeeze(np.mean(dim1,axis=(1)))
+        print 'p_lambda shape=',p_lambda.shape
         p_lambda=np.true_divide(p_lambda,np.trapz(p_lambda,lambda_v))
         ax2=fig2.add_subplot(111)
         ax2.plot(lambda_v,p_lambda);
         plt.xlabel(r'$\lambda$')
         plt.ylabel('Likelihood')
         plt.xlim(min(lambda_v),max(lambda_v))
-        fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_epidemiological_lambda.png"
+        fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+model+"_lambda.png"
         fig2.savefig(fig_path)
         plt.close()
        
-     #     Figure 3 - in the end we will move this into plot library
-    if model=='epidemiological' or model=='linear':
+     #     Figure 3
+    if model=='epidemiological' or model=='linear' or model=='richard':
         fig3 = plt.figure();
         dim1=np.mean(exp_lnlminusmax,axis=2) 
-        p_eps = np.squeeze(np.mean(dim1,axis=0))
+        p_eps = np.squeeze(np.mean(dim1,axis=(0)))
         p_eps=np.true_divide(p_eps,np.trapz(p_eps,eps_v))
         ax3=fig3.add_subplot(111)
         ax3.plot(eps_v,p_eps);
@@ -377,24 +378,46 @@ def plot_parameter_values(lnL,lambda_v, zetta_v, eps_v,model,directory,file_path
         fig3.savefig(fig_path)
         plt.close()
         
-     #     Figure 4 - in the end we will move this into plot library
-    fig4 = plt.figure();
-    dim1=np.mean(exp_lnlminusmax,axis=0) 
-    p_zetta = np.squeeze(np.mean(dim1,axis=0))
-    trapz=np.trapz(p_zetta,np.log10(zetta_v))
-    p_zetta=np.true_divide(p_zetta,trapz)
-    x_data=np.log10(zetta_v)
-    plt.xlim(min(x_data),max(x_data))
-    trapz=np.trapz(p_zetta,np.log10(zetta_v))
-    y_data=np.true_divide(p_zetta,trapz)
-    ax4=fig4.add_subplot(111)
-    plt.xlabel("log10 " + r"$\zeta$")
-    plt.ylabel('Likelihood')
-    ax4.plot(x_data, y_data);
-    fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+ model+"_zeta.png"
-    fig4.savefig(fig_path)
-    plt.close()
+         #     Figure 4 
+        fig4 = plt.figure();
+        dim1=np.mean(exp_lnlminusmax,axis=0) 
+        p_zetta = np.squeeze(np.mean(dim1,axis=(1)))
+        trapz=np.trapz(p_zetta,np.log10(zetta_v))
+        p_zetta=np.true_divide(p_zetta,trapz)
+        x_data=np.log10(zetta_v)
+        plt.xlim(min(x_data),max(x_data))
+        trapz=np.trapz(p_zetta,np.log10(zetta_v))
+        y_data=np.true_divide(p_zetta,trapz)
+        ax4=fig4.add_subplot(111)
+        plt.xlabel("log10 " + r"$\zeta$")
+        plt.ylabel('Likelihood')
+        ax4.plot(x_data, y_data);
+        fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+ model+"_zeta.png"
+        fig4.savefig(fig_path)
+        plt.close()
     
+    #     Figure 5
+    
+# =============================================================================
+#     if model=='richard':
+#         fig5 = plt.figure();
+#         dim1=np.mean(exp_lnlminusmax,axis=0) 
+#         p_comm = np.squeeze(np.mean(dim1,axis=(0,1)))
+#         trapz=np.trapz(p_comm,comm_v)
+#         p_comm=np.true_divide(p_comm,trapz)
+#         x_data=comm_v
+#         plt.xlim(min(x_data),max(x_data))
+#         trapz=np.trapz(p_comm,comm_v)
+#         y_data=np.true_divide(p_comm,trapz)
+#         ax5=fig5.add_subplot(111)
+#         plt.xlabel("Community size")
+#         plt.ylabel('Likelihood')
+#         ax5.plot(x_data, y_data);
+#         fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+ model+"_comm.png"
+#         fig5.savefig(fig_path)
+#         plt.close()
+#     
+# =============================================================================
 
 def get_map_file_path(filename):
     base_path = os.getcwd();
