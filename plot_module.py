@@ -287,6 +287,7 @@ def plot_densities_on_map_by_time_range(population_data, start_time, end_time):
     plt.close()
     
 def plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, lambda_v, opt_threshold, samples_counts2, controls_counts2, model,directory,file_path):
+
  # Adds a small positive contant to each item in acc. Not quite sure why.
     max_acc=acc.max(axis=0) *1e-10   #largest accumulated likelihood for a given rho multiplied by a small constant - gives roughly constant result
     acc_plus=(acc+max_acc)
@@ -395,6 +396,16 @@ def plot_parameter_values(lnL,lambda_v, zetta_v, eps_v,model,directory,file_path
     fig4.savefig(fig_path)
     plt.close()
     
+def plot_parameter_values1(x_data, y_data, x_label, model, parameter, results_path, directory):
+    fig = plt.figure();
+    ax = fig.add_subplot(111);
+    ax.plot(x_data, y_data);
+    plt.xlabel(x_label);
+    plt.ylabel("Likelihood");
+    plt.xlim(min(x_data), max(x_data));
+    fig_path = os.path.join(results_path, directory + "_" + model + "_" + parameter + ".png");
+    fig.savefig(fig_path);
+    plt.close();
 
 def get_map_file_path(filename):
     base_path = os.getcwd();
@@ -406,5 +417,4 @@ def get_map_file_path(filename):
 
 if __name__ == '__main__':
         main()
-
 

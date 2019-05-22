@@ -229,9 +229,14 @@ class Driver:
 				chosen_file = filename + '_dataframe.csv'
 				print(chosen_file)
 
-			target_list, dataframe, globals_dataframe = tam.load_processed_targets(base_path, filename)
-			self.main_program.set_target_list(target_list)
-			self.main_program.set_dataframe(dataframe, globals_dataframe)
+			success, target_list, dataframe, globals_dataframe = tam.load_processed_targets(base_path, filename)
+			if not success:
+				print("LOADING PROCESSED TARGETS FAILED: Missing files")
+				return False
+			else:
+				self.main_program.set_target_list(target_list)
+				self.main_program.set_dataframe(dataframe, globals_dataframe)
+				return True
 
 	def set_parameters(self):
 		user_option = ""

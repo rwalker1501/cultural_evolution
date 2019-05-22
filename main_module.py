@@ -4,7 +4,7 @@
 # THIS SEEMS LIKE UP TO DATE VERSION
 # from __future__ import division
 import numpy as np
-import os
+import os, gc;
 import sys
 import json
 import target_module as tam
@@ -155,7 +155,7 @@ class MainProgram:
     # Generate Results Function #
     #############################
 
-    def generate_results(self, population_data, original_target_list, base_path, directory):
+    def generate_results(self, population_data, original_target_list, base_path, directory, test_new_method=True):
 
 
         # Check if a target list has been loaded, otherwise abort
@@ -209,7 +209,7 @@ class MainProgram:
         self.dataframe = stm.process_dataframe(self.dataframe)
 
         print("Saving merged sites and globals dataframes...")
-        merged_dataframe=tam.generate_merged_dataframe(base_path, directory, self.dataframe, self.globals_dataframe);
+        merged_dataframe=tam.generate_merged_dataframe(base_path, directory, self.dataframe, self.globals_dataframe, self.parameters['save_processed_targets']);
        
         ########################################
         # Write filtered clustered target list #
@@ -261,9 +261,10 @@ class MainProgram:
         models=('epidemiological','linear','constant')
         max_likelihood=np.zeros(3)
         for i in range(0,len(models)):
-            print "model=",models[i]
-            max_lambda, max_zetta, max_eps, max_likelihood[i], opt_threshold=stm.compute_likelihood_model(directory,results_path, population_data,merged_dataframe,models[i], self.parameters['res_lambda'], self.parameters['res_zetta'], self.parameters['res_eps'])  #Not elegant - should have same datastructure for both counts
-            write_likelihood_results(f2,max_lambda, max_zetta, max_eps, max_likelihood[i], opt_threshold,models[i] )
+            print("model= " + models[i])
+            max_lambda, max_zetta, max_eps, max_likelihood[i], opt_threshold=stm.compute_likelihood_model(directory,results_path, population_data,merged_dataframe, models[i], self.parameters['res_lambda'], self.parameters['res_zetta'], self.parameters['res_eps'])
+            write_likelihood_results(f2,max_lambda, max_zetta, max_eps, max_likelihood[i], opt_threshold,models[i] );
+            gc.collect();
         epid_over_linear=np.exp(max_likelihood[0]-max_likelihood[1])
         epid_over_constant=np.exp(max_likelihood[0]-max_likelihood[2])
         wrm.write_label(f2,'Bayes factors')
@@ -329,7 +330,10 @@ def run_experiment(results_path, target_list_file, output_directory, population_
         mp.set_parameter('min_globals');
     if processed_targets:
         mp.set_parameter('processed_targets', processed_targets);
-        target_list, dataframe, globals_dataframe = tam.load_processed_targets(results_path, output_directory)
+        success, target_list, dataframe, globals_dataframe = tam.load_processed_targets(results_path, output_directory)
+        if not success:
+            print("FAILED: missing fails when loading processed_targets");
+            return;
         mp.set_target_list(target_list)
         mp.set_dataframe(dataframe, globals_dataframe)
     else:
@@ -359,6 +363,8 @@ def run_experiment(results_path, target_list_file, output_directory, population_
         mp.load_population_data();
         population_data = mp.population_data_sources[population_data_name];
     else:
+        gc.collect();
         return;
     mp.generate_results(population_data, target_list, results_path, output_directory)
+    gc.collect();
 

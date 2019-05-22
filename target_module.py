@@ -13,6 +13,38 @@ def process_targets(base_path, population_data, target_list, dataframe, globals_
     
     folded_target_list = fold_target_list(target_list)
 
+    date_window = parameters['date_window'];
+    date_lag = parameters['date_lag'];
+    min_date = parameters['min_date'];
+    max_date = parameters['max_date'];
+    min_lat = parameters['min_lat'];
+    max_lat = parameters['max_lat'];
+
+    globals_type = parameters['globals_type'];
+
+    globals_dir = os.path.join(base_path, "globals");
+    if not os.path.exists(globals_dir):
+        os.makedirs(globals_dir);
+    filenames_in_globals = [f for f in os.listdir(globals_dir) if isfile(join(globals_dir,f))]
+
+    globals_filename = (globals_type + ".csv").lower().replace(" ", "_");
+    globals_dataframe_path = os.path.join(globals_dir, globals_filename);
+    if globals_filename not in filenames_in_globals:
+        if globals_type == "Australia":
+                globals_dataframe = load_bin_globals_for_australia(population_data, target_list, date_window, min_date, max_date, max_for_uninhabited)
+        elif globals_type=="No equatorials":
+            globals_dataframe = load_bin_globals_for_no_equatorials(population_data, target_list, date_window, min_lat, max_lat,min_date, max_date,max_for_uninhabited)
+        elif globals_type == "France and Spain":
+            globals_dataframe = load_bin_globals_for_francespain(population_data, target_list, date_window, min_date, max_date, max_for_uninhabited)
+        elif globals_type == "All":
+                globals_dataframe = load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date, max_for_uninhabited)
+
+        print("Generating globals...")
+        globals_dataframe.to_csv(globals_dataframe_path, sep=";")
+    else:
+        print("Reading globals file...")
+        globals_dataframe = pd.read_csv(globals_dataframe_path, sep=";");
+
     ###################################################
     # Extract dataframe and save as processed targets #
     ###################################################
@@ -25,30 +57,6 @@ def process_targets(base_path, population_data, target_list, dataframe, globals_
 
         if not os.path.exists(processed_targets_dir):
             os.makedirs(processed_targets_dir)
-
-        date_window = parameters['date_window'];
-        date_lag = parameters['date_lag'];
-        min_date = parameters['min_date'];
-        max_date = parameters['max_date'];
-        min_lat = parameters['min_lat'];
-        max_lat = parameters['max_lat'];
-
-        # extract the_globals dataframe depending on the_globals parameter
-        the_globals = parameters['globals_type']
-        if the_globals == "Australia":
-            globals_dataframe = load_bin_globals_for_australia(population_data, target_list, date_window, min_date, max_date, max_for_uninhabited)
-        elif the_globals=="No equatorials":
-            globals_dataframe = load_bin_globals_for_no_equatorials(population_data, target_list, date_window, min_lat, max_lat,min_date, max_date,max_for_uninhabited)
-        elif the_globals == "France and Spain":
-            globals_dataframe = load_bin_globals_for_francespain(population_data, target_list, date_window, min_date, max_date, max_for_uninhabited)
-        elif the_globals == "All":
-            globals_dataframe = load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date, max_for_uninhabited)
-
-        globals_dataframe_filename = os.path.join(processed_targets_dir, directory + "_globals_df.csv") 
-        
-        print("Saving globals dataframe...")
-        # WRITE PROCESSED GLOBALS
-        globals_dataframe.to_csv(globals_dataframe_filename, sep=";")
 
         # extract dataframe rank
         print("Extracting sites from targets...")
@@ -64,17 +72,18 @@ def process_targets(base_path, population_data, target_list, dataframe, globals_
 
         dataframe = pd.concat([samples_df, controls_df]);
 
-        print("Saving sites dataframe...")
-        # save dataframe in processed_targets folder
-        dataframe_filename = os.path.join(processed_targets_dir, directory + "_dataframe.csv")
-        
-        # WRITE PROCESSED TARGET DATEFRAME
-        dataframe.to_csv(dataframe_filename, sep=";",quoting=csv.QUOTE_NONNUMERIC) #this is an addition to get file written in good format for excel
 
-        print("Saving target list...")
-        # save targets in processed_targets folder 
-        targets_filename = directory + "_targets"
-        save_target_list_to_csv(target_list, processed_targets_dir, targets_filename)
+        if parameters["save_processed_targets"]:
+            print("Saving sites dataframe...")
+            # save dataframe in processed_targets folder
+            dataframe_path = os.path.join(processed_targets_dir, directory + "_dataframe.csv")
+            # WRITE PROCESSED TARGET DATEFRAME
+            dataframe.to_csv(dataframe_path, sep=";",quoting=csv.QUOTE_NONNUMERIC) 
+
+            print("Saving target list...")
+            # save targets in processed_targets folder 
+            targets_filename = directory + "_targets"
+            save_target_list_to_csv(target_list, processed_targets_dir, targets_filename)
         # exit()
 
 
@@ -103,20 +112,36 @@ def limit_target_list_to_oldest(target_list):
                 new_folded_target_list.append([target])
     return new_target_list, new_folded_target_list
 
-def load_processed_targets(base_path, filename):
+def load_processed_targets(base_path, filename, globals_type):
+
     processed_targets_dir = os.path.join(base_path, "processed_targets")
+    if not os.path.exists(processed_targets_dir):
+        os.makedirs(processed_targets_dir);
 
-    chosen_file = filename + '_dataframe.csv'
-    dataframe_filename = os.path.join(processed_targets_dir, chosen_file)
-    dataframe = pd.read_csv(dataframe_filename, sep=";")
+    dataframe_filename = filename + '_dataframe.csv'
+    filenames_in_processed_targets = [f for f in os.listdir(processed_targets_dir) if isfile(join(processed_targets_dir,f))]
 
-    globals_dataframe_filename = os.path.join(processed_targets_dir, filename + "_globals_df.csv")
-    globals_dataframe = pd.read_csv(globals_dataframe_filename, sep=";")
+    globals_dir = os.path.join(base_path, "globals");
+    if not os.path.exists(globals_dir):
+        os.makedirs(globals_dir);
+    
+    globals_dataframe_filename = (globals_type + ".csv").lower().replace(" ", "_");
+    filenames_in_globals = [f for f in os.listdir(globals_dir) if isfile(join(globals_dir,f))]
+    
+    if dataframe_filename not in filenames_in_processed_targets or globals_dataframe_filename not in filenames_in_globals:
+        return False, [], [], [];
+
+
+    dataframe_path = os.path.join(processed_targets_dir, dataframe_filename)
+    dataframe = pd.read_csv(dataframe_path, sep=";")
+
+    globals_dataframe_path = os.path.join(globals_dir, globals_dataframe_filename);
+    globals_dataframe = pd.read_csv(globals_dataframe_path, sep=";")
 
     targets_filename = os.path.join(processed_targets_dir, filename + '_targets')
     target_list = read_target_list_from_csv(targets_filename)
 
-    return target_list, dataframe, globals_dataframe
+    return True, target_list, dataframe, globals_dataframe
 
 def clear_processed_targets(base_path):
     processed_targets_dir = os.path.join(base_path, "processed_targets")
@@ -793,11 +818,8 @@ def create_binned_column(dataframe, new_column_name, base_column_name, interval)
 
     return dataframe
 
-def generate_merged_dataframe(base_path,directory, dataframe, globals_dataframe):
-    processed_targets_dir = os.path.join(base_path, "processed_targets")
-    merged_df_filename = os.path.join(processed_targets_dir, directory + "_merged_df.csv") 
-    if not os.path.exists(processed_targets_dir):
-        os.makedirs(processed_targets_dir)
+def generate_merged_dataframe(base_path, directory, dataframe, globals_dataframe, save_processed_targets):
+
     temp_globals_df = globals_dataframe.copy();
     temp_samples_df = dataframe.copy();
     temp_samples_df = temp_samples_df[temp_samples_df.type == 's'];
@@ -822,7 +844,12 @@ def generate_merged_dataframe(base_path,directory, dataframe, globals_dataframe)
     # binned_period
     merged_df = create_binned_column(merged_df, 'binned_latitude', 'latitude', 10);
 
-
-    merged_df.to_csv(merged_df_filename, sep=";")
-    print("merged df filename: " + merged_df_filename);
+    if save_processed_targets:
+        processed_targets_dir = os.path.join(base_path, "processed_targets")
+        merged_df_filename = os.path.join(processed_targets_dir, directory + "_merged_df.csv") 
+        if not os.path.exists(processed_targets_dir):
+            os.makedirs(processed_targets_dir)
+        merged_df.to_csv(merged_df_filename, sep=";")
+        print("Saved merged dataframe: " + merged_df_filename);
+        
     return merged_df
