@@ -42,7 +42,7 @@ class MainProgram:
         parameters['default_max_for_uninhabited'] = False;
         parameters['max_lat'] = 60;
         parameters['min_lat'] = -40;
-        parameters['max_date'] = 50000;
+        parameters['max_date'] = 46000;
         parameters['min_date'] = 0;
         parameters['min_globals'] = 1;
         parameters['min_p'] = 0.01;
@@ -190,15 +190,18 @@ class MainProgram:
         #####################################
         # Create directory and results file #
         #####################################
-        results_path = os.path.join(base_path, "results")
+        if low_res==True:
+            res_status='LR'
+        else:
+            res_status='HR'
+        results_path = os.path.join(base_path, "results "+res_status)
         if not os.path.exists(results_path):
             os.makedirs(results_path)
 
         new_path = os.path.join(results_path, directory)
         if not os.path.exists(new_path):
             os.makedirs(new_path)
-        results_filename= os.path.join(new_path, directory + "_results.csv") 
-
+        results_filename= os.path.join(new_path, directory + "_results "+res_status+".csv") 
         f2= open(results_filename, 'w')
 
 
@@ -210,6 +213,14 @@ class MainProgram:
         f2.write('\n')
 
         wrm.write_parameters(f2, self.parameters);
+        likelihood_parameters=population_data.likelihood_parameters
+        f2.write('lambda start:'+'{:.6g}'.format(likelihood_parameters[0])+'\n')
+        f2.write('lambda end:'+'{:.6g}'.format(likelihood_parameters[1])+'\n')
+        f2.write('zetta start:'+'{:.6g}'.format(likelihood_parameters[2])+'\n')
+        f2.write('zetta end:'+'{:.6g}'.format(likelihood_parameters[3])+'\n')
+        f2.write('eps start:'+'{:.6g}'.format(likelihood_parameters[4])+'\n')
+        f2.write('eps end:'+'{:.6g}'.format(likelihood_parameters[5])+'\n')
+        
 
         #######################
         # Process target list #
@@ -299,11 +310,18 @@ class MainProgram:
         
       
 
-def write_likelihood_results(aFile,max_lambda, max_zetta, max_eps, max_likelihood, opt_threshold,model ):
+def write_likelihood_results(aFile,max_lambda, max_zetta, max_eps, max_likelihood, interpolated_lambdas,model ):
         wrm.write_label(aFile, "Results of max likelihood analysis for "+model+" model")
         if model=='epidemiological' or model=='richard':
-            aFile.write("Max lambda="+'{:.2f}'.format(max_lambda)+"\n")
-            aFile.write("Optimal_threshold="+'{:.2f}'.format(opt_threshold)+"\n")
+            aFile.write('Relative lambda 0.025='+ '{:.2f}'.format(interpolated_lambdas[0])+"\n")
+            aFile.write('Relative lambda 0.25='+ '{:.2f}'.format(interpolated_lambdas[1])+"\n")
+            aFile.write('Relative lambda 0.5='+ '{:.2f}'.format(interpolated_lambdas[2])+"\n")
+            aFile.write('Relative lambda 0.75='+ '{:.2f}'.format(interpolated_lambdas[3])+"\n")
+            aFile.write('Relative lambda 0.975='+ '{:.2f}'.format(interpolated_lambdas[4])+"\n")
+            threshold_low=interpolated_lambdas[0]**2
+            threshold_high=interpolated_lambdas[4]**2
+            aFile.write('0.025 CI for threshold='+ '{:.2f}'.format(threshold_low)+"\n")
+            aFile.write('0.975 CI for threshold='+ '{:.2f}'.format(threshold_high)+"\n")
         if model=='epidemiological' or model=='linear' or model=='richard':
             aFile.write("Max eps="+'{:.5f}'.format(max_eps)+"\n")
 #            aFile.write("Max comm="+'{:.2f}'.format(max_comm)+"\n")

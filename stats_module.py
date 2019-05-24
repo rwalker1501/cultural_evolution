@@ -144,12 +144,13 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
 # Accumulate likelihood values (x coord) for a each possible value of rho_bins (y_coord) across all values of the parameters
                      acc[x_coord,y_coord]=acc[x_coord,y_coord]+L
 # Compute threshold from model - used in grap
-    opt_threshold=max_lambda**2  #Not sure about this
+ #   opt_threshold=max_lambda**2  #Not sure about this
 # Plot maximum likelihood graph
-    plm.plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, lambda_v, opt_threshold, sample_counts2, control_counts2, model,directory,results_path)
 # Plot graphs for most likely values of each parameter
-    plm.plot_parameter_values(lnL,lambda_v, zetta_v, eps_v,model,directory,results_path)
-    return(max_lambda, max_zetta, max_eps, max_likelihood,opt_threshold)
+    interpolated_lambdas=plm.plot_parameter_values(lnL,lambda_v, zetta_v, eps_v,model,directory,results_path)
+    opt_threshold=interpolated_lambdas[2]**2  #Not sure about this
+    plm.plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, lambda_v, opt_threshold, sample_counts2, control_counts2, model,directory,results_path)
+    return(max_lambda, max_zetta, max_eps, max_likelihood,interpolated_lambdas)
     
 def compute_epidemiological_model(p_infected, my_zetta,my_eps):
     p_predicted=np.zeros(len(p_infected)).astype(float) 

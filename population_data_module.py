@@ -25,7 +25,7 @@ def load_population_data(base_path, population_data_sources):
     population_data_sources.append(synthetic)
 
     # Eriksson
-    eriksson_binary_path = os.path.join(pop_data_path, 'eriksson.npz')
+    eriksson_binary_path = os.path.join(pop_data_path, 'eriksson2.npz')
     eriksson_info_path = os.path.join(pop_data_path, 'eriksson_info.txt')
     eriksson = load_population_data_source("Eriksson", eriksson_binary_path, eriksson_info_path)
     population_data_sources.append(eriksson)

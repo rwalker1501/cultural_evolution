@@ -352,7 +352,7 @@ def plot_parameter_values(lnL,lambda_v, zetta_v, eps_v, model,directory,file_pat
     if model=='epidemiological' or model=='richard':
         fig2 = plt.figure();
         p_lambda = np.squeeze(np.mean(dim1,axis=(1)))
-        print 'p_lambda shape=',p_lambda.shape
+ #       print 'p_lambda shape=',p_lambda.shape
         p_lambda=np.true_divide(p_lambda,np.trapz(p_lambda,lambda_v))
         ax2=fig2.add_subplot(111)
         ax2.plot(lambda_v,p_lambda);
@@ -361,9 +361,23 @@ def plot_parameter_values(lnL,lambda_v, zetta_v, eps_v, model,directory,file_pat
         plt.xlim(min(lambda_v),max(lambda_v))
         fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+model+"_lambda.png"
         fig2.savefig(fig_path)
+        total_p=np.sum(p_lambda)
+#        print 'total lambda=', total_p
+        relative_p=np.true_divide(p_lambda,total_p)
+#        print 'relative_p=',relative_p
+        acc_relative_p=np.cumsum(relative_p)
+  #      print 'acc_relative_p=',acc_relative_p
+        interpolated=np.interp([0.025, 0.25, 0.5, 0.75, 0.975], acc_relative_p, lambda_v,)
+ #       print 'interpolated=', interpolated
+ #       print 'Relative lambda 0.025=', interpolated[0]
+  #      print 'Relative lambda 0.25=', interpolated[1]
+  #      print 'Relative lambda 0.5=', interpolated[2]
+   #     print 'Relative lambda 0.75=', interpolated[3]
+   #     print 'Relative lambda 0.975=', interpolated[4]
         plt.close()
        
-     #     Figure 3
+       
+     #     Figure 3 - eps
     if model=='epidemiological' or model=='linear' or model=='richard':
         fig3 = plt.figure();
         dim1=np.mean(exp_lnlminusmax,axis=2) 
@@ -376,25 +390,55 @@ def plot_parameter_values(lnL,lambda_v, zetta_v, eps_v, model,directory,file_pat
         plt.xlim(min(eps_v),max(eps_v))
         fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+model+"_eps.png"
         fig3.savefig(fig_path)
-        plt.close()
+        plt.close(fig3)
         
-         #     Figure 4 
+         #     Figure 4 - zetta - old version
         fig4 = plt.figure();
         dim1=np.mean(exp_lnlminusmax,axis=0) 
-        p_zetta = np.squeeze(np.mean(dim1,axis=(1)))
-        trapz=np.trapz(p_zetta,np.log10(zetta_v))
-        p_zetta=np.true_divide(p_zetta,trapz)
+        p_zetta = np.squeeze(np.mean(dim1,axis=(0)))
+        print 'p_zetta1=', p_zetta
+        p_zetta=np.true_divide(p_zetta,np.trapz(p_zetta,np.log10(zetta_v)))
+        print 'p_zetta2=',p_zetta
+  #      p_zetta=np.true_divide(p_zetta,trapz)
         x_data=np.log10(zetta_v)
         plt.xlim(min(x_data),max(x_data))
-        trapz=np.trapz(p_zetta,np.log10(zetta_v))
-        y_data=np.true_divide(p_zetta,trapz)
+   #     trapz=np.trapz(p_zetta,np.log10(zetta_v))
+        y_data=np.true_divide(p_zetta,np.trapz(p_zetta,np.log10(zetta_v)))
+        print 'p_zetta3=', y_data
         ax4=fig4.add_subplot(111)
         plt.xlabel("log10 " + r"$\zeta$")
         plt.ylabel('Likelihood')
+        print 'x_data=', x_data
+        print 'y_data=', y_data
         ax4.plot(x_data, y_data);
         fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+ model+"_zeta.png"
         fig4.savefig(fig_path)
-        plt.close()
+        plt.close(fig4)
+     
+# =============================================================================
+#                 #     Figure 4 - zetta - new version
+#         fig4 = plt.figure();
+#         dim1=np.mean(exp_lnlminusmax,axis=0) 
+#         p_zetta = np.squeeze(np.mean(dim1,axis=(1)))
+#         p_zetta=np.true_divide(p_zetta,np.trapz(p_zetta,np.log10(zetta_v)))
+#   #      p_zetta=np.true_divide(p_zetta,trapz)
+#         x_data=np.log10(zetta_v)
+#         plt.xlim(min(x_data),max(x_data))
+#    #     trapz=np.trapz(p_zetta,np.log10(zetta_v))
+#         y_data=p_zetta
+#         ax4=fig4.add_subplot(111)
+#         plt.xlabel("log10 " + r"$\zeta$")
+#         plt.ylabel('Likelihood')
+#         ax4.plot(x_data, y_data);
+#         fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+ model+"_zeta.png"
+#         fig4.savefig(fig_path)
+#         plt.close()
+# =============================================================================
+    if model=='richard':
+        return(interpolated)
+    else:
+        return(np.zeros(5))
+    
     
     #     Figure 5
     

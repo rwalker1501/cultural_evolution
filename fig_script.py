@@ -45,7 +45,9 @@ import main_module as mm
 base_path = os.getcwd()
 
 
-mm.run_experiment(base_path, "rpv12 no equatorials exact direct", "rpv12 no equatorials exact direct NEWHR",globals_type="No equatorials",date_window=24,low_res=False);
+#mm.run_experiment(base_path, "rpv12 no equatorials","rpv12 no equatorials NEWHR",globals_type="no equatorials",date_window=24,low_res=False);
+mm.run_experiment(base_path, "rpv12 no equatorials exact direct", "rpv12 no equatorials exact direct NEW",globals_type="No equatorials",date_window=24,low_res=True);
+#mm.run_experiment(base_path, "rpv12 no equatorials", "rpv12 no equatorials NEWHR",globals_type="No equatorials",date_window=24,low_res=False);
 #mm.run_experiment(base_path, "rpv12 no equatorials", "rpv12 no equatorials NEWHR",globals_type="No equatorials",date_window=24,low_res=False);
 #mm.run_experiment(base_path, "rpv12 no equatorials", "rpv12_timmermann NEWLR", population_data_name="Timmermann",globals_type="No equatorials",date_window=999,low_res=True);
 # Figure 1A: map of all sites and controls. Use a different colour (green) for sites where we have "direct" and "exact age" compared to all other sites
