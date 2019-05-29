@@ -211,7 +211,6 @@ class MainProgram:
         dateTime=str(datetime.now())
         f2.write('Date: '+dateTime)
         f2.write('\n')
-
         wrm.write_parameters(f2, self.parameters);
         likelihood_parameters=population_data.likelihood_parameters
         f2.write('lambda start:'+'{:.6g}'.format(likelihood_parameters[0])+'\n')
@@ -373,6 +372,8 @@ def run_experiment(results_path, target_list_file, output_directory, population_
     mp.set_parameter('critical_distance', critical_distance)
     mp.set_parameter('critical_time', critical_time)
     mp.set_parameter('globals_type', globals_type)
+    mp.set_parameter('min_date',filter_min_date)
+    mp.set_parameter('max_date',filter_max_date)
     if processed_targets:
         target_list, dataframe, globals_dataframe = tam.load_processed_targets(results_path, output_directory)
         mp.set_target_list(target_list)
@@ -392,7 +393,7 @@ def run_experiment(results_path, target_list_file, output_directory, population_
             target_list, filters_applied = tam.filter_targets_for_not_figurative(target_list, filters_applied)
         if filter_not_controversial:
             target_list, filters_applied = tam.filter_targets_for_not_controversial(target_list, filters_applied)
-        if filter_min_date != -1:
+        if (filter_min_date != -1) or (filter_max_date!=-1):
             target_list, filters_applied = tam.filter_targets_for_date(target_list, filter_min_date, filter_max_date, filters_applied)
         if filter_min_lat != -1:
             target_list, filters_applied = tam.filter_targets_for_latitude(target_list, filter_min_lat, filter_max_lat, filters_applied)

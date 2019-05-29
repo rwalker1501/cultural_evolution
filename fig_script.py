@@ -46,10 +46,10 @@ base_path = os.getcwd()
 
 
 #mm.run_experiment(base_path, "rpv12 no equatorials","rpv12 no equatorials NEWHR",globals_type="no equatorials",date_window=24,low_res=False);
-mm.run_experiment(base_path, "rpv12 no equatorials exact direct", "rpv12 no equatorials exact direct NEW",globals_type="No equatorials",date_window=24,low_res=True);
+#mm.run_experiment(base_path, "rpv12 no equatorials exact direct", "rpv12 no equatorials exact direct NEW",globals_type="No equatorials",date_window=24,low_res=False);
+#mm.run_experiment(base_path, "rpv12 no equatorials", "rpv12 no equatorials",globals_type="No equatorials",date_window=24,low_res=False);
 #mm.run_experiment(base_path, "rpv12 no equatorials", "rpv12 no equatorials NEWHR",globals_type="No equatorials",date_window=24,low_res=False);
-#mm.run_experiment(base_path, "rpv12 no equatorials", "rpv12 no equatorials NEWHR",globals_type="No equatorials",date_window=24,low_res=False);
-#mm.run_experiment(base_path, "rpv12 no equatorials", "rpv12_timmermann NEWLR", population_data_name="Timmermann",globals_type="No equatorials",date_window=999,low_res=True);
+#mm.run_experiment(base_path, "rpv12 no equatorials", "rpv12_timmermann", population_data_name="Timmermann",globals_type="No equatorials",date_window=999,low_res=True);
 # Figure 1A: map of all sites and controls. Use a different colour (green) for sites where we have "direct" and "exact age" compared to all other sites
 # Fig 2A: pGraph for world, Eriksson
 # Fig 2B: OR graph for world, Eriksson
@@ -62,14 +62,14 @@ mm.run_experiment(base_path, "rpv12 no equatorials exact direct", "rpv12 no equa
 
 
 # # FIG2E: OR graph for Australia, Eriksson
-#mm.run_experiment(base_path, "rpv12_fr_sp", "rpv12_fr_sp NEWHR", globals_type="France and Spain", date_window=24,low_res=False)
-#mm.run_experiment(base_path, "rpv12_au", "rpv12_au NEWHR", globals_type="Australia", date_window=24,low_res=False)
+#mm.run_experiment(base_path, "rpv12_fr_sp", "rpv12_fr_sp", globals_type="France and Spain", date_window=24,low_res=False)
+#mm.run_experiment(base_path, "rpv12_au_exact_direct", "rpv12_au_exact_direct", globals_type="Australia", date_window=24,low_res=False)
 #mm.run_experiment(base_path, "rpv12 no equatorials exact direct", "rpv12_lat60-40", filter_min_lat=40, filter_max_lat=59.9999,date_window=24,low_res=False)
 #mm.run_experiment(base_path, "rpv12 no equatorials exact direct", "rpv12_lat20-40", filter_min_lat=20, filter_max_lat=39.9999,date_window=24,low_res=False)
 #mm.run_experiment(base_path, "rpv12 no equatorials exact direct", "rpv12_lat-10--30", filter_min_lat=-29.9999, filter_max_lat=-10,date_window=24,low_res=False)
 #mm.run_experiment(base_path, "rpv12 no equatorials exact direct", "rpv12_lat-30--50", filter_min_lat=-49.9999, filter_max_lat=-30,date_window=24,low_res=False)
-#mm.run_experiment(base_path, "rpv12 no equatorials exact direct", "rpv12_dat 10k-50k", filter_min_date=10000, filter_max_date=50000,date_window=24,low_res=False)
-#mm.run_experiment(base_path, "rpv12 no equatorials exact direct", "rpv12_dat<10k", filter_min_date=0, filter_max_date=9999,date_window=24,low_res=False)
+mm.run_experiment(base_path, "rpv12 no equatorials", "rpv12_dat 10k-45k", globals_type="No equatorials",filter_min_date=10000, filter_max_date=45000,date_window=24,low_res=False)
+mm.run_experiment(base_path, "rpv12 no equatorials", "rpv12_dat<10k", filter_min_date=0, filter_max_date=9999,globals_type="No equatorials", date_window=24,low_res=False)
 
 
 

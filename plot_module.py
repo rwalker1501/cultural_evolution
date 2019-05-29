@@ -392,24 +392,24 @@ def plot_parameter_values(lnL,lambda_v, zetta_v, eps_v, model,directory,file_pat
         fig3.savefig(fig_path)
         plt.close(fig3)
         
-         #     Figure 4 - zetta - old version
+         #     Figure 4 - zetta - I am not sure why there are two divides here - second divide does not seem to change result
         fig4 = plt.figure();
         dim1=np.mean(exp_lnlminusmax,axis=0) 
         p_zetta = np.squeeze(np.mean(dim1,axis=(0)))
-        print 'p_zetta1=', p_zetta
+  #      print 'p_zetta1=', p_zetta
         p_zetta=np.true_divide(p_zetta,np.trapz(p_zetta,np.log10(zetta_v)))
-        print 'p_zetta2=',p_zetta
+  #      print 'p_zetta2=',p_zetta
   #      p_zetta=np.true_divide(p_zetta,trapz)
         x_data=np.log10(zetta_v)
         plt.xlim(min(x_data),max(x_data))
    #     trapz=np.trapz(p_zetta,np.log10(zetta_v))
         y_data=np.true_divide(p_zetta,np.trapz(p_zetta,np.log10(zetta_v)))
-        print 'p_zetta3=', y_data
+  #      print 'p_zetta3=', y_data
         ax4=fig4.add_subplot(111)
         plt.xlabel("log10 " + r"$\zeta$")
         plt.ylabel('Likelihood')
-        print 'x_data=', x_data
-        print 'y_data=', y_data
+   #     print 'x_data=', x_data
+   #     print 'y_data=', y_data
         ax4.plot(x_data, y_data);
         fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+ model+"_zeta.png"
         fig4.savefig(fig_path)

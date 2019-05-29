@@ -44,6 +44,8 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
         max_date = parameters['max_date'];
         min_lat = parameters['min_lat'];
         max_lat = parameters['max_lat'];
+        print 'in process targets min_date=', min_date
+        print 'in process targets max_date=', max_date
 
         # extract the_globals dataframe depending on the_globals parameter
         the_globals = parameters['globals_type']
@@ -319,8 +321,7 @@ def load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date
 
     # MADE EXCLUSIVE
     # time_mask = (time_np*time_multiplier <= max_date) & (time_np*time_multiplier >= min_date);
-    time_mask = (time_np*time_multiplier < max_date) & (time_np*time_multiplier > min_date);
-    
+    time_mask = (time_np*time_multiplier < max_date) & (time_np*time_multiplier > min_date);    
     print("Min date: " + str(min_date));
     print("Max date: " + str(max_date));
     print("Min lat: " + str(min_lat));
@@ -364,6 +365,7 @@ def load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date
     return new_df
 
 def load_bin_globals_for_no_equatorials (population_data, target_list, date_window, min_lat, max_lat, min_date, max_date, max_for_uninhabited):
+    print 'in load_bin_globals_for_no_equatorials min_date=',min_date,'max_date=', max_date
     df = load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date, max_for_uninhabited)
     new_df = df.loc[~df.latitude.between(-10, 20)]
     return new_df
