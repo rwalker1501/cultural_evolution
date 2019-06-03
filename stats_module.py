@@ -49,7 +49,7 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
     bin_boundaries2_4_python=np.append(bin_boundaries2_4_python,33)
 # rho_bins2 contains actual bins used for graphing actual frequencies - ugly and could be improved
     rho_bins2=bin_boundaries2_4_python[0:len(bin_boundaries2_4_python)-1]+bin_width/2 #This is horribly complicated - needs to be cleaned up
-# Count the number of samples and controls in each bin
+# Count the number of samples and controls in each bin - in Timmermann hi res these are giving zero counts
     samples_counts=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==1],bins=rho_bins_4_python)[0] #Column  vector This is not strict translation of mathlab code. In mathlab the last bin contains 3000. In python it contains 2999-3000
     controls_counts=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==0],bins=rho_bins_4_python) [0] #Column  vector
 # Repeat for the larger bins
@@ -112,14 +112,28 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
                          else:
                              if model=='richard':
                                  p_predicted=compute_richard_model(p_infected,rho_bins,my_zetta,my_eps)
+ #                                print 'p_predicted=', p_predicted
+                                
                              else:
                                  print "Model=",model
                                  print "No model available"
                                  sys.exit()
 # Computes the log likelihood of obtaining the OBSERVED number of samples at a given value of rho_bins, given the predicted number of samples
+                  
                  log_samples=np.dot(samples_counts,np.log(p_predicted)) 
 # The same for controls
+# Problem occurs when log_controls=NaN
+                 
+                 # p_predicted is giving values higher than 1 which causes calculation of negative log)
                  log_controls=np.dot(controls_counts,np.log(1-p_predicted)) 
+                 if np.isnan(log_controls):
+                     print 'controls counts=',controls_counts
+                     print 'p_predicted=', p_predicted
+                     print 'my_lambda=',my_lambda
+                     print 'my_zetta=',my_zetta
+                     print 'my_eps=',my_eps
+                     print 'p_infected=',p_infected
+                     sys.exit()
 # Computes the log likelihood of a certain number of samples AND a certain number of controls (for a given value of rho_bins)
                  LL=log_samples+log_controls
 # Finds the parameter values with the highest likelihood
@@ -130,8 +144,25 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
                      max_eps=my_eps
  #                    max_comm=my_comm
                      max_likelihood=LL
+                 if np.isnan(np.min(LL)):
+                     print 'LL is nan'
+                     print 'nSamples=',n_samples
+                     print 'nControls=',n_controls
+                     print 'my_lambda=',my_lambda
+                     print 'my_zetta=',my_zetta
+                     print 'my_eps=',my_eps
+                     print 'log_samples',log_samples
+                     print 'log_controls', log_controls
+                     print 'p_predicted=', p_predicted
+                     print 'samples_counts=', samples_counts
+                     print 'controls_counts=',controls_counts
+                     sys.exit()
+                         
 # Stores the log likelihood in an array indexed the position of the parameter values in the parameter ranges
+# =============================================================================
+#                  if np.isnan(LL)==False:
                  lnL[i_lambda,i_eps,i_zetta]=LL 
+# =============================================================================
 # Computes the actual likelihood of the observations and applies a left shift to make sure it is not too large (This means values shown are relative only)
                  L=np.exp(LL-l_shift)
                  len_acc_likelihoods=np.array(len(acc_likelihoods))
@@ -147,6 +178,7 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
  #   opt_threshold=max_lambda**2  #Not sure about this
 # Plot maximum likelihood graph
 # Plot graphs for most likely values of each parameter
+    print 'lnl going into plots=',lnL
     interpolated_lambdas=plm.plot_parameter_values(lnL,lambda_v, zetta_v, eps_v,model,directory,results_path)
     opt_threshold=interpolated_lambdas[2]**2  #Not sure about this
     plm.plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, lambda_v, opt_threshold, sample_counts2, control_counts2, model,directory,results_path)
@@ -156,8 +188,11 @@ def compute_epidemiological_model(p_infected, my_zetta,my_eps):
     p_predicted=np.zeros(len(p_infected)).astype(float) 
     p_predicted=my_zetta*((1-my_eps)*p_infected+my_eps)
     p_predicted_small=np.zeros(len(p_predicted))
+    p_predicted_large=np.zeros(len(p_predicted))
     p_predicted_small.fill(1e-20)
+    p_predicted_large.fill(1-0.000000001)
     p_predicted=np.maximum(p_predicted,p_predicted_small)
+    p_predicted=np.minimum(p_predicted,p_predicted_large)
     p_predicted=p_predicted.astype(float) #Probably not necessary
     return(p_predicted)
     
@@ -165,8 +200,11 @@ def compute_richard_model(p_infected,rho_bins,my_zetta,my_eps):
     p_predicted=np.zeros(len(rho_bins)).astype(float) 
     p_predicted=my_zetta*((1-my_eps)*p_infected*rho_bins)+my_eps
     p_predicted_small=np.zeros(len(p_predicted))
+    p_predicted_large=np.zeros(len(p_predicted))
+    p_predicted_large.fill(1-0.000000001)
     p_predicted_small.fill(1e-20)
     p_predicted=np.maximum(p_predicted,p_predicted_small)
+    p_predicted=np.minimum(p_predicted,p_predicted_large)
     p_predicted=p_predicted.astype(float) #Probably not necessary
     return(p_predicted)
     

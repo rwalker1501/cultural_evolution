@@ -344,16 +344,27 @@ def plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, lambda_v, op
     plt.close()
     
 def plot_parameter_values(lnL,lambda_v, zetta_v, eps_v, model,directory,file_path):
-   
+    print 'lnl first line of plot parameters',lnL
+    print 'lnl shape=',lnL.shape
     lnlminusmax=lnL-np.amax(lnL)
+    print 'lnlminusmax=', lnlminusmax
     exp_lnlminusmax=np.exp(lnlminusmax)
+    print 'exp_lnminusmax',exp_lnlminusmax  
+    print 'lambda_v=', lambda_v
+    print 'zetta_v=',zetta_v
+    print 'eps_v=', eps_v
     dim1=np.mean(exp_lnlminusmax,axis=2)  #up to here - look at definition of dimension
+    print 'dim1',dim1
      #      Figure 2
     if model=='epidemiological' or model=='richard':
         fig2 = plt.figure();
         p_lambda = np.squeeze(np.mean(dim1,axis=(1)))
- #       print 'p_lambda shape=',p_lambda.shape
+# Next instruction gives NaN values
+        print 'p_lambda1=', p_lambda
+
+ 
         p_lambda=np.true_divide(p_lambda,np.trapz(p_lambda,lambda_v))
+        print 'p_lambda2=', p_lambda
         ax2=fig2.add_subplot(111)
         ax2.plot(lambda_v,p_lambda);
         plt.xlabel(r'$\lambda$')
@@ -364,6 +375,7 @@ def plot_parameter_values(lnL,lambda_v, zetta_v, eps_v, model,directory,file_pat
         total_p=np.sum(p_lambda)
 #        print 'total lambda=', total_p
         relative_p=np.true_divide(p_lambda,total_p)
+        print 'relative_p=', relative_p
 #        print 'relative_p=',relative_p
         acc_relative_p=np.cumsum(relative_p)
   #      print 'acc_relative_p=',acc_relative_p
