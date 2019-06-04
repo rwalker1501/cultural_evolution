@@ -360,14 +360,14 @@ def plot_parameter_values(lnL,lambda_v, zetta_v, eps_v, model,directory,file_pat
         fig2 = plt.figure();
         p_lambda = np.squeeze(np.mean(dim1,axis=(1)))
 # Next instruction gives NaN values
-        print 'p_lambda1=', p_lambda
+ #       print 'p_lambda1=', p_lambda
 
  
         p_lambda=np.true_divide(p_lambda,np.trapz(p_lambda,lambda_v))
-        print 'p_lambda2=', p_lambda
+#        print 'p_lambda2=', p_lambda
         ax2=fig2.add_subplot(111)
         ax2.plot(lambda_v,p_lambda);
-        plt.xlabel(r'$\lambda$')
+        plt.xlabel(r'$\gamma$')
         plt.ylabel('Likelihood')
         plt.xlim(min(lambda_v),max(lambda_v))
         fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+model+"_lambda.png"
@@ -375,7 +375,7 @@ def plot_parameter_values(lnL,lambda_v, zetta_v, eps_v, model,directory,file_pat
         total_p=np.sum(p_lambda)
 #        print 'total lambda=', total_p
         relative_p=np.true_divide(p_lambda,total_p)
-        print 'relative_p=', relative_p
+#        print 'relative_p=', relative_p
 #        print 'relative_p=',relative_p
         acc_relative_p=np.cumsum(relative_p)
   #      print 'acc_relative_p=',acc_relative_p

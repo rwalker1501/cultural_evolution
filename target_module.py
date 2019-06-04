@@ -32,9 +32,7 @@ def process_targets(base_path, population_data, original_target_list, dataframe,
     # - saves the_globals as <directory>_globals_df.csv
     # - saves target list as <directory>_targets.csv
     if parameters['dataframe_loaded'] is False:
-
         processed_targets_dir = os.path.join(base_path, "processed_targets")
-
         if not os.path.exists(processed_targets_dir):
             os.makedirs(processed_targets_dir)
 

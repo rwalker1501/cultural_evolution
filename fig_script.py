@@ -45,12 +45,12 @@ import main_module as mm
 base_path = os.getcwd()
 
 
-#mm.run_experiment(base_path, "rpv12 no equatorials","rpv12 no equatorials NEWHR",globals_type="No equatorials",filter_min_date=0, filter_max_date=46000,date_window=24,low_res=False);
-#mm.run_experiment(base_path, "rpv12 no equatorials exact direct", "rpv12 no equatorials exact direct NEW",globals_type="No equatorials",date_window=24,low_res=False);
+mm.run_experiment(base_path, "rpv12","rpv12",globals_type="All",filter_min_date=0, filter_max_date=46000,date_window=24,low_res=True);
+#mm.run_experiment(base_path, "rpv12 no equatorials exact direct", "rpv12 no equatorials exact direct",globals_type="No equatorials",date_window=24,filter_min_date=0, filter_max_date=46000,low_res=False);
 #mm.run_experiment(base_path, "rpv12 no equatorials", "rpv12 no equatorials",globals_type="No equatorials",date_window=24,low_res=False);
 #mm.run_experiment(base_path, "rpv12 no equatorials", "rpv12 no equatorials NEWHR",globals_type="No equatorials",date_window=24,low_res=False);
-mm.run_experiment(base_path, "rpv12 no equatorials", "rpv12_timmermann", population_data_name="Timmermann",filter_min_date=0, filter_max_date=46000,globals_type="No equatorials",date_window=999,low_res=False);
-mm.run_experiment(base_path, "rpv12 no equatorials exact direct", "rpv12_timmermann_exact_direct", population_data_name="Timmermann",filter_min_date=0, filter_max_date=46000,globals_type="No equatorials",date_window=999,low_res=False);
+#mm.run_experiment(base_path, "rpv12 no equatorials", "rpv12_timmermann", population_data_name="Timmermann",filter_min_date=0, filter_max_date=46000,globals_type="No equatorials",date_window=999,low_res=False);
+#mm.run_experiment(base_path, "rpv12 no equatorials exact direct", "rpv12_timmermann_exact_direct", population_data_name="Timmermann",filter_min_date=0, filter_max_date=46000,globals_type="No equatorials",date_window=999,low_res=False);
 # Figure 1A: map of all sites and controls. Use a different colour (green) for sites where we have "direct" and "exact age" compared to all other sites
 # Fig 2A: pGraph for world, Eriksson
 # Fig 2B: OR graph for world, Eriksson
