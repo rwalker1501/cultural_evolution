@@ -219,6 +219,8 @@ class MainProgram:
         f2.write('zetta end:'+'{:.6g}'.format(likelihood_parameters[3])+'\n')
         f2.write('eps start:'+'{:.6g}'.format(likelihood_parameters[4])+'\n')
         f2.write('eps end:'+'{:.6g}'.format(likelihood_parameters[5])+'\n')
+        f2.write('y_acc start:'+'{:.6g}'.format(likelihood_parameters[6])+'\n')
+        f2.write('y_acc end:'+'{:.6g}'.format(likelihood_parameters[7])+'\n')
         
 
         #######################
