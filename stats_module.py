@@ -178,9 +178,10 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
  #   opt_threshold=max_lambda**2  #Not sure about this
 # Plot maximum likelihood graph
 # Plot graphs for most likely values of each parameter
-    print 'lnl going into plots=',lnL
+ #   print 'lnl going into plots=',lnL
     interpolated_lambdas=plm.plot_parameter_values(lnL,lambda_v, zetta_v, eps_v,model,directory,results_path)
     opt_threshold=interpolated_lambdas[2]**2  #Not sure about this
+    print 'opt_threshold=',opt_threshold
     plm.plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, lambda_v, opt_threshold, sample_counts2, control_counts2, model,directory,results_path)
     return(max_lambda, max_zetta, max_eps, max_likelihood,interpolated_lambdas)
     

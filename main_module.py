@@ -291,7 +291,7 @@ class MainProgram:
         models=('richard','linear','constant')
         max_likelihood=np.zeros(3)
         for i in range(0,len(models)):
-            print "model=",models[i]
+  #          print "model=",models[i]
             max_lambda, max_zetta, max_eps, max_likelihood[i], opt_threshold=stm.compute_likelihood_model(directory,results_path, population_data,merged_dataframe,models[i],low_res)  #Not elegant - should have same datastructure for both counts
             write_likelihood_results(f2,max_lambda, max_zetta, max_eps, max_likelihood[i], opt_threshold,models[i] )
  #       richard_over_epid=np.exp(max_likelihood[0]-max_likelihood[1])
@@ -320,8 +320,10 @@ def write_likelihood_results(aFile,max_lambda, max_zetta, max_eps, max_likelihoo
             aFile.write('Relative lambda 0.75='+ '{:.2f}'.format(interpolated_lambdas[3])+"\n")
             aFile.write('Relative lambda 0.975='+ '{:.2f}'.format(interpolated_lambdas[4])+"\n")
             threshold_low=interpolated_lambdas[0]**2
+            threshold_predicted=interpolated_lambdas[2]**2
             threshold_high=interpolated_lambdas[4]**2
             aFile.write('0.025 CI for threshold='+ '{:.2f}'.format(threshold_low)+"\n")
+            aFile.write('0.5 CI for threshold='+ '{:.2f}'.format(threshold_predicted)+"\n")
             aFile.write('0.975 CI for threshold='+ '{:.2f}'.format(threshold_high)+"\n")
         if model=='epidemiological' or model=='linear' or model=='richard':
             aFile.write("Max eps="+'{:.5f}'.format(max_eps)+"\n")

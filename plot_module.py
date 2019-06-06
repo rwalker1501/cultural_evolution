@@ -330,31 +330,31 @@ def plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, lambda_v, op
 # Add two polygons to plot
     ax.add_patch(h1)
     ax.add_patch(h2)
-    plt.xlabel('Population density')
-    plt.ylabel('Site frequency')
-    plt.tight_layout()
     if model=='epidemiological' or model=='richard':
         ax.axvline(opt_threshold, color='g', linestyle='--',label="Threshold")
 # Add line showing best fit of model
     ax.plot(rho_bins,pred_int[:,2],linewidth=1, color='blue',antialiased=True)
 # Add line showing (coursely binned) experimental values
     ax.plot(rho_bins2,np.true_divide(samples_counts2, samples_counts2+controls_counts2),color='black', marker='o', markersize=3,linestyle='None',antialiased=True)
+    ax.set_xlabel(r'Population density (individuals/$100km^2$)')
+    ax.set_ylabel(r'Detection frequency')
+    plt.tight_layout()
     fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_fit to "+model+ " model.png"
     fig1.savefig(fig_path)
     plt.close()
     
 def plot_parameter_values(lnL,lambda_v, zetta_v, eps_v, model,directory,file_path):
-    print 'lnl first line of plot parameters',lnL
-    print 'lnl shape=',lnL.shape
+ #   print 'lnl first line of plot parameters',lnL
+#    print 'lnl shape=',lnL.shape
     lnlminusmax=lnL-np.amax(lnL)
-    print 'lnlminusmax=', lnlminusmax
+ #   print 'lnlminusmax=', lnlminusmax
     exp_lnlminusmax=np.exp(lnlminusmax)
-    print 'exp_lnminusmax',exp_lnlminusmax  
-    print 'lambda_v=', lambda_v
-    print 'zetta_v=',zetta_v
-    print 'eps_v=', eps_v
+#    print 'exp_lnminusmax',exp_lnlminusmax  
+#    print 'lambda_v=', lambda_v
+ #   print 'zetta_v=',zetta_v
+ #   print 'eps_v=', eps_v
     dim1=np.mean(exp_lnlminusmax,axis=2)  #up to here - look at definition of dimension
-    print 'dim1',dim1
+ #   print 'dim1',dim1
      #      Figure 2
     if model=='epidemiological' or model=='richard':
         fig2 = plt.figure();
