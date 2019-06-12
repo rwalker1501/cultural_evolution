@@ -27,7 +27,7 @@ def process_targets(base_path, population_data, target_list, dataframe, globals_
         os.makedirs(globals_dir);
     filenames_in_globals = [f for f in os.listdir(globals_dir) if isfile(join(globals_dir,f))]
 
-    globals_filename = (globals_type + ".csv").lower().replace(" ", "_");
+    globals_filename = (globals_type + "_lat_" + str(min_lat) + "-" + str(max_lat) + "_date_" + str(min_date) + "-" + str(max_date) +  "_mfu_" + str(max_for_uninhabited) + ".csv").lower().replace(" ", "_");
     globals_dataframe_path = os.path.join(globals_dir, globals_filename);
     if globals_filename not in filenames_in_globals:
         if globals_type == "Australia":
@@ -170,7 +170,8 @@ def extract_dataframe(population_data, target_list, max_for_uninhabited, date_wi
     # time_dict[some_time] = index_in_time_array
     # next_time_dict[some_time] = next_time
     time_dict, next_time_dict = create_time_dictionaries(time_np, time_multiplier, population_data.ascending_time)
-             
+    
+    # print(time_dict[14200])
     latlon_length = len(lat_np)
     target_location = [];
     target_date_from = [];
@@ -209,8 +210,7 @@ def extract_dataframe(population_data, target_list, max_for_uninhabited, date_wi
         # For every target in every cluster.. #
         #######################################
         for cluster in target_list:
-            # if cluster[0].cluster_id != 18:
-            #     continue;
+
             number_of_targets_in_cluster = len(cluster)
             for target in cluster:
 
@@ -232,7 +232,6 @@ def extract_dataframe(population_data, target_list, max_for_uninhabited, date_wi
                     #   date_to = 40
                     #   time = 40 + (25 - 40%25) = 40 + (25 - 15) = 50
                     time = time + (time_multiplier - time % time_multiplier)
-                
                 # # made exclusive (used to include date if divisible by multiplier)
                 # time = time + (time_multiplier - time % time_multiplier)
                 # made exclusive (used to be time <= date_from)
@@ -277,7 +276,10 @@ def extract_dataframe(population_data, target_list, max_for_uninhabited, date_wi
                                     else:
                                         pseudo_types.append('b')
                                         types.append('c')
+
+                                    has_site = True;
                             except KeyError:
+                                print("Error occurred")
                                 time = -1
                     try:
                         time = next_time_dict[time]
@@ -323,10 +325,8 @@ def load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date
     time_multiplier = population_data.time_multiplier
     density_multiplier = population_data.density_multiplier;
 
-
-    # MADE EXCLUSIVE
-    # time_mask = (time_np*time_multiplier <= max_date) & (time_np*time_multiplier >= min_date);
-    time_mask = (time_np*time_multiplier < max_date) & (time_np*time_multiplier > min_date);
+    # INCLUSIVE
+    time_mask = (time_np*time_multiplier <= max_date) & (time_np*time_multiplier >= min_date);
     
     print("Min date: " + str(min_date));
     print("Max date: " + str(max_date));
@@ -334,9 +334,8 @@ def load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date
     print("Max lat: " + str(max_lat));
 
 
-    # MADE EXCLUSIVE
+    # INCLUSIVE
     latlon_mask = (lat_np <= max_lat) & (lat_np >= min_lat);
-    # latlon_mask = (lat_np < max_lat) & (lat_np > min_lat);
 
     mask = latlon_mask[np.newaxis,:] & time_mask[:, np.newaxis];
 
@@ -748,8 +747,10 @@ def filter_targets_for_not_controversial(target_list, filters_applied):
 def filter_targets_for_date(target_list, minimum_date, maximum_date, filters_applied):
     filtered_targets = []
     for target in target_list:
-        if target.date_to >= minimum_date and target.date_from <= maximum_date:
+        if target.date_from >= minimum_date and target.date_from <= maximum_date:
             filtered_targets.append(target)
+        else:
+            print(target.location)
 
     filters_applied += " Only targets within" + str(minimum_date) + " - " + str(maximum_date) + " date"
 

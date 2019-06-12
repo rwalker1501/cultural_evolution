@@ -31,8 +31,6 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
         eps_v=np.array([1])
     else:
         eps_v=np.linspace(population_data.likelihood_parameters['eps_start'],population_data.likelihood_parameters['eps_end'],num=res_eps,endpoint=False)
- # rho_bins are the bins where we count number of samples and controls. Note we use 3001 bins - probably more than necessary. 
- # this gives the highest possible resolution using the Eriksson data
     rho_bins=np.linspace(0,33,num=3001,endpoint=False)
  # The bins in the python histogram function are open intervals - in matlab they are closed. We add the additional point to make sure the code is
  # identical in both languages
@@ -45,7 +43,7 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
     bin_boundaries2_4_python=np.append(bin_boundaries2_4_python,33)
 # rho_bins2 contains actual bins used for graphing actual frequencies - ugly and could be improved
     rho_bins2=bin_boundaries2_4_python[0:len(bin_boundaries2_4_python)-1]+bin_width/2 #This is horribly complicated - needs to be cleaned up
-# Count the number of samples and controls in each bin
+# Count the number of samples and controls in each bin - in Timmermann hi res these are giving zero counts
     samples_counts=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==1],bins=rho_bins_4_python)[0] #Column  vector This is not strict translation of mathlab code. In mathlab the last bin contains 3000. In python it contains 2999-3000
     controls_counts=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==0],bins=rho_bins_4_python) [0] #Column  vector
 # Repeat for the larger bins
@@ -60,60 +58,106 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
     n_lambda=len(lambda_v)
     n_eps=len(eps_v)
     n_zetta=len(zetta_v)
+ #   n_comm=len(comm_v)
 #  Kills lambda loop for constant and linear models
     if model=='constant' or model=='linear':
         n_lambda=1
 # Set up a (population data specific) range of possible values for the likelihood of a given set of observations
-    acc_likelihoods=np.linspace(population_data.likelihood_parameters['y_acc_start'],population_data.likelihood_parameters['y_acc_end'],num=1001) 
+    acc_likelihoods=np.linspace(population_data.likelihood_parameters["y_acc_start"],population_data.likelihood_parameters["y_acc_end"],num=2001) 
 #  Set up an array representing the accumulated likelihood of a given set of sample and control counts 
 #  Across all possible values of the parameters
     acc=np.zeros((len(acc_likelihoods),len(rho_bins)))
     lnL=np.zeros((n_lambda,n_eps,n_zetta))
     sqrt_rho_bins=np.sqrt(rho_bins) #These are the values we are computing - rhobins_4_python are intervals for histogram only. In original program were inside loop. Have moved it outside
     max_LL=-float('inf') 
-    prev_LL = float('inf')
     bin_zeros=np.zeros(len(sqrt_rho_bins))
 # Scan all possible values of the parameters
     for i_lambda in range (0,n_lambda):
-        # print('LAMBDA_BREAK')
+        print 'Percentage completed=', i_lambda/float(n_lambda)
         my_lambda=float(lambda_v[i_lambda]) 
 # Compute the predicted size of the infected population  as a proportion of population (p_infected) for all possible values of rho_bins, given the value of lambda. Guarantee it is always 0 or greater
         if model=='epidemiological':
             p_infected=np.maximum(bin_zeros,1-my_lambda/sqrt_rho_bins)  #COLUMN VECTOR
         else:
+            if model=='richard':
+#                i_star=np.maximum(bin_zeros,rho_bins-my_lambda*sqrt_rho_bins)
+                p_infected=np.maximum(bin_zeros,1-my_lambda/sqrt_rho_bins)  
             if model=='linear' or model=='constant':
                 p_infected=rho_bins/max(rho_bins)
 # Scan all possible values of lambda, zetta and eps
         for i_zetta in range(0,n_zetta):
-            # print("ZETTA_BREAK")
             for i_eps in range (0, n_eps):
                  my_zetta=zetta_v[i_zetta]
                  my_eps=eps_v[i_eps]
-# Predicts the probability of finding a site in a territory for each of the population densities in rho_bins. Make sure value is never too small
-                 p_predicted = compute_model(p_infected, my_zetta, my_eps);
-
+# =============================================================================
+#                  for i_comm in range(0, n_comm):
+#                      my_comm=comm_v[i_comm]
+#                      comm_mult=86.655/my_comm
+# =============================================================================
+# Predicts the probability of finding at least one site in a territory for each of the population densities in rho_bins. Make sure value is never too small
+                 if model=='epidemiological':
+                     p_predicted=compute_epidemiological_model(p_infected,my_zetta,my_eps)
+                 else:
+                     if model=='linear':
+                         p_predicted=compute_linear_model(p_infected,my_zetta,my_eps)
+                     else:
+                         if model=='constant':
+                             p_predicted=compute_constant_model(p_infected,my_zetta,my_eps)
+                         else:
+                             if model=='richard':
+                                 p_predicted=compute_richard_model(p_infected,rho_bins,my_zetta,my_eps)
+ #                                print 'p_predicted=', p_predicted
+                                
+                             else:
+                                 print "Model=",model
+                                 print "No model available"
+                                 sys.exit()
 # Computes the log likelihood of obtaining the OBSERVED number of samples at a given value of rho_bins, given the predicted number of samples
-                 
+                  
                  log_samples=np.dot(samples_counts,np.log(p_predicted)) 
 # The same for controls
+# Problem occurs when log_controls=NaN
+                 
+                 # p_predicted is giving values higher than 1 which causes calculation of negative log)
                  log_controls=np.dot(controls_counts,np.log(1-p_predicted)) 
+                 if np.isnan(log_controls):
+                     print 'controls counts=',controls_counts
+                     print 'p_predicted=', p_predicted
+                     print 'my_lambda=',my_lambda
+                     print 'my_zetta=',my_zetta
+                     print 'my_eps=',my_eps
+                     print 'p_infected=',p_infected
+                     sys.exit()
 # Computes the log likelihood of a certain number of samples AND a certain number of controls (for a given value of rho_bins)
                  LL=log_samples+log_controls
 # Finds the parameter values with the highest likelihood
-
-                 
                  if LL>max_LL:
                      max_LL=LL
                      max_lambda=my_lambda
                      max_zetta=my_zetta
                      max_eps=my_eps
+ #                    max_comm=my_comm
                      max_likelihood=LL
-
+                 if np.isnan(np.min(LL)):
+                     print 'LL is nan'
+                     print 'nSamples=',n_samples
+                     print 'nControls=',n_controls
+                     print 'my_lambda=',my_lambda
+                     print 'my_zetta=',my_zetta
+                     print 'my_eps=',my_eps
+                     print 'log_samples',log_samples
+                     print 'log_controls', log_controls
+                     print 'p_predicted=', p_predicted
+                     print 'samples_counts=', samples_counts
+                     print 'controls_counts=',controls_counts
+                     sys.exit()
+                         
 # Stores the log likelihood in an array indexed the position of the parameter values in the parameter ranges
+# =============================================================================
+#                  if np.isnan(LL)==False:
                  lnL[i_lambda,i_eps,i_zetta]=LL 
-
-
-# # Computes the actual likelihood of the observations and applies a left shift to make sure it is not too large (This means values shown are relative only)
+# =============================================================================
+# Computes the actual likelihood of the observations and applies a left shift to make sure it is not too large (This means values shown are relative only)
                  L=np.exp(LL-l_shift)
                  len_acc_likelihoods=np.array(len(acc_likelihoods))
                  len_acc_likelihoods.fill(len(acc_likelihoods))
@@ -124,152 +168,37 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
                      y_coord=i
 # Accumulate likelihood values (x coord) for a each possible value of rho_bins (y_coord) across all values of the parameters
                      acc[x_coord,y_coord]=acc[x_coord,y_coord]+L
-
-# # Compute threshold from model - used in grap
-
-    opt_threshold=max_lambda**2  #Not sure about this
+# Compute threshold from model - used in grap
+ #   opt_threshold=max_lambda**2  #Not sure about this
 # Plot maximum likelihood graph
-    plm.plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, lambda_v, opt_threshold, sample_counts2, control_counts2, model,directory,results_path)
 # Plot graphs for most likely values of each parameter
-    plm.plot_parameter_values(lnL,lambda_v, zetta_v, eps_v,model,directory,results_path)
-    return(max_lambda, max_zetta, max_eps, max_likelihood,opt_threshold)
- 
-   
-def optimized_compute_likelihood_model(directory, results_path, population_data, merged_dataframe,model, res_lambda, res_zetta, res_eps):
-    lambda_v = np.linspace(population_data.likelihood_parameters['lambda_start'],population_data.likelihood_parameters['lambda_end'],num = res_lambda)
-    zetta_v = np.exp(np.linspace(log(population_data.likelihood_parameters['zetta_start']),log(population_data.likelihood_parameters['zetta_end']),num = res_zetta,endpoint=False)) 
-
-    if model == 'constant':
-        eps_v = np.array([1]);
-    else:
-        eps_v = np.linspace(population_data.likelihood_parameters['eps_start'],population_data.likelihood_parameters['eps_end'],num=res_eps,endpoint=False)
-
-    rho_bins = np.linspace(0,33,num=3001, endpoint=False);
-
-    rho_bins_plot = np.append(rho_bins, 33);
-
-    bin_width = 2;
-
-    bin_boundaries = np.linspace(0,33,num=17);
-
-    rho_bins2 = bin_boundaries[0:len(bin_boundaries)-1] + bin_width / 2;
-
-    samples_counts = np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==1],bins=rho_bins_plot)[0];
-
-    controls_counts = np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==0],bins=rho_bins_plot)[0];
-
-    samples_counts2 = np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==1],bins=bin_boundaries)[0];
-
-    controls_counts2 = np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==0],bins=bin_boundaries)[0];
-
-    n_samples = np.sum(samples_counts);
-    n_controls = np.sum(controls_counts);
-
-    n_lambda = len(lambda_v);
-    if model == 'constant' or model == 'linear':
-        n_lambda = 1;
-
-    n_eps = len(eps_v);
-    n_zetta = len(zetta_v);
-
-    acc_likelihoods=np.linspace(population_data.likelihood_parameters['y_acc_start'],population_data.likelihood_parameters['y_acc_end'],num=1001) 
-    acc=np.zeros((len(acc_likelihoods),len(rho_bins)))
-
-    sqrt_rho_bins = np.sqrt(rho_bins);
-    bin_zeros = np.zeros(len(sqrt_rho_bins));
-
-    df = pd.DataFrame(list(itertools.product(lambda_v, eps_v, zetta_v)), columns=['lambda','eps','zetta']);
-
-    df = df.apply(computed_log_likelihood, args=(model, bin_zeros, rho_bins, sqrt_rho_bins, samples_counts, controls_counts, acc_likelihoods, acc), axis=1);
-
-    max_row = df.iloc[df['log_likelihood'].idxmax()];
-    max_lambda = max_row['lambda'];
-    max_zetta = max_row['zetta'];
-    max_eps = max_row['eps'];
-    max_likelihood = max_row['log_likelihood']
-    opt_threshold = max_lambda**2;
-
-
-    ########
-    # PLOT #
-    ########
-    plm.plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, lambda_v, opt_threshold, samples_counts2, controls_counts2, model,directory,results_path)
-
-    df['exp_log_likelihood'] = np.exp(df.log_likelihood - df['log_likelihood'].max()); 
-    del df['log_likelihood'];
-
-    if model == "epidemiological":
-        p_lambda = list(df.groupby(['lambda']).mean()['exp_log_likelihood'].values);
-        p_lambda = np.true_divide(p_lambda, np.trapz(p_lambda, lambda_v));
-        plm.plot_parameter_values1(lambda_v, p_lambda, r'$\lambda$', model, "lambda", results_path, directory);
-        del df['lambda']
-
-    if model == "epidemiological" or model == "linear":
-        p_eps = list(df.groupby(['eps']).mean()['exp_log_likelihood'].values);
-        p_eps = np.true_divide(p_eps, np.trapz(p_eps, eps_v));
-        plm.plot_parameter_values1(eps_v, p_eps, r'$\epsilon$', model, "eps", results_path, directory);
-        del df['eps']
-
-    p_zetta = list(df.groupby(['zetta']).mean()['exp_log_likelihood'].values);
-    p_zetta = np.true_divide(p_zetta, np.trapz(p_zetta, np.log10(zetta_v)));
-    plm.plot_parameter_values1(np.log10(zetta_v), p_zetta, "log10 " + r'$\zeta$', model, "zeta", results_path, directory);
-
-    return max_lambda, max_zetta, max_eps, max_likelihood, opt_threshold;
-
-
-def computed_log_likelihood(df, model, bin_zeros, rho_bins, sqrt_rho_bins, samples_counts, controls_counts, acc_likelihoods, acc):
-    my_lambda = df['lambda'];
-
-    if model=='epidemiological':
-        p_infected=np.maximum(bin_zeros,1-my_lambda/sqrt_rho_bins)  #COLUMN VECTOR
-    else:
-        if model=='linear' or model=='constant':
-            p_infected=rho_bins/max(rho_bins);
-    df['p_infected'] = p_infected;
-
-    p_predicted = compute_model(df['p_infected'], df['zetta'], df['eps']);
-
-    log_samples = np.dot(samples_counts, np.log(p_predicted));
-
-    log_controls = np.dot(controls_counts, np.log(1-p_predicted))
-
-    LL = log_samples+log_controls
-    df['log_likelihood'] = LL;
-
-    n_samples = np.sum(samples_counts);
-    n_controls = np.sum(controls_counts);
-    l_shift=n_samples*(log(float(n_samples)/float(n_controls))-1)
-
-    L=np.exp(LL-l_shift)
-    len_acc_likelihoods=np.array(len(acc_likelihoods))
-    len_acc_likelihoods.fill(len(acc_likelihoods))
-
-    i_acc=np.minimum(len_acc_likelihoods,np.floor(1+p_predicted/acc_likelihoods[1]).astype(int))
-
-    for i in range(0,len(i_acc)):
-        x_coord=i_acc[i]-1
-        y_coord=i
-        # Accumulate likelihood values (x coord) for a each possible value of rho_bins (y_coord) across all values of the parameters
-        acc[x_coord,y_coord]=acc[x_coord,y_coord]+L
-    return df;
-
-
-
-def compute_model(p_infected, my_zetta, my_eps):
-    p_predicted=np.zeros(len(p_infected)).astype(float) 
-    p_predicted=my_zetta*((1-my_eps)*p_infected+my_eps)
-    p_predicted_small=np.zeros(len(p_predicted))
-    p_predicted_small.fill(1e-20)
-    p_predicted=np.maximum(p_predicted,p_predicted_small)
-    p_predicted=p_predicted.astype(float) #Probably not necessary
-    return(p_predicted)
-
+    print 'lnl going into plots=',lnL
+    interpolated_lambdas=plm.plot_parameter_values(lnL,lambda_v, zetta_v, eps_v,model,directory,results_path)
+    opt_threshold=interpolated_lambdas[2]**2  #Not sure about this
+    plm.plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, lambda_v, opt_threshold, sample_counts2, control_counts2, model,directory,results_path)
+    return(max_lambda, max_zetta, max_eps, max_likelihood,interpolated_lambdas)
+    
 def compute_epidemiological_model(p_infected, my_zetta,my_eps):
     p_predicted=np.zeros(len(p_infected)).astype(float) 
     p_predicted=my_zetta*((1-my_eps)*p_infected+my_eps)
     p_predicted_small=np.zeros(len(p_predicted))
+    p_predicted_large=np.zeros(len(p_predicted))
+    p_predicted_small.fill(1e-20)
+    p_predicted_large.fill(1-0.000000001)
+    p_predicted=np.maximum(p_predicted,p_predicted_small)
+    p_predicted=np.minimum(p_predicted,p_predicted_large)
+    p_predicted=p_predicted.astype(float) #Probably not necessary
+    return(p_predicted)
+    
+def compute_richard_model(p_infected,rho_bins,my_zetta,my_eps):
+    p_predicted=np.zeros(len(rho_bins)).astype(float) 
+    p_predicted=my_zetta*((1-my_eps)*p_infected*rho_bins)+my_eps
+    p_predicted_small=np.zeros(len(p_predicted))
+    p_predicted_large=np.zeros(len(p_predicted))
+    p_predicted_large.fill(1-0.000000001)
     p_predicted_small.fill(1e-20)
     p_predicted=np.maximum(p_predicted,p_predicted_small)
+    p_predicted=np.minimum(p_predicted,p_predicted_large)
     p_predicted=p_predicted.astype(float) #Probably not necessary
     return(p_predicted)
     
@@ -290,7 +219,7 @@ def compute_constant_model(p_infected, my_zetta,my_eps):
     p_predicted=np.maximum(p_predicted,p_predicted_small)
     p_predicted=p_predicted.astype(float) #Probably not necessary
     return(p_predicted)
-                 
+
 
 def process_dataframe(dataframe):
 
@@ -306,6 +235,8 @@ def process_dataframe(dataframe):
         sample_cluster_df = cluster_df[cluster_df.type == 's']
         if np.isnan(sample_cluster_df['density'].median()):
             print("Removing cluster " + str(cluster_id));
+            print(sample_cluster_df['target_location'].unique())
+            print(sample_cluster_df['density'])
             dataframe = dataframe[dataframe.cluster_id != cluster_id];
             continue;
 

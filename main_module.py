@@ -157,7 +157,7 @@ class MainProgram:
 
     def generate_results(self, population_data, original_target_list, base_path, directory, test_new_method=True):
 
-
+        print(self.parameters)
         # Check if a target list has been loaded, otherwise abort
         if len(original_target_list) == 0:
             return "Load target list before generating results"
@@ -192,6 +192,7 @@ class MainProgram:
         f2.write('\n')
 
         wrm.write_parameters(f2, self.parameters);
+        wrm.write_parameters(f2, population_data.likelihood_parameters)
 
         #######################
         # Process target list #
@@ -200,6 +201,8 @@ class MainProgram:
         #   - If dataframe has not been loaded (through load processed targets), extracts dataframe and saves it.
         #   - dataframe: contains all locations and population densities in the population data that is relevant to the target list
         clustered_target_list, self.dataframe, self.globals_dataframe = tam.process_targets(self.base_path, population_data, original_target_list, self.dataframe, self.globals_dataframe, self.parameters, max_for_uninhabited, directory)
+        self.dataframe.to_csv("rem.csv");
+
         if self.dataframe.empty or len(clustered_target_list)<10:
             f2.write("Not enough sites in Target Areas")
             f2.close()
@@ -258,8 +261,8 @@ class MainProgram:
         # Compare likelihoods of epidemiological, linear and constant models 
         ###############
         print("Computing likelihoods Models")
-        models=('epidemiological','linear','constant')
-        max_likelihood=np.zeros(3)
+        models=('richard', 'epidemiological','linear','constant')
+        max_likelihood=np.zeros(len(models))
         for i in range(0,len(models)):
             print("model= " + models[i])
             max_lambda, max_zetta, max_eps, max_likelihood[i], opt_threshold=stm.compute_likelihood_model(directory,results_path, population_data,merged_dataframe, models[i], self.parameters['res_lambda'], self.parameters['res_zetta'], self.parameters['res_eps'])
@@ -276,23 +279,34 @@ class MainProgram:
         
       
 
-def write_likelihood_results(aFile,max_lambda, max_zetta, max_eps, max_likelihood, opt_threshold,model ):
+def write_likelihood_results(aFile,max_lambda, max_zetta, max_eps, max_likelihood, interpolated_lambdas,model ):
         wrm.write_label(aFile, "Results of max likelihood analysis for "+model+" model")
-        if model=='epidemiological':
-            aFile.write("Max lambda="+'{:.2f}'.format(max_lambda)+"\n")
-            aFile.write("Optimal_threshold="+'{:.2f}'.format(opt_threshold)+"\n")
-        if model=='epidemiological' or model=='linear':
-            aFile.write("Max eps="+'{:.2f}'.format(max_eps)+"\n")
-        aFile.write("Max zetta="+'{:.2f}'.format(max_zetta)+"\n")
+        if model=='epidemiological' or model=='richard':
+            aFile.write('Relative lambda 0.025='+ '{:.2f}'.format(interpolated_lambdas[0])+"\n")
+            aFile.write('Relative lambda 0.25='+ '{:.2f}'.format(interpolated_lambdas[1])+"\n")
+            aFile.write('Relative lambda 0.5='+ '{:.2f}'.format(interpolated_lambdas[2])+"\n")
+            aFile.write('Relative lambda 0.75='+ '{:.2f}'.format(interpolated_lambdas[3])+"\n")
+            aFile.write('Relative lambda 0.975='+ '{:.2f}'.format(interpolated_lambdas[4])+"\n")
+            threshold_low=interpolated_lambdas[0]**2
+            threshold_high=interpolated_lambdas[4]**2
+            aFile.write('0.025 CI for threshold='+ '{:.2f}'.format(threshold_low)+"\n")
+            aFile.write('0.975 CI for threshold='+ '{:.2f}'.format(threshold_high)+"\n")
+        if model=='epidemiological' or model=='linear' or model=='richard':
+            aFile.write("Max eps="+'{:.5f}'.format(max_eps)+"\n")
+#            aFile.write("Max comm="+'{:.2f}'.format(max_comm)+"\n")
+        aFile.write("Max zetta="+'{:.7f}'.format(max_zetta)+"\n")
         aFile.write("Max likelihood="+'{:.0f}'.format(max_likelihood)+"\n")
         if model=='epidemiological':
             k=3
         else:
-            if model=='linear':
-                k=2
+            if model=='richard':
+                k=3
             else:
-                if model=='constant':
-                    k=1                               
+                if model=='linear':
+                    k=2
+                else:
+                    if model=='constant':
+                        k=1                               
         aFile.write("AIC="+ '{:.2f}'.format(2*k-2*max_likelihood)+"\n")
     
 

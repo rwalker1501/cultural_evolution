@@ -4,7 +4,7 @@
     "default_max_for_uninhabited": false, 
     "filters_applied": "", 
     "globals_type": "All", 
-    "max_date": 50000, 
+    "max_date": 46000, 
     "max_lat": 60, 
     "min_date": 0, 
     "min_globals": 1, 
