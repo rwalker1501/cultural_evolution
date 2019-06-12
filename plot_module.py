@@ -390,7 +390,7 @@ def plot_parameter_values(lnL,lambda_v, zetta_v, eps_v, model,directory,file_pat
        
        
      #     Figure 3 - eps
-    if model=='epidemiological' or model=='linear' or model=='richard':
+    if model=='epidemiological' or  model=='richard':
         fig3 = plt.figure();
         dim1=np.mean(exp_lnlminusmax,axis=2) 
         p_eps = np.squeeze(np.mean(dim1,axis=(0)))

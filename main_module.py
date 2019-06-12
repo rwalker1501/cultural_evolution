@@ -186,7 +186,8 @@ class MainProgram:
             max_for_uninhabited = population_data.max_for_uninhabited
         else:
             max_for_uninhabited = self.parameters['user_max_for_uninhabited'];
-
+        #temp instruction to check this
+        #max_for_uninhabited=-1
         #####################################
         # Create directory and results file #
         #####################################
@@ -289,6 +290,7 @@ class MainProgram:
         ###############
    #     models=('epidemiological','linear','constant')
         models=('richard','linear','constant')
+   #     models=('linear','constant')
         max_likelihood=np.zeros(3)
         for i in range(0,len(models)):
   #          print "model=",models[i]
@@ -300,11 +302,11 @@ class MainProgram:
  #       epid_over_linear=np.exp(max_likelihood[0]-max_likelihood[2])
  #       epid_over_constant=np.exp(max_likelihood[0]-max_likelihood[3])
         wrm.write_label(f2,'Bayes factors')
- #       f2.write( 'Bayes factor richard over epidemiological='+'{:.3g}'.format(richard_over_epid)+'\n')
+  #      f2.write( 'Bayes factor richard over epidemiological='+'{:.3g}'.format(richard_over_epid)+'\n')
         f2.write( 'Bayes factor richard over linear='+'{:.3g}'.format(richard_over_linear)+'\n')
         f2.write( 'Bayes factor richard over constant='+'{:.3g}'.format(richard_over_constant)+'\n')
- #       f2.write( 'Bayes factor epid over linear='+'{:.3g}'.format(epid_over_linear)+'\n')
-  #      f2.write( 'Bayes factor epid over constant='+'{:.3g}'.format(epid_over_constant)+'\n')
+   #     f2.write( 'Bayes factor epid over linear='+'{:.3g}'.format(epid_over_linear)+'\n')
+   #     f2.write( 'Bayes factor epid over constant='+'{:.3g}'.format(epid_over_constant)+'\n')
         f2.close();
         return max_likelihood
 

@@ -65,9 +65,13 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
     n_eps=len(eps_v)
     n_zetta=len(zetta_v)
  #   n_comm=len(comm_v)
-#  Kills lambda loop for constant and linear models
+#  Kills lambda and eps loop for constant and linear models
     if model=='constant' or model=='linear':
         n_lambda=1
+        n_eps=1
+    if model=='constant':
+        n_zetta=1
+        zetta_v[0]=n_samples/(n_controls+n_samples)
 # Set up a (population data specific) range of possible values for the likelihood of a given set of observations
     acc_likelihoods=np.linspace(population_data.likelihood_parameters[6],population_data.likelihood_parameters[7],num=2001) 
 #  Set up an array representing the accumulated likelihood of a given set of sample and control counts 
@@ -105,10 +109,10 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
                      p_predicted=compute_epidemiological_model(p_infected,my_zetta,my_eps)
                  else:
                      if model=='linear':
-                         p_predicted=compute_linear_model(p_infected,my_zetta,my_eps)
+                         p_predicted=compute_linear_model(p_infected,rho_bins,my_zetta)
                      else:
                          if model=='constant':
-                             p_predicted=compute_constant_model(p_infected,my_zetta,my_eps)
+                             p_predicted=compute_constant_model(p_infected,rho_bins,my_zetta)
                          else:
                              if model=='richard':
                                  p_predicted=compute_richard_model(p_infected,rho_bins,my_zetta,my_eps)
@@ -121,19 +125,17 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
 # Computes the log likelihood of obtaining the OBSERVED number of samples at a given value of rho_bins, given the predicted number of samples
                   
                  log_samples=np.dot(samples_counts,np.log(p_predicted)) 
-# The same for controls
-# Problem occurs when log_controls=NaN
-                 
-                 # p_predicted is giving values higher than 1 which causes calculation of negative log)
                  log_controls=np.dot(controls_counts,np.log(1-p_predicted)) 
-                 if np.isnan(log_controls):
-                     print 'controls counts=',controls_counts
-                     print 'p_predicted=', p_predicted
-                     print 'my_lambda=',my_lambda
-                     print 'my_zetta=',my_zetta
-                     print 'my_eps=',my_eps
-                     print 'p_infected=',p_infected
-                     sys.exit()
+# =============================================================================
+#                  if np.isnan(log_controls):
+#                      print 'controls counts=',controls_counts
+#                      print 'p_predicted=', p_predicted
+#                      print 'my_lambda=',my_lambda
+#                      print 'my_zetta=',my_zetta
+#                      print 'my_eps=',my_eps
+#                      print 'p_infected=',p_infected
+#                      sys.exit()
+# =============================================================================
 # Computes the log likelihood of a certain number of samples AND a certain number of controls (for a given value of rho_bins)
                  LL=log_samples+log_controls
 # Finds the parameter values with the highest likelihood
@@ -185,42 +187,45 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
     plm.plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, lambda_v, opt_threshold, sample_counts2, control_counts2, model,directory,results_path)
     return(max_lambda, max_zetta, max_eps, max_likelihood,interpolated_lambdas)
     
-def compute_epidemiological_model(p_infected, my_zetta,my_eps):
-    p_predicted=np.zeros(len(p_infected)).astype(float) 
-    p_predicted=my_zetta*((1-my_eps)*p_infected+my_eps)
-    p_predicted_small=np.zeros(len(p_predicted))
-    p_predicted_large=np.zeros(len(p_predicted))
-    p_predicted_small.fill(1e-20)
-    p_predicted_large.fill(1-0.000000001)
-    p_predicted=np.maximum(p_predicted,p_predicted_small)
-    p_predicted=np.minimum(p_predicted,p_predicted_large)
-    p_predicted=p_predicted.astype(float) #Probably not necessary
-    return(p_predicted)
+# =============================================================================
+# def compute_epidemiological_model(p_infected, my_zetta,my_eps):
+#     p_predicted=np.zeros(len(p_infected)).astype(float) 
+#     p_predicted=my_zetta*((1-my_eps)*p_infected+my_eps)
+#     p_predicted_small=np.zeros(len(p_predicted))
+#     p_predicted_large=np.zeros(len(p_predicted))
+#     p_predicted_small.fill(1e-20)
+#     p_predicted_large.fill(1-1e-20)
+#     p_predicted=np.maximum(p_predicted,p_predicted_small)
+#     p_predicted=np.minimum(p_predicted,p_predicted_large)
+#     p_predicted=p_predicted.astype(float) #Probably not necessary
+#     return(p_predicted)
+# =============================================================================
     
 def compute_richard_model(p_infected,rho_bins,my_zetta,my_eps):
     p_predicted=np.zeros(len(rho_bins)).astype(float) 
-    p_predicted=my_zetta*((1-my_eps)*p_infected*rho_bins)+my_eps
+    p_predicted=my_zetta*(((1-my_eps)*p_infected*rho_bins)+my_eps)
+#    p_predicted=my_zetta*(((1-my_eps)*p_infected*rho_bins)+my_eps)
     p_predicted_small=np.zeros(len(p_predicted))
     p_predicted_large=np.zeros(len(p_predicted))
-    p_predicted_large.fill(1-0.000000001)
+    p_predicted_large.fill(1-1e-20)
     p_predicted_small.fill(1e-20)
     p_predicted=np.maximum(p_predicted,p_predicted_small)
     p_predicted=np.minimum(p_predicted,p_predicted_large)
     p_predicted=p_predicted.astype(float) #Probably not necessary
     return(p_predicted)
     
-def compute_linear_model(p_infected, my_zetta,my_eps):
+def compute_linear_model(p_infected, rho_bins,my_zetta):
     p_predicted=np.zeros(len(p_infected)).astype(float) 
-    p_predicted=my_zetta*((1-my_eps)*p_infected+my_eps)
+    p_predicted=my_zetta*rho_bins
     p_predicted_small=np.zeros(len(p_predicted))
     p_predicted_small.fill(1e-20)
     p_predicted=np.maximum(p_predicted,p_predicted_small)
     p_predicted=p_predicted.astype(float) #Probably not necessary
     return(p_predicted)
     
-def compute_constant_model(p_infected, my_zetta,my_eps):
+def compute_constant_model(p_infected, rho_bins, my_zetta):
     p_predicted=np.zeros(len(p_infected)).astype(float) 
-    p_predicted=my_zetta*((1-my_eps)*p_infected+my_eps)
+    p_predicted[0]=my_zetta
     p_predicted_small=np.zeros(len(p_predicted))
     p_predicted_small.fill(1e-20)
     p_predicted=np.maximum(p_predicted,p_predicted_small)
