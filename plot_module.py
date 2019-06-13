@@ -335,7 +335,8 @@ def plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, lambda_v, op
 # Add line showing best fit of model
     ax.plot(rho_bins,pred_int[:,2],linewidth=1, color='blue',antialiased=True)
 # Add line showing (coursely binned) experimental values
-    ax.plot(rho_bins2,np.true_divide(samples_counts2, samples_counts2+controls_counts2),color='black', marker='o', markersize=3,linestyle='None',antialiased=True)
+  #   ax.plot(rho_bins2,np.true_divide(samples_counts2, samples_counts2+controls_counts2),color='black', marker='o', markersize=3,linestyle='None',antialiased=True)
+    ax.plot.bar(rho_bins2,np.true_divide(samples_counts2, samples_counts2+controls_counts2))
     ax.set_xlabel(r'Population density (individuals/$100km^2$)')
     ax.set_ylabel(r'Detection frequency')
     plt.tight_layout()
@@ -390,7 +391,7 @@ def plot_parameter_values(lnL,lambda_v, zetta_v, eps_v, model,directory,file_pat
        
        
      #     Figure 3 - eps
-    if model=='epidemiological' or model=='linear' or model=='richard':
+    if model=='epidemiological' or model=='linear' or model=='richard' or model=='constant':
         fig3 = plt.figure();
         dim1=np.mean(exp_lnlminusmax,axis=2) 
         p_eps = np.squeeze(np.mean(dim1,axis=(0)))

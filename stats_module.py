@@ -33,8 +33,8 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
         zetta_v=np.exp(np.linspace(log(population_data.likelihood_parameters[2]),log(population_data.likelihood_parameters[3]),num=101,endpoint=False))
         eps_v=np.linspace(population_data.likelihood_parameters[4],population_data.likelihood_parameters[5],num=101,endpoint=False)
   #      comm_v=np.linspace(0,1,num=1)
-    if model=='constant':
-        eps_v=np.array([1])
+  #   if model=='constant':
+   #      eps_v=np.array([1])
  # rho_bins are the bins where we count number of samples and controls. Note we use 3001 bins - probably more than necessary. 
  # this gives the highest possible resolution using the Eriksson data
     rho_bins=np.linspace(0,33,num=3001,endpoint=False)
@@ -127,6 +127,7 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
                  # p_predicted is giving values higher than 1 which causes calculation of negative log)
                  log_controls=np.dot(controls_counts,np.log(1-p_predicted)) 
                  if np.isnan(log_controls):
+                     print 'log controls is NaN'
                      print 'controls counts=',controls_counts
                      print 'p_predicted=', p_predicted
                      print 'my_lambda=',my_lambda
@@ -191,7 +192,7 @@ def compute_epidemiological_model(p_infected, my_zetta,my_eps):
     p_predicted_small=np.zeros(len(p_predicted))
     p_predicted_large=np.zeros(len(p_predicted))
     p_predicted_small.fill(1e-20)
-    p_predicted_large.fill(1-0.000000001)
+    p_predicted_large.fill(1-1e-20)
     p_predicted=np.maximum(p_predicted,p_predicted_small)
     p_predicted=np.minimum(p_predicted,p_predicted_large)
     p_predicted=p_predicted.astype(float) #Probably not necessary
@@ -202,7 +203,7 @@ def compute_richard_model(p_infected,rho_bins,my_zetta,my_eps):
     p_predicted=my_zetta*((1-my_eps)*p_infected*rho_bins)+my_eps
     p_predicted_small=np.zeros(len(p_predicted))
     p_predicted_large=np.zeros(len(p_predicted))
-    p_predicted_large.fill(1-0.000000001)
+    p_predicted_large.fill(1-1e-20)
     p_predicted_small.fill(1e-20)
     p_predicted=np.maximum(p_predicted,p_predicted_small)
     p_predicted=np.minimum(p_predicted,p_predicted_large)
@@ -211,19 +212,25 @@ def compute_richard_model(p_infected,rho_bins,my_zetta,my_eps):
     
 def compute_linear_model(p_infected, my_zetta,my_eps):
     p_predicted=np.zeros(len(p_infected)).astype(float) 
-    p_predicted=my_zetta*((1-my_eps)*p_infected+my_eps)
+    p_predicted=my_zetta*((1-my_eps)*p_infected)+my_eps
     p_predicted_small=np.zeros(len(p_predicted))
+    p_predicted_large=np.zeros(len(p_predicted))
     p_predicted_small.fill(1e-20)
+    p_predicted_large.fill(1-1e-20)
     p_predicted=np.maximum(p_predicted,p_predicted_small)
+    p_predicted=np.minimum(p_predicted,p_predicted_large)
     p_predicted=p_predicted.astype(float) #Probably not necessary
     return(p_predicted)
     
 def compute_constant_model(p_infected, my_zetta,my_eps):
     p_predicted=np.zeros(len(p_infected)).astype(float) 
-    p_predicted=my_zetta*((1-my_eps)*p_infected+my_eps)
+    p_predicted.fill(my_zetta*(1-my_eps)+my_eps)
     p_predicted_small=np.zeros(len(p_predicted))
+    p_predicted_large=np.zeros(len(p_predicted))
     p_predicted_small.fill(1e-20)
+    p_predicted_large.fill(1-1e-20)
     p_predicted=np.maximum(p_predicted,p_predicted_small)
+    p_predicted=np.minimum(p_predicted,p_predicted_large)
     p_predicted=p_predicted.astype(float) #Probably not necessary
     return(p_predicted)
                  
@@ -242,6 +249,7 @@ def process_dataframe(dataframe):
         sample_cluster_df = cluster_df[cluster_df.type == 's']
         if np.isnan(sample_cluster_df['density'].median()):
             print("Removing cluster " + str(cluster_id));
+ #           print 'Densities=',sample_cluster_df['density']
             dataframe = dataframe[dataframe.cluster_id != cluster_id];
             continue;
 

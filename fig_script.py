@@ -44,8 +44,7 @@ import main_module as mm
 #--------#
 base_path = os.getcwd()
 
-
-mm.run_experiment(base_path, "rpv12 no equatorials","rpv12 no equatorials",globals_type="No equatorials",filter_min_date=0, filter_max_date=46000,date_window=24,low_res=True);
+#mm.run_experiment(base_path, "rpv12 no equatorials","rpv12 no equatorials test",globals_type="No equatorials",filter_min_date=0, filter_max_date=46000,date_window=24,low_res=True);
 #mm.run_experiment(base_path, "rpv12 no equatorials exact direct", "rpv12 no equatorials exact direct",globals_type="No equatorials",date_window=24,filter_min_date=0, filter_max_date=46000,low_res=False);
 #mm.run_experiment(base_path, "rpv12 no equatorials", "rpv12 no equatorials",globals_type="No equatorials",date_window=24,low_res=False);
 #mm.run_experiment(base_path, "rpv12 no equatorials", "rpv12 no equatorials NEWHR",globals_type="No equatorials",date_window=24,low_res=False);
@@ -64,7 +63,7 @@ mm.run_experiment(base_path, "rpv12 no equatorials","rpv12 no equatorials",globa
 
 # # FIG2E: OR graph for Australia, Eriksson
 #
-#mm.run_experiment(base_path, "rpv12_fr_sp", "rpv12_fr_sp", globals_type="France and Spain", date_window=24,low_res=False,filter_min_date=0, filter_max_date=46000)
+mm.run_experiment(base_path, "rpv12_fr_sp", "rpv12_fr_sp test", globals_type="France and Spain", date_window=24,low_res=True,filter_min_date=0, filter_max_date=46000)
 #mm.run_experiment(base_path, "rpv12_au_exact_direct", "rpv12_au_exact_direct", globals_type="Australia", date_window=24,low_res=False)
 #mm.run_experiment(base_path, "rpv12 no equatorials exact direct", "rpv12_lat60-40", filter_min_lat=40, filter_max_lat=59.9999,date_window=24,low_res=False)
 #mm.run_experiment(base_path, "rpv12 no equatorials exact direct", "rpv12_lat20-40", filter_min_lat=20, filter_max_lat=39.9999,date_window=24,low_res=False)
