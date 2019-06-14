@@ -37,7 +37,8 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
    #      eps_v=np.array([1])
  # rho_bins are the bins where we count number of samples and controls. Note we use 3001 bins - probably more than necessary. 
  # this gives the highest possible resolution using the Eriksson data
-    rho_bins=np.linspace(0,33,num=3001,endpoint=False)
+ # the 12 is a test to see what happens if I restrict space.
+    rho_bins=np.linspace(0,33,num=3000,endpoint=False)
  # The bins in the python histogram function are open intervals - in matlab they are closed. We add the additional point to make sure the code is
  # identical in both languages
  
@@ -210,9 +211,11 @@ def compute_richard_model(p_infected,rho_bins,my_zetta,my_eps):
     p_predicted=p_predicted.astype(float) #Probably not necessary
     return(p_predicted)
     
+    
 def compute_linear_model(p_infected, my_zetta,my_eps):
     p_predicted=np.zeros(len(p_infected)).astype(float) 
-    p_predicted=my_zetta*((1-my_eps)*p_infected)+my_eps
+  #   p_predicted=my_zetta*((1-my_eps)*p_infected)+my_eps
+    p_predicted=my_zetta*p_infected
     p_predicted_small=np.zeros(len(p_predicted))
     p_predicted_large=np.zeros(len(p_predicted))
     p_predicted_small.fill(1e-20)
@@ -224,7 +227,8 @@ def compute_linear_model(p_infected, my_zetta,my_eps):
     
 def compute_constant_model(p_infected, my_zetta,my_eps):
     p_predicted=np.zeros(len(p_infected)).astype(float) 
-    p_predicted.fill(my_zetta*(1-my_eps)+my_eps)
+   #  p_predicted.fill(my_zetta*(1-my_eps)+my_eps)
+    p_predicted.fill(my_zetta)
     p_predicted_small=np.zeros(len(p_predicted))
     p_predicted_large=np.zeros(len(p_predicted))
     p_predicted_small.fill(1e-20)
