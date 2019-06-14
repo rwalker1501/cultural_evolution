@@ -10,7 +10,7 @@ import itertools, pickle, gc;
 
 
 
-def compute_likelihood_model(directory,results_path, population_data,merged_dataframe,model, res_lambda, res_zetta, res_eps):
+def compute_likelihood_model(directory,results_path, population_data,merged_dataframe,model, parameters):
  
  # This function computes the likelihood of a model and the most likely values for the model parameters. Data is stored in results path
  # The procedure can compute the likelihood of three different classes of model: the epidemiological model, a linear model where the infected population is proportional
@@ -23,14 +23,24 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
  # Zetta is the base probability that a  territorial unit) contains at least one site
  # Eps is an error - means that there is a positive probability that a site is present even in a territory with below threshold population
  
-    lambda_v=np.linspace(population_data.likelihood_parameters['lambda_start'],population_data.likelihood_parameters['lambda_end'],num=res_lambda)
-    zetta_v=np.exp(np.linspace(log(population_data.likelihood_parameters['zetta_start']),log(population_data.likelihood_parameters['zetta_end']),num=res_zetta,endpoint=False)) 
+    if parameters['high_resolution']:
+        res_lambda = 101
+        res_zetta = 101
+        res_eps = 101
+    else:
+        res_lambda = 24
+        res_zetta = 11
+        res_eps = 11
+
+
+    lambda_v=np.linspace(parameters['lambda_start'], parameters['lambda_end'],num=res_lambda)
+    zetta_v=np.exp(np.linspace(log(parameters['zetta_start']),log(parameters['zetta_end']),num=res_zetta,endpoint=False)) 
 
 
     if model=='constant':
         eps_v=np.array([1])
     else:
-        eps_v=np.linspace(population_data.likelihood_parameters['eps_start'],population_data.likelihood_parameters['eps_end'],num=res_eps,endpoint=False)
+        eps_v=np.linspace(parameters['eps_start'],parameters['eps_end'],num=res_eps,endpoint=False)
     rho_bins=np.linspace(0,33,num=3001,endpoint=False)
  # The bins in the python histogram function are open intervals - in matlab they are closed. We add the additional point to make sure the code is
  # identical in both languages
@@ -63,7 +73,7 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
     if model=='constant' or model=='linear':
         n_lambda=1
 # Set up a (population data specific) range of possible values for the likelihood of a given set of observations
-    acc_likelihoods=np.linspace(population_data.likelihood_parameters["y_acc_start"],population_data.likelihood_parameters["y_acc_end"],num=2001) 
+    acc_likelihoods=np.linspace(parameters["y_acc_start"],parameters["y_acc_end"],num=2001) 
 #  Set up an array representing the accumulated likelihood of a given set of sample and control counts 
 #  Across all possible values of the parameters
     acc=np.zeros((len(acc_likelihoods),len(rho_bins)))
@@ -107,11 +117,7 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
                              if model=='richard':
                                  p_predicted=compute_richard_model(p_infected,rho_bins,my_zetta,my_eps)
  #                                print 'p_predicted=', p_predicted
-                                
-                             else:
-                                 print "Model=",model
-                                 print "No model available"
-                                 sys.exit()
+
 # Computes the log likelihood of obtaining the OBSERVED number of samples at a given value of rho_bins, given the predicted number of samples
                   
                  log_samples=np.dot(samples_counts,np.log(p_predicted)) 
@@ -227,31 +233,29 @@ def process_dataframe(dataframe):
     samples_growth_coefficients = []
     valid_ids = []
 
-    cluster_ids = dataframe.cluster_id.unique();
+    target_ids = dataframe.target_id.unique();
 
 
-    for cluster_id in cluster_ids:
-        cluster_df = dataframe[dataframe.cluster_id==cluster_id]
-        sample_cluster_df = cluster_df[cluster_df.type == 's']
-        if np.isnan(sample_cluster_df['density'].median()):
-            print("Removing cluster " + str(cluster_id));
-            print(sample_cluster_df['target_location'].unique())
-            print(sample_cluster_df['density'])
-            dataframe = dataframe[dataframe.cluster_id != cluster_id];
+    for target_id in target_ids:
+        target_df = dataframe[dataframe.target_id==target_id]
+        sample_target_df = target_df[target_df.type == 's']
+        if np.isnan(sample_target_df['density'].median()):
+            print("Removing target: " + str(target_id));
+            dataframe = dataframe[dataframe.target_id != target_id];
             continue;
 
         # extract all periods and all population as arrays from the samples dataframe
-        sample_times = sample_cluster_df['period'].values
-        sample_populations = sample_cluster_df['density'].values
+        sample_times = sample_target_df['period'].values
+        sample_populations = sample_target_df['density'].values
 
         # compute growth coefficients for samples
         growth_coefficient_samples=compute_growth_coefficient(sample_times, sample_populations)
 
-        valid_ids.append(cluster_id);
+        valid_ids.append(target_id);
         samples_growth_coefficients.append(growth_coefficient_samples)
 
-    for cluster_id in valid_ids:
-        conditions.append((dataframe['cluster_id'] == cluster_id));
+    for target_id in valid_ids:
+        conditions.append((dataframe['target_id'] == target_id));
 
     dataframe['samples_growth_coefficient'] = np.select(conditions, samples_growth_coefficients);
     return dataframe;
@@ -267,9 +271,8 @@ def compute_growth_coefficient(times, populations):
         return -1.
 
 
-def generate_bin_values_dataframe(dataframe, globals_dataframe, population_data, minimum_globals):
-    bin_size = population_data.bin_size
-    max_population = population_data.max_population
+def generate_bin_values_dataframe(dataframe, globals_dataframe, bin_size, max_population, minimum_globals):
+
     # minimum_bin=max_for_uninhabited
     minimum_bin = 0
     bins_to_omit=int(minimum_bin/bin_size)
@@ -302,7 +305,7 @@ def generate_bin_values_dataframe(dataframe, globals_dataframe, population_data,
     ##############
     # total samples by summing contributions
     # total globals by counting rows
-    total_samples = dataframe[dataframe.type=='s']['contribution'].sum()
+    total_samples = dataframe[dataframe.type=='s']['density'].count()
     total_globals = globals_dataframe['density'].count()
     
     #########################
@@ -314,7 +317,7 @@ def generate_bin_values_dataframe(dataframe, globals_dataframe, population_data,
         bin_array.append(current_bin)
         # sample count: for all samples in the bin, sum all contributions
         samples_dataframe = dataframe[dataframe.type=='s']
-        current_sample_count = samples_dataframe[samples_dataframe.bin == current_bin]['contribution'].sum()
+        current_sample_count = samples_dataframe[samples_dataframe.bin == current_bin]['density'].count()
         if np.isnan(current_sample_count):
             current_sample_count = 0;
         sample_counts.append(current_sample_count)

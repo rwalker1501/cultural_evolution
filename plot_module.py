@@ -11,7 +11,7 @@ from matplotlib.patches import Polygon
 # import seaborn
 
 
-def plot_stat_graphs(stat_dictionary, bin_values_df, population_data, directory, new_path):
+def plot_stat_graphs(stat_dictionary, bin_values_df, population_data, bin_size, max_population, directory, new_path):
 
     bin_array = bin_values_df['bin_array'];
     p_samples = bin_values_df['p_samples'];
@@ -23,9 +23,9 @@ def plot_stat_graphs(stat_dictionary, bin_values_df, population_data, directory,
     median_globals = stat_dictionary['median_globals'];
 
     # plot graphs
-    plot_p_graphs(bin_array, p_samples, p_globals, population_data.bin_size, directory, new_path)
-    plot_cumulative_p_graphs(bin_array, cum_p_samples,cum_p_globals, population_data.bin_size, median_samples, median_globals, directory, new_path)
-    plot_detection_frequencies(bin_array, likelihood_ratios, population_data.bin_size, population_data.max_population-population_data.bin_size*2, directory, new_path)
+    plot_p_graphs(bin_array, p_samples, p_globals, bin_size, directory, new_path)
+    plot_cumulative_p_graphs(bin_array, cum_p_samples,cum_p_globals, bin_size, median_samples, median_globals, directory, new_path)
+    plot_detection_frequencies(bin_array, likelihood_ratios, bin_size, max_population-bin_size*2, directory, new_path)
 
 
 

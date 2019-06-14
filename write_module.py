@@ -114,10 +114,6 @@ def write_target(a_file, target, date_window):
     a_file.write(str(int(target.date_to)))
     a_file.write('\n')
 
-def write_target_table(a_file, targetList, date_window):
-    a_file.write('Location;ClusterID;Latitude;Longitude;DateFrom;DateTo\n')
-    for target in targetList:
-        write_target(a_file,target,date_window)
     # a_file.write('\n')
     
 def write_information(a_file, labels, values, delimiter):
@@ -135,9 +131,8 @@ def write_parameters(a_file, parameters):
             a_file.write(key + ": " + str(value));
         a_file.write("\n");
 
-def write_cluster_table(a_file, dataframe, parameters):
-    date_window = parameters['date_window'];
-    date_lag = parameters['date_lag'];
+def write_target_table(a_file, dataframe, time_window):
+
     cluster_headers=["Name of Site", "Latitude", "Longitude", "TargetDateFrom", "TargetDateTo", "AnalysisDateFrom", "AnalysisDateTo", "Direct", "Exact", "Population density", "Controls population density", "Growth Coefficient"]
     write_headers(a_file, cluster_headers, ';')
 
@@ -147,39 +142,38 @@ def write_cluster_table(a_file, dataframe, parameters):
     ################################
     # - aggregate by mean
     #new_data = dataframe.groupby(['cluster_id', 'pseudo_type']).mean().reset_index()
-    new_data = dataframe.groupby(['cluster_id', 'pseudo_type']).mean().reset_index()
+    new_data = dataframe.groupby(['target_id', 'pseudo_type']).mean().reset_index()
     temp_types = new_data['pseudo_type'].values
-    cluster_ids = new_data.cluster_id.unique();
+    target_ids = new_data.target_id.unique();
     # print("ClusterID")
     # print(cluster_ids)
 
-    for cluster_id in cluster_ids:
-        cluster_df = dataframe[dataframe.cluster_id == cluster_id] 
-        # print(cluster_df)
-        location = cluster_df['target_location'].values[0];
-        latitude = cluster_df['target_lat'].values[0];
-        longitude = cluster_df['target_lon'].values[0];
-        date_from = cluster_df['target_date_from'].values[0];
-        date_to = cluster_df['target_date_to'].values[0];
-        date_from_analysis = date_from + date_lag;
-        date_to_analysis = date_from + date_lag + date_window;
+    for target_id in target_ids:
+        target_df = dataframe[dataframe.target_id == target_id] 
+        # print(target_df)
+        location = target_df['target_location'].values[0];
+        latitude = target_df['target_lat'].values[0];
+        longitude = target_df['target_lon'].values[0];
+        date_from = target_df['target_date_from'].values[0];
+        date_to = target_df['target_date_to'].values[0];
+        date_from_analysis = date_from
+        date_to_analysis = date_from + time_window;
 
 
         direct = 'not direct';
-        if cluster_df['is_dir'].values[0]:
+        if target_df['is_dir'].values[0]:
             direct = 'direct'
 
         exact = 'not exact';
-        if cluster_df['is_exact'].values[0]:
+        if target_df['is_exact'].values[0]:
             exact = 'exact'
 
-        sample_mean = cluster_df[cluster_df.type == 's']['density'].values[0];
-        controls_mean = cluster_df[cluster_df.type == 'c']['density'].values[0];
+        sample_mean = target_df[target_df.type == 's']['density'].values[0];
+        controls_mean = target_df[target_df.type == 'c']['density'].values[0];
 
-        sample_growth_coefficient = cluster_df['samples_growth_coefficient'].values[0]
+        sample_growth_coefficient = target_df['samples_growth_coefficient'].values[0]
 
         a_file.write("\"" + str(location) + "\";")
-        # a_file.write(str(cluster_ids[i]) + ";")
         a_file.write(str(latitude) + ";")
         a_file.write(str(longitude) + ";")
         a_file.write(str(date_from) + ";")

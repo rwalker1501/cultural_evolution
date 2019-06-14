@@ -13,7 +13,8 @@ Created on Mon Feb 20 11:18:02 2017
 #==============================================================================
          
 class Target():
-    def __init__(self,orig_lat, orig_lon,lat_nw,lon_nw,lat_se,lon_se,location,date_from, date_to, country,is_direct,calibrated,kind,figurative,source,is_controversial, age_estimation, cluster_id):
+    def __init__(self, target_id, orig_lat, orig_lon,lat_nw,lon_nw,lat_se,lon_se,location,date_from, date_to, country,is_direct,calibrated,kind,figurative,source,is_controversial, age_estimation):
+        self.target_id = target_id
         self.location=location
         self.lat_nw=lat_nw
         self.lon_nw=lon_nw
@@ -31,7 +32,6 @@ class Target():
         self.source=source
         self.is_controversial=is_controversial
         self.age_estimation = age_estimation;
-        self.cluster_id=cluster_id
 
     def __str__(self):
         ret = self.location + "\n";
@@ -58,13 +58,9 @@ class PopulationData():
         self.density_array = density_array
         self.time_multiplier = population_data_info['time_multiplier']
         self.density_multiplier= population_data_info['density_multiplier']
-        self.bin_size = population_data_info['bin_size']
-        self.max_population = population_data_info['max_population']
         self.is_active = population_data_info['is_active']
-        self.max_for_uninhabited = population_data_info['max_for_uninhabited']
+        self.time_window = population_data_info['time_window']
         self.ascending_time = population_data_info['ascending_time']
-        self.likelihood_parameters= population_data_info['likelihood_parameters']
-        
         
         
         

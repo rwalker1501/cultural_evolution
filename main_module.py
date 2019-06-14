@@ -28,12 +28,9 @@ class MainProgram:
 
     def __init__(self):
         self.base_path = os.getcwd();
-        self.population_data_sources = {}
-        self.target_list=[]
-        self.dataframe = pd.DataFrame()
-        self.globals_dataframe = pd.DataFrame()
+        self.parameters_folder = os.path.join(self.base_path, "experiment_parameters");
+        self.targets_folder = os.path.join(self.base_path,"targets");
 
-        self.parameters = json.load(open('default_param.txt'));
 
     ##################
     # Setter Methods #
@@ -91,12 +88,6 @@ class MainProgram:
     # Target List Functions #
     #########################
 
-    def read_target_list(self, filename):
-        new_list=tam.read_target_list_from_csv(filename)
-        self.filters_applied=""
-        self.dataframe = pd.DataFrame()
-        self.dataframe_loaded = False;
-        return new_list
 
     def save_target_list(self, filename, some_target_list):
         tests_path=os.path.join(self.base_path,"targets")
@@ -155,27 +146,24 @@ class MainProgram:
     # Generate Results Function #
     #############################
 
-    def generate_results(self, population_data, original_target_list, base_path, directory, test_new_method=True):
+    def generate_results(self, parameters_filename="default_experiment_param.txt"):
 
-        print(self.parameters)
-        # Check if a target list has been loaded, otherwise abort
-        if len(original_target_list) == 0:
-            return "Load target list before generating results"
+        parameters_filepath = os.path.join(self.parameters_folder, parameters_filename);
+        parameters = json.load(open(parameters_filepath));
 
-        # Use pre-set max_for_uninhabited per population data by default
-        # If user set a max_for_uninhabited, use that value
-        if self.parameters['default_max_for_uninhabited']:
-            max_for_uninhabited = population_data.max_for_uninhabited
-        else:
-            max_for_uninhabited = self.parameters['user_max_for_uninhabited'];
+        population_data = pdm.load_population_data_source(self.base_path, parameters['population_data']);
 
+        target_filepath = os.path.join(self.targets_folder, parameters['target_file'])
+        target_list = tam.read_target_list_from_csv(target_filepath);
+        
         #####################################
         # Create directory and results file #
         #####################################
-        results_path = os.path.join(base_path, "results")
+        results_path = os.path.join(self.base_path, "results")
         if not os.path.exists(results_path):
             os.makedirs(results_path)
 
+        directory = parameters["results_directory"];
         new_path = os.path.join(results_path, directory)
         if not os.path.exists(new_path):
             os.makedirs(new_path)
@@ -191,35 +179,27 @@ class MainProgram:
         f2.write('Date: '+dateTime)
         f2.write('\n')
 
-        wrm.write_parameters(f2, self.parameters);
-        wrm.write_parameters(f2, population_data.likelihood_parameters)
+        wrm.write_parameters(f2, parameters)
 
-        #######################
-        # Process target list #
-        #######################
-        #   - clusters targets and returns 2D array of targets grouped in clusters
-        #   - If dataframe has not been loaded (through load processed targets), extracts dataframe and saves it.
-        #   - dataframe: contains all locations and population densities in the population data that is relevant to the target list
-        clustered_target_list, self.dataframe, self.globals_dataframe = tam.process_targets(self.base_path, population_data, original_target_list, self.dataframe, self.globals_dataframe, self.parameters, max_for_uninhabited, directory)
-        self.dataframe.to_csv("rem.csv");
+        target_list, targets_dataframe, globals_dataframe = tam.process_targets(self.base_path, population_data, target_list, parameters)
 
-        if self.dataframe.empty or len(clustered_target_list)<10:
+        if targets_dataframe.empty or len(target_list)<10:
             f2.write("Not enough sites in Target Areas")
             f2.close()
             return "Not enough sites in target area"
 
         print("Processing sites and controls dataframe...")
-        self.dataframe = stm.process_dataframe(self.dataframe)
+        targets_dataframe = stm.process_dataframe(targets_dataframe)
 
         print("Saving merged sites and globals dataframes...")
-        merged_dataframe=tam.generate_merged_dataframe(base_path, directory, self.dataframe, self.globals_dataframe, self.parameters['save_processed_targets']);
+        merged_dataframe = tam.generate_merged_dataframe(self.base_path, directory, targets_dataframe, globals_dataframe, parameters['save_processed_targets']);
        
         ########################################
         # Write filtered clustered target list #
         ########################################
         print("Writing target list...")
         wrm.write_label(f2, "Filtered Target List")
-        wrm.write_cluster_table(f2, self.dataframe, self.parameters)
+        wrm.write_target_table(f2, targets_dataframe, population_data.time_window)
         
         #################
         # Generate bins #
@@ -227,8 +207,8 @@ class MainProgram:
         # - extracts bin values
         # - write bin values to file
         print("Writing bins...")
-        bin_values_df = stm.generate_bin_values_dataframe(self.dataframe, self.globals_dataframe, population_data, self.parameters['min_globals'])
-        wrm.write_bin_table(f2, bin_values_df, self.parameters['min_globals'])
+        bin_values_df = stm.generate_bin_values_dataframe(targets_dataframe, globals_dataframe, parameters['bin_size'], parameters['max_population'], parameters['min_globals'])
+        wrm.write_bin_table(f2, bin_values_df, parameters['min_globals'])
 
 
         #################
@@ -237,14 +217,14 @@ class MainProgram:
         # - n, median, mean, std of samples and globals
         # - K-S2 test for bin distribution of samples (p_samples) vs. bin distribution of globals (p_globals)
         print("Calculating statistics...")
-        stat_dictionary, trimmed_bin_values_df = stm.generate_statistics(self.dataframe, self.globals_dataframe, bin_values_df, self.parameters['min_globals'])
+        stat_dictionary, trimmed_bin_values_df = stm.generate_statistics(targets_dataframe, globals_dataframe, bin_values_df, parameters['min_globals'])
         
         if stat_dictionary is None:
             f2.write('insufficient non-zero bins for analysis');
             return 'insufficient non-zero bins for analysis';
         
         print("Writing analysis...")
-        wrm.write_analysis(f2, stat_dictionary, self.parameters['min_p']);
+        wrm.write_analysis(f2, stat_dictionary, parameters['min_p']);
 
         
         ###############
@@ -252,20 +232,20 @@ class MainProgram:
         ###############
 
         print("Generating graphs...")
-        plm.plot_stat_graphs(stat_dictionary, trimmed_bin_values_df, population_data, directory, new_path);
+        plm.plot_stat_graphs(stat_dictionary, trimmed_bin_values_df, population_data, parameters['bin_size'], parameters['max_population'], directory, new_path);
 
         # plots targets and globals on a map
-        plm.plot_targets_on_map(self.dataframe, self.globals_dataframe, new_path, directory)
+        plm.plot_targets_on_map(targets_dataframe, globals_dataframe, new_path, directory)
         
         ###############
         # Compare likelihoods of epidemiological, linear and constant models 
         ###############
         print("Computing likelihoods Models")
-        models=('richard', 'epidemiological','linear','constant')
+        models=('richard', 'linear','constant')
         max_likelihood=np.zeros(len(models))
         for i in range(0,len(models)):
             print("model= " + models[i])
-            max_lambda, max_zetta, max_eps, max_likelihood[i], opt_threshold=stm.compute_likelihood_model(directory,results_path, population_data,merged_dataframe, models[i], self.parameters['res_lambda'], self.parameters['res_zetta'], self.parameters['res_eps'])
+            max_lambda, max_zetta, max_eps, max_likelihood[i], opt_threshold=stm.compute_likelihood_model(directory, results_path, population_data,merged_dataframe, models[i], parameters)
             write_likelihood_results(f2,max_lambda, max_zetta, max_eps, max_likelihood[i], opt_threshold,models[i] );
             gc.collect();
         epid_over_linear=np.exp(max_likelihood[0]-max_likelihood[1])
@@ -310,75 +290,12 @@ def write_likelihood_results(aFile,max_lambda, max_zetta, max_eps, max_likelihoo
         aFile.write("AIC="+ '{:.2f}'.format(2*k-2*max_likelihood)+"\n")
     
 
-def run_experiment(results_path, target_list_file, output_directory, population_data_name='Eriksson', globals_type=None, date_window=None, date_lag=None, user_max_for_uninhabited=None, save_processed_targets=None, processed_targets=None, res_lambda=None, res_zetta=None, res_eps=None, max_date=None, max_lat=None, min_date=None, min_lat=None, min_p=None, min_globals=None, filter_date_before=-1, filter_not_direct=False, filter_not_exact=False, filter_not_figurative=False, filter_not_controversial = False,  filter_min_date=-1, filter_max_date=-1, filter_min_lat=-1, filter_max_lat=-1):
+def run_experiment(parameters_filename=""):
 
     mp = MainProgram()
-
-    if globals_type:
-        mp.set_parameter('globals_type', globals_type);
-    if date_window:
-        mp.set_parameter('date_window', date_window);
-    if date_lag:
-        mp.set_parameter('date_lag', date_lag);
-    if user_max_for_uninhabited:
-        mp.set_parameter('user_max_for_uninhabited', user_max_for_uninhabited);
-    if save_processed_targets:
-        mp.set_parameter('save_processed_targets', save_processed_targets);
-    if res_lambda:
-        mp.set_parameter('res_lambda', res_lambda);
-    if res_zetta:
-        mp.set_parameter('res_zetta', res_zetta);
-    if res_eps:
-        mp.set_parameter('res_eps', res_eps);
-    if max_date:
-        mp.set_parameter('max_date',  max_date);
-    if max_lat:
-        mp.set_parameter('max_lat', max_lat);
-    if min_date:
-        mp.set_parameter('min_date', min_date);
-    if min_lat:
-        mp.set_parameter('min_lat', min_lat);
-    if min_p:
-        mp.set_parameter('min_p');
-    if min_globals:
-        mp.set_parameter('min_globals');
-    if processed_targets:
-        mp.set_parameter('processed_targets', processed_targets);
-        success, target_list, dataframe, globals_dataframe = tam.load_processed_targets(results_path, output_directory)
-        if not success:
-            print("FAILED: missing fails when loading processed_targets");
-            return;
-        mp.set_target_list(target_list)
-        mp.set_dataframe(dataframe, globals_dataframe)
+    if parameters_filename == "":
+        mp.generate_results();
     else:
-        filters_applied = ""
-        base_path = mp.get_base_path();
-        target_list = tam.read_target_list_from_csv(base_path+"/targets/" + target_list_file)
-
-
-        if filter_date_before != -1:
-            target_list, filters_applied = tam.filter_targets_for_date_before(target_list, filter_date_before, filters_applied)
-        if filter_not_direct:
-            target_list, filters_applied = tam.filter_targets_for_not_direct(target_list, filters_applied)
-        if filter_not_exact:
-            target_list, filters_applied = tam.filter_targets_for_not_exact_age(target_list, filters_applied)
-        if filter_not_figurative:
-            target_list, filters_applied = tam.filter_targets_for_not_figurative(target_list, filters_applied)
-        if filter_not_controversial:
-            target_list, filters_applied = tam.filter_targets_for_not_controversial(target_list, filters_applied)
-        if filter_min_date != -1:
-            target_list, filters_applied = tam.filter_targets_for_date(target_list, filter_min_date, filter_max_date, filters_applied)
-        if filter_min_lat != -1:
-            target_list, filters_applied = tam.filter_targets_for_latitude(target_list, filter_min_lat, filter_max_lat, filters_applied)
-        mp.set_parameter('filters_applied', filters_applied)
-
-    population_data = None;
-    if population_data_name == 'Eriksson' or population_data_name == 'Timmermann':
-        mp.load_population_data();
-        population_data = mp.population_data_sources[population_data_name];
-    else:
-        gc.collect();
-        return;
-    mp.generate_results(population_data, target_list, results_path, output_directory)
+        mp.generate_results(parameters_filename=parameters_filename)
     gc.collect();
 

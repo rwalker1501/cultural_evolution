@@ -9,18 +9,29 @@ from os.path import isfile, join
 from clusterer import ClusterAnalysis
 from classes_module import Target, PopulationData
 
-def process_targets(base_path, population_data, target_list, dataframe, globals_dataframe, parameters, max_for_uninhabited, directory):
-    
-    folded_target_list = fold_target_list(target_list)
+def process_targets(base_path, population_data, target_list, parameters):
 
-    date_window = parameters['date_window'];
-    date_lag = parameters['date_lag'];
     min_date = parameters['min_date'];
     max_date = parameters['max_date'];
     min_lat = parameters['min_lat'];
     max_lat = parameters['max_lat'];
-
+    max_for_uninhabited = parameters['max_for_uninhabited'];
     globals_type = parameters['globals_type'];
+
+
+
+    target_list = filter_targets_for_latitude(target_list, min_lat, max_lat);
+    target_list = filter_targets_for_date(target_list, min_date, max_date);
+    if parameters['remove_not_direct_targets']:
+        target_list = filter_targets_for_not_direct(target_list);
+    if parameters['remove_not_exact_age_targets']:
+        target_list = filter_targets_for_not_exact_age(target_list);
+    if parameters['remove_not_figurative_targets']:
+        target_list = filter_targets_for_not_figurative(target_list);
+    if parameters['remove_not_controversial_targets']:
+        target_list = filter_targets_for_not_controversial(target_list);
+
+
 
     globals_dir = os.path.join(base_path, "globals");
     if not os.path.exists(globals_dir):
@@ -31,11 +42,11 @@ def process_targets(base_path, population_data, target_list, dataframe, globals_
     globals_dataframe_path = os.path.join(globals_dir, globals_filename);
     if globals_filename not in filenames_in_globals:
         if globals_type == "Australia":
-                globals_dataframe = load_bin_globals_for_australia(population_data, target_list, date_window, min_date, max_date, max_for_uninhabited)
+                globals_dataframe = load_bin_globals_for_australia(population_data, min_date, max_date, max_for_uninhabited)
         elif globals_type=="No equatorials":
-            globals_dataframe = load_bin_globals_for_no_equatorials(population_data, target_list, date_window, min_lat, max_lat,min_date, max_date,max_for_uninhabited)
+            globals_dataframe = load_bin_globals_for_no_equatorials(population_data, min_lat, max_lat,min_date, max_date,max_for_uninhabited)
         elif globals_type == "France and Spain":
-            globals_dataframe = load_bin_globals_for_francespain(population_data, target_list, date_window, min_date, max_date, max_for_uninhabited)
+            globals_dataframe = load_bin_globals_for_francespain(population_data, target_list, min_date, max_date, max_for_uninhabited)
         elif globals_type == "All":
                 globals_dataframe = load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date, max_for_uninhabited)
 
@@ -51,7 +62,14 @@ def process_targets(base_path, population_data, target_list, dataframe, globals_
     # - saves extracted dataframe as <directory>_dataframe.csv
     # - saves the_globals as <directory>_globals_df.csv
     # - saves target list as <directory>_targets.csv
-    if parameters['processed_targets'] is False:
+    loaded_processed_targets = False
+    if parameters['use_processed_targets']:
+        loaded_processed_targets, target_list, dataframe, globals_dataframe = load_processed_targets(base_path, directory, globals_type, min_lat, min_date, max_date, max_for_uninhabited)
+        if loaded_processed_targets is False:
+            print("Load processed targets failed. Processing targets with existing parameters..")
+
+
+    if loaded_processed_targets is False:
 
         processed_targets_dir = os.path.join(base_path, "processed_targets")
 
@@ -60,7 +78,7 @@ def process_targets(base_path, population_data, target_list, dataframe, globals_
 
         # extract dataframe rank
         print("Extracting sites from targets...")
-        new_df = extract_dataframe(population_data, folded_target_list, max_for_uninhabited, date_window, date_lag)
+        new_df = extract_dataframe(population_data, target_list, max_for_uninhabited)
         
         # get closest site to target
         new_df['distance'] = (new_df['latitude']-new_df['target_lat'])*(new_df['latitude']-new_df['target_lat']) + (new_df['longitude']-new_df['target_lon'])*(new_df['longitude']-new_df['target_lon'])
@@ -71,7 +89,6 @@ def process_targets(base_path, population_data, target_list, dataframe, globals_
         controls_df = new_df[new_df['type'] == 'c'];
 
         dataframe = pd.concat([samples_df, controls_df]);
-
 
         if parameters["save_processed_targets"]:
             print("Saving sites dataframe...")
@@ -84,35 +101,10 @@ def process_targets(base_path, population_data, target_list, dataframe, globals_
             # save targets in processed_targets folder 
             targets_filename = directory + "_targets"
             save_target_list_to_csv(target_list, processed_targets_dir, targets_filename)
-        # exit()
 
+    return target_list, dataframe, globals_dataframe
 
-    return folded_target_list, dataframe, globals_dataframe
-
-def reset_cluster_id_values(target_list):
-    for i in range(0, len(target_list)):
-        target_list[i].cluster_id = i;
-    return target_list;
-
-def limit_target_list_to_oldest(target_list):
-    new_target_list = []
-    new_folded_target_list = []
-
-    for cluster in target_list:
-        max_location = ""
-        max_date = -1
-        for target in cluster:
-            if target.date_from > max_date:
-                max_location = target.location
-                max_date = target.date_from
-
-        for target in cluster:
-            if target.location == max_location:
-                new_target_list.append(target)
-                new_folded_target_list.append([target])
-    return new_target_list, new_folded_target_list
-
-def load_processed_targets(base_path, filename, globals_type):
+def load_processed_targets(base_path, filename, globals_type, min_lat, min_date, max_date, max_for_uninhabited):
 
     processed_targets_dir = os.path.join(base_path, "processed_targets")
     if not os.path.exists(processed_targets_dir):
@@ -124,8 +116,9 @@ def load_processed_targets(base_path, filename, globals_type):
     globals_dir = os.path.join(base_path, "globals");
     if not os.path.exists(globals_dir):
         os.makedirs(globals_dir);
+
+    globals_filename = (globals_type + "_lat_" + str(min_lat) + "-" + str(max_lat) + "_date_" + str(min_date) + "-" + str(max_date) +  "_mfu_" + str(max_for_uninhabited) + ".csv").lower().replace(" ", "_");
     
-    globals_dataframe_filename = (globals_type + ".csv").lower().replace(" ", "_");
     filenames_in_globals = [f for f in os.listdir(globals_dir) if isfile(join(globals_dir,f))]
     
     if dataframe_filename not in filenames_in_processed_targets or globals_dataframe_filename not in filenames_in_globals:
@@ -143,17 +136,7 @@ def load_processed_targets(base_path, filename, globals_type):
 
     return True, target_list, dataframe, globals_dataframe
 
-def clear_processed_targets(base_path):
-    processed_targets_dir = os.path.join(base_path, "processed_targets")
-    filenames = [f for f in os.listdir(processed_targets_dir) if isfile(join(processed_targets_dir, f))]
-    for name in filenames:
-        print("Removing: " + name)
-        filepath = os.path.join(processed_targets_dir, name)
-        os.remove(filepath)
-    print("\n")
-
-
-def extract_dataframe(population_data, target_list, max_for_uninhabited, date_window, date_lag):
+def extract_dataframe(population_data, target_list, max_for_uninhabited):
 
         
     lat_np = population_data.lat_array
@@ -173,6 +156,7 @@ def extract_dataframe(population_data, target_list, max_for_uninhabited, date_wi
     
     # print(time_dict[14200])
     latlon_length = len(lat_np)
+    target_ids = []
     target_location = [];
     target_date_from = [];
     target_date_to = [];
@@ -182,12 +166,10 @@ def extract_dataframe(population_data, target_list, max_for_uninhabited, date_wi
     densities = []
     pseudo_types = []
     types = []
-    contributions = []
     latitudes = []
     longitudes = []
     dirs = []
     exacts = []
-    cluster_ids = []
 
     #######################
     # Loop through latlon #
@@ -209,84 +191,79 @@ def extract_dataframe(population_data, target_list, max_for_uninhabited, date_wi
         #######################################
         # For every target in every cluster.. #
         #######################################
-        for cluster in target_list:
+        for key, target in target_list.iteritems():
 
-            number_of_targets_in_cluster = len(cluster)
-            for target in cluster:
+            ###################################################
+            # Loop from date_from to date_from + dw of target #
+            ###################################################
+            date_from = target.date_from + population_data.time_window
+            # date_to = target.date_to
+            date_to = target.date_from
 
+            time = date_to
+            if smallest_time > time:
+                time = smallest_time
+            if  time % time_multiplier != 0:
+                # get next value divisible by time_multiplier
+                # For example: 
+                #   time_multiplier = 25
+                #   date_to = 40
+                #   time = 40 + (25 - 40%25) = 40 + (25 - 15) = 50
+                time = time + (time_multiplier - time % time_multiplier)
+            # # made exclusive (used to include date if divisible by multiplier)
+            # time = time + (time_multiplier - time % time_multiplier)
+            # made exclusive (used to be time <= date_from)
+            while(time <= date_from and time != -1):
+                # small loop is created here so that code is not repeated
+                for is_global in range(0,2):
+                    # if time and lat/lon is in target conditions
+                    if in_target_location(target, lat, lon, is_global == 1):
+                        try:
+                            time_index = time_dict[time]
+                            density = den_np[time_index][latlon_ind]*density_multiplier
+                            if np.isnan(density):
+                                density=0
+                            # save information only if density > max_for_uninhabited
+                            if density > max_for_uninhabited:
+                                target_ids.append(key);
+                                target_location.append(target.location);
+                                target_date_from.append(target.date_from);
+                                target_date_to.append(target.date_to);
+                                latitudes.append(lat)
+                                longitudes.append(lon)
+                                target_lats.append(target.orig_lat);
+                                target_lons.append(target.orig_lon);
 
-                ###################################################
-                # Loop from date_from to date_from + dw of target #
-                ###################################################
-                date_from = target.date_from + date_lag + date_window
-                # date_to = target.date_to
-                date_to = target.date_from + date_lag
+                                periods.append(time)
+                                densities.append(density)
 
-                time = date_to
-                if smallest_time > time:
-                    time = smallest_time
-                if  time % time_multiplier != 0:
-                    # get next value divisible by time_multiplier
-                    # For example: 
-                    #   time_multiplier = 25
-                    #   date_to = 40
-                    #   time = 40 + (25 - 40%25) = 40 + (25 - 15) = 50
-                    time = time + (time_multiplier - time % time_multiplier)
-                # # made exclusive (used to include date if divisible by multiplier)
-                # time = time + (time_multiplier - time % time_multiplier)
-                # made exclusive (used to be time <= date_from)
-                while(time <= date_from and time != -1):
-                    # small loop is created here so that code is not repeated
-                    for is_global in range(0,2):
-                        # if time and lat/lon is in target conditions
-                        if in_target_location(target, lat, lon, is_global == 1):
-                            try:
-                                time_index = time_dict[time]
-                                density = den_np[time_index][latlon_ind]*density_multiplier
-                                if np.isnan(density):
-                                    density=0
-                                # save information only if density > max_for_uninhabited
-                                if density > max_for_uninhabited:
-                                    cluster_ids.append(target.cluster_id);
-                                    target_location.append(target.location);
-                                    target_date_from.append(target.date_from);
-                                    target_date_to.append(target.date_to);
-                                    latitudes.append(lat)
-                                    longitudes.append(lon)
-                                    target_lats.append(target.orig_lat);
-                                    target_lons.append(target.orig_lon);
+                                if target.is_direct == "Yes":
+                                    dirs.append(True)
+                                else:
+                                    dirs.append(False)
 
-                                    periods.append(time)
-                                    densities.append(density)
-                                    contributions.append(float(1)/number_of_targets_in_cluster)
+                                if target.age_estimation.lower() == "exact age":
+                                    exacts.append(True)
+                                else:
+                                    exacts.append(False)
 
-                                    if target.is_direct == "Yes":
-                                        dirs.append(True)
-                                    else:
-                                        dirs.append(False)
+                                if is_global == 0:
+                                    pseudo_types.append('a')
+                                    types.append('s')
+                                else:
+                                    pseudo_types.append('b')
+                                    types.append('c')
 
-                                    if target.age_estimation.lower() == "exact age":
-                                        exacts.append(True)
-                                    else:
-                                        exacts.append(False)
-
-                                    if is_global == 0:
-                                        pseudo_types.append('a')
-                                        types.append('s')
-                                    else:
-                                        pseudo_types.append('b')
-                                        types.append('c')
-
-                                    has_site = True;
-                            except KeyError:
-                                print("Error occurred")
-                                time = -1
-                    try:
-                        time = next_time_dict[time]
-                    except KeyError:
-                        time = -1
+                                has_site = True;
+                        except KeyError:
+                            print("Error occurred")
+                            time = -1
+                try:
+                    time = next_time_dict[time]
+                except KeyError:
+                    time = -1
     
-    new_df = pd.DataFrame({'target_location': target_location, 'target_date_from': target_date_from, 'target_date_to': target_date_to, 'cluster_id': cluster_ids, 'density': densities, 'period': periods, 'latitude': latitudes, 'longitude': longitudes, 'target_lat': target_lats, 'target_lon': target_lons, 'pseudo_type':pseudo_types, 'type':types, 'contribution': contributions, 'is_dir': dirs, 'is_exact': exacts})
+    new_df = pd.DataFrame({'target_id': target_ids, 'target_location': target_location, 'target_date_from': target_date_from, 'target_date_to': target_date_to, 'density': densities, 'period': periods, 'latitude': latitudes, 'longitude': longitudes, 'target_lat': target_lats, 'target_lon': target_lons, 'pseudo_type':pseudo_types, 'type':types, 'is_dir': dirs, 'is_exact': exacts})
     
 
     return new_df
@@ -369,7 +346,7 @@ def load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date
 
     return new_df
 
-def load_bin_globals_for_no_equatorials (population_data, target_list, date_window, min_lat, max_lat, min_date, max_date, max_for_uninhabited):
+def load_bin_globals_for_no_equatorials (population_data, min_lat, max_lat, min_date, max_date, max_for_uninhabited):
     df = load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date, max_for_uninhabited)
     new_df = df.loc[~df.latitude.between(-10, 20)]
     return new_df
@@ -434,7 +411,7 @@ def load_bin_globals_for_all(population_data, target_list, date_window, min_lat,
 
     return df
 
-def load_bin_globals_for_australia(population_data, target_list, date_window, min_date, max_date, max_for_uninhabited):
+def load_bin_globals_for_australia(population_data, date_window, min_date, max_date, max_for_uninhabited):
     # maximum_latitude = -500;
     # minimum_latitude = 500
     minimum_date = min_date
@@ -479,7 +456,7 @@ def load_bin_globals_for_australia(population_data, target_list, date_window, mi
     return df
 
 
-def load_bin_globals_for_francespain(population_data, target_list, date_window, min_date, max_date, max_for_uninhabited):
+def load_bin_globals_for_francespain(population_data, date_window, min_date, max_date, max_for_uninhabited):
     maximum_latitude = -500;
     minimum_latitude = 500
     minimum_date = min_date
@@ -627,12 +604,11 @@ def read_target_list_format1_from_csv(filename):
 
 def read_target_list_from_csv(filename):
 
-    target_list=[]
+    target_list={}
 
     with open(filename +".csv",'rb') as target_file:
         my_reader=csv.reader(target_file,delimiter=',')
-        next(my_reader,None) # skip the headers
-        cluster_id=0
+        next(my_reader,None) 
         for row in my_reader:
             location=row[0]
             location = location.replace('\n', ' ').replace('\r', '') 
@@ -666,11 +642,15 @@ def read_target_list_from_csv(filename):
                 figurative = "Yes" if row[10][0:3] == "Yes" else "No"
             source="Primary"
             is_controversial="No"
-            target=Target(lat,lon,lat_nw,lon_nw,lat_se,lon_se,location,date_from, date_to, country,is_direct,calibrated,kind,figurative,source,is_controversial, age_est, cluster_id)
-            cluster_id=cluster_id+1
-            target_list.append(target)
+
+
+            target_id = location + "(lat: " + str(lat) + ", lon: " + str(lon) + ", date_from: " + str(date_from) + ")"
+
+            target=Target(target_id, lat,lon,lat_nw,lon_nw,lat_se,lon_se,location,date_from, date_to, country,is_direct,calibrated,kind,figurative,source,is_controversial, age_est)
+
+            target_list[target_id] = target
     target_file.close
-    return(target_list)
+    return target_list
 
 
 def save_target_list_to_csv(target_list, directory, filename):
@@ -698,63 +678,63 @@ def save_target_list_to_csv(target_list, directory, filename):
     target_file.close
     os.chdir(old_dir)
 
-
-def fold_target_list(target_list):
-    # This function creates a target list where each item is a list of targets belonging to the same cluster.
-    #To be executed only after clustering
     
-    max_target=max(target.cluster_id for target in target_list)
-    new_list=[]
-    for i in range(0,max_target+1):
-        new_list.append([])
-    for target in target_list:
-        new_list[target.cluster_id].append(deepcopy(target))
-    return(new_list)
+def filter_targets_for_not_direct(target_list):
+    print("length of original list=",len(target_list))
 
-def filter_targets_for_date_before(target_list, value, filters_applied):
-    filtered_list=[target for target in target_list if target.date_from>=value]
-    filters_applied=filters_applied+" Excluded targets more recent than "+str(int(value))+" BP;"
-    return filtered_list, filters_applied
+    filtered_list = {};
+    for key, target in target_list.iteritems():
+        if target.is_direct == 'Yes':
+            filtered_list[key] = target;
+
+    print("length of filtered list=",len(filtered_list))
     
-def filter_targets_for_not_direct(target_list, filters_applied):
-    print("length of original list=",len(target_list))
-    filtered_list=[target for target in target_list if target.is_direct=='Yes']
-    print("length of filtered list=",len(filtered_list))
-    filters_applied=filters_applied+" "+"Excluded targets with indirect measurements;"
-    return filtered_list, filters_applied
+    return filtered_list
 
-def filter_targets_for_not_exact_age(target_list, filters_applied):
+def filter_targets_for_not_exact_age(target_list):
     print("length of original list=",len(target_list))
-    filtered_list=[target for target in target_list if target.age_estimation.lower()=='exact age']
-    print("length of filtered list=",len(filtered_list))
-    filters_applied=filters_applied+" "+"Only include targets with exact age;"
-    return filtered_list, filters_applied
 
-def filter_targets_for_not_figurative(target_list, filters_applied):
+    filtered_list = {};
+    for key, target in target_list.iteritems():
+        if target.age_estimation.lower()=='exact age':
+            filtered_list[key] = target;
+
+    print("length of filtered list=",len(filtered_list))
+
+    return filtered_list
+
+def filter_targets_for_not_figurative(target_list):
     print("length of original list=",len(target_list))
-    filtered_list=[target for target in target_list if target.figurative=='Yes']
-    print("length of filtered list=",len(filtered_list))
-    filters_applied=filters_applied+" "+"Excluded targets with non-figurative art;"
-    return filtered_list, filters_applied
+    
 
-def filter_targets_for_not_controversial(target_list, filters_applied):
+    filtered_list = {};
+    for key, target in target_list.iteritems():
+        if target.figurative == 'Yes':
+            filtered_list[key] = target;
+
+    print("length of filtered list=",len(filtered_list))
+
+    return filtered_list
+
+def filter_targets_for_not_controversial(target_list):
     print("length of original list=",len(target_list))
-    filtered_list=[target for target in target_list if target.is_controversial=='No']
-    print("length of filtered list=",len(filtered_list))
-    filters_applied=filters_applied+" "+"Excluded targets with disputed measurements;"
-    return filtered_list, filters_applied
+    
+    filtered_list = {};
+    for key, target in target_list.iteritems():
+        if target.is_controversial == 'No':
+            filtered_list[key] = target;
 
-def filter_targets_for_date(target_list, minimum_date, maximum_date, filters_applied):
-    filtered_targets = []
-    for target in target_list:
+    print("length of filtered list=",len(filtered_list))
+
+    return filtered_list
+
+def filter_targets_for_date(target_list, minimum_date, maximum_date):
+    filtered_list = {};
+    for key, target in target_list.iteritems():
         if target.date_from >= minimum_date and target.date_from <= maximum_date:
-            filtered_targets.append(target)
-        else:
-            print(target.location)
+            filtered_list[key] = target
 
-    filters_applied += " Only targets within" + str(minimum_date) + " - " + str(maximum_date) + " date"
-
-    return filtered_targets, filters_applied
+    return filtered_list
 
 def filter_targets_for_abs_latitude(target_list, minimum_lat, maximum_lat, filters_applied):
     filtered_targets = []
@@ -767,37 +747,14 @@ def filter_targets_for_abs_latitude(target_list, minimum_lat, maximum_lat, filte
 
     return filtered_targets, filters_applied
 
-def filter_targets_for_latitude(target_list, minimum_lat, maximum_lat, filters_applied):
-    filtered_targets = []
-    for target in target_list:
+def filter_targets_for_latitude(target_list, minimum_lat, maximum_lat):
+    filtered_list = {};
+    for key, target in target_list.iteritems():
         lat = target.orig_lat
         if lat >= minimum_lat and lat <= maximum_lat:
-            filtered_targets.append(target)
+            filtered_list[key] = target;
+    return filtered_list
 
-    filters_applied += " Only targets within" + str(minimum_lat) + " - " + str(maximum_lat) + " latitude"
-
-    return filtered_targets, filters_applied
-
-def get_min_max_date_of_targets(target_list):
-    minimum_date = 1000000;
-    maximum_date = 0;
-    for target in target_list:
-        if target.date_from > maximum_date:
-            maximum_date = target.date_from;
-        if target.date_to < minimum_date:
-            minimum_date = target.date_to;
-    return minimum_date, maximum_date;
-
-
-def get_min_max_latitude_of_targets(target_list):
-    minimum_lat = 1000;
-    maximum_lat = -1000;
-    for target in target_list:
-        if target.orig_lat > maximum_lat:
-            maximum_lat = target.orig_lat;
-        if target.orig_lat < minimum_lat:
-            minimum_lat = target.orig_lat;
-    return minimum_lat, maximum_lat;
 
 
 def create_binned_column(dataframe, new_column_name, base_column_name, interval):
@@ -826,7 +783,7 @@ def generate_merged_dataframe(base_path, directory, dataframe, globals_dataframe
     temp_samples_df = temp_samples_df[temp_samples_df.type == 's'];
 
      # DELETE COLUMNS
-    temp_samples_df.drop(["cluster_id","samples_growth_coefficient", "contribution", "distance", "is_dir", "is_exact", "pseudo_type", "rank", "target_date_from", "target_date_to", "target_lat", "target_location", "target_lon","type"], axis=1, inplace = True)
+    temp_samples_df.drop(["target_id","samples_growth_coefficient", "distance", "is_dir", "is_exact", "pseudo_type", "rank", "target_date_from", "target_date_to", "target_lat", "target_location", "target_lon","type"], axis=1, inplace = True)
 
     # is_sample
     temp_globals_df['is_sample'] = 0;    
