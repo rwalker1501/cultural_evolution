@@ -78,7 +78,8 @@ def process_targets(base_path, population_data, target_list, parameters):
 
         # extract dataframe rank
         print("Extracting sites from targets...")
-        new_df = extract_dataframe(population_data, target_list, max_for_uninhabited)
+        new_df = extract_dataframe(globals_dataframe, target_list, population_data.time_window)
+        # new_df = extract_dataframe(population_data, target_list, max_for_uninhabited)
         
         # get closest site to target
         new_df['distance'] = (new_df['latitude']-new_df['target_lat'])*(new_df['latitude']-new_df['target_lat']) + (new_df['longitude']-new_df['target_lon'])*(new_df['longitude']-new_df['target_lon'])
@@ -136,7 +137,52 @@ def load_processed_targets(base_path, filename, globals_type, min_lat, min_date,
 
     return True, target_list, dataframe, globals_dataframe
 
-def extract_dataframe(population_data, target_list, max_for_uninhabited):
+
+def extract_dataframe(globals_dataframe, target_list, time_window):
+    dataframes = []
+    for key, target in target_list.iteritems():
+        date_from = target.date_from
+        lat_n = target.lat_nw
+        lat_s = target.lat_se
+        lon_e = target.lon_nw
+        lon_w = target.lon_se
+
+        latstrip_df = globals_dataframe.loc[(globals_dataframe.latitude.between(lat_s,lat_n)) & (globals_dataframe.period.between(date_from, date_from+time_window))]
+
+
+        if lon_e < lon_w:
+            controls_df = latstrip_df.loc[~latstrip_df.longitude.between(lon_e, lon_w)]
+            samples_df = latstrip_df.loc[latstrip_df.longitude.between(lon_e, lon_w)]
+        else:
+            controls_df = latstrip_df.loc[~(latstrip_df.longitude.between(lon_e, 360) | latstrip_df.longitude.between(0, lon_w))]
+            samples_df = latstrip_df.loc[(latstrip_df.longitude.between(lon_e, 360) | latstrip_df.longitude.between(0, lon_w))]
+
+        controls_df['type'] = 'c';
+        controls_df['pseudo_type'] = 'b';
+        samples_df['type'] = 's';
+        samples_df['pseudo_type'] = 'a';
+
+        df = pd.concat([controls_df, samples_df])
+        df['target_id'] = key;
+        df['target_location'] = target.location;
+        df['target_date_from'] = target.date_from
+        df['target_date_to'] = target.date_to
+        df['target_lat'] = target.orig_lat
+        df['target_lon'] = target.orig_lon
+        df['is_dir'] = target.is_direct == "Yes"
+        df['is_exact'] = target.age_estimation.lower() == "exact age"
+
+        dataframes.append(df);
+        if controls_df.empty:
+            print(key);
+            print(lon_e)
+            print(lon_w)
+
+    return pd.concat(dataframes);
+
+
+
+def extract_dataframe_old(population_data, target_list, max_for_uninhabited):
 
         
     lat_np = population_data.lat_array
@@ -268,6 +314,7 @@ def extract_dataframe(population_data, target_list, max_for_uninhabited):
     
 
     return new_df
+
 
 
 
