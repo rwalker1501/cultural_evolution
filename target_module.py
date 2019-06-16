@@ -46,7 +46,7 @@ def process_targets(base_path, population_data, target_list, parameters):
         elif globals_type=="No equatorials":
             globals_dataframe = load_bin_globals_for_no_equatorials(population_data, min_lat, max_lat,min_date, max_date,max_for_uninhabited)
         elif globals_type == "France and Spain":
-            globals_dataframe = load_bin_globals_for_francespain(population_data, target_list, min_date, max_date, max_for_uninhabited)
+            globals_dataframe = load_bin_globals_for_francespain(population_data, min_date, max_date, max_for_uninhabited)
         elif globals_type == "All":
                 globals_dataframe = load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date, max_for_uninhabited)
 
@@ -214,6 +214,7 @@ def extract_dataframe(population_data, target_list, max_for_uninhabited):
             # time = time + (time_multiplier - time % time_multiplier)
             # made exclusive (used to be time <= date_from)
             while(time <= date_from and time != -1):
+
                 # small loop is created here so that code is not repeated
                 for is_global in range(0,2):
                     # if time and lat/lon is in target conditions
@@ -411,7 +412,13 @@ def load_bin_globals_for_all(population_data, target_list, date_window, min_lat,
 
     return df
 
-def load_bin_globals_for_australia(population_data, date_window, min_date, max_date, max_for_uninhabited):
+def load_bin_globals_for_australia(population_data, min_date, max_date, max_for_uninhabited):
+    df = load_all_globals_brute(population_data, -40, -11, min_date, max_date, max_for_uninhabited)
+    new_df = df.loc[(df.latitude.between(-39.16,-11.17)) & (df.longitude.between(112.14,154.86))]
+    print(new_df)
+    return new_df
+
+def load_bin_globals_for_australia_old(population_data, min_date, max_date, max_for_uninhabited):
     # maximum_latitude = -500;
     # minimum_latitude = 500
     minimum_date = min_date
@@ -443,20 +450,24 @@ def load_bin_globals_for_australia(population_data, date_window, min_date, max_d
     time = minimum_date
     temp_target = Target(latitude,longitude,lat_nw,lon_nw,lat_se,lon_se,"location",maximum_date, time,"country","is_direct","calibrated","kind","figurative","source","is_controversial","age_estimation", 0)
 
-    df = extract_dataframe(population_data, [[temp_target]], max_for_uninhabited, date_window, 0)
+    df = extract_dataframe(population_data, {'au':temp_target}, max_for_uninhabited)
     df = df[df.type=='s']
     del df['target_location']
     del df['target_date_from']
     del df['target_date_to']
-    del df['cluster_id']
+    del df['target_id']
     del df['type']
-    del df['contribution']
     del df['is_dir'];
     del df['is_exact'];
     return df
 
 
-def load_bin_globals_for_francespain(population_data, date_window, min_date, max_date, max_for_uninhabited):
+def load_bin_globals_for_francespain(population_data, min_date, max_date, max_for_uninhabited):
+    df = load_all_globals_brute(population_data, 34, 60, min_date, max_date, max_for_uninhabited)
+    new_df = df.loc[(df.latitude.between(35,50.84)) & ((df.longitude.between(0, 7)) | (df.longitude.between(350, 360)))]
+    return new_df
+
+def load_bin_globals_for_francespain_old(population_data, min_date, max_date, max_for_uninhabited):
     maximum_latitude = -500;
     minimum_latitude = 500
     minimum_date = min_date
@@ -490,15 +501,14 @@ def load_bin_globals_for_francespain(population_data, date_window, min_date, max
     target_east = Target(latitude,longitude,lat_nw,lon_nw,lat_se,359,"east_location",maximum_date, time,"country","is_direct","calibrated","kind","figurative","source","is_controversial","age_estimation", 0)
     target_west = Target(latitude,longitude,lat_nw,0,lat_se,lon_se,"west_location",maximum_date, time, "country","is_direct","calibrated","kind","figurative","source","is_controversial","age_estimation", 0)
 
-    df = extract_dataframe(population_data, [[target_east, target_west]], max_for_uninhabited, date_window, 0)
+    df = extract_dataframe(population_data, {'fr1':target_east, 'fr2': target_west}, max_for_uninhabited)
 
     df = df[df.type=='s']
     del df['target_location']
     del df['target_date_from']
     del df['target_date_to']
-    del df['cluster_id']
+    del df['target_id']
     del df['type']
-    del df['contribution']
     del df['is_dir'];
     del df['is_exact'];
     return df
