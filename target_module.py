@@ -42,7 +42,7 @@ def process_targets(base_path, population_data, target_list, parameters):
     globals_dataframe_path = os.path.join(globals_dir, globals_filename);
     if globals_filename not in filenames_in_globals:
         if globals_type == "Australia":
-                globals_dataframe = load_bin_globals_for_australia(population_data, min_date, max_date, max_for_uninhabited)
+            globals_dataframe = load_bin_globals_for_australia(population_data, min_date, max_date, max_for_uninhabited)
         elif globals_type=="No equatorials":
             globals_dataframe = load_bin_globals_for_no_equatorials(population_data, min_lat, max_lat,min_date, max_date,max_for_uninhabited)
         elif globals_type == "France and Spain":
