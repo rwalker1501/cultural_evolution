@@ -179,7 +179,7 @@ class MainProgram:
         f2.write('Date: '+dateTime)
         f2.write('\n')
 
-        wrm.write_parameters(f2, parameters)
+        wrm.write_parameters(f2, parameters_filename, parameters)
 
         target_list, targets_dataframe, globals_dataframe = tam.process_targets(self.base_path, population_data, target_list, parameters)
 
@@ -189,7 +189,9 @@ class MainProgram:
             return "Not enough sites in target area"
 
         print("Processing sites and controls dataframe...")
-        targets_dataframe = stm.process_dataframe(targets_dataframe)
+        targets_dataframe, removed_targets = stm.process_dataframe(targets_dataframe)
+
+        wrm.write_list(f2, "Removed Targets", removed_targets);
 
         print("Saving merged sites and globals dataframes...")
         merged_dataframe = tam.generate_merged_dataframe(self.base_path, directory, targets_dataframe, globals_dataframe, parameters['save_processed_targets']);

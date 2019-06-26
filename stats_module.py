@@ -234,6 +234,7 @@ def process_dataframe(dataframe):
     valid_ids = []
 
     target_ids = dataframe.target_id.unique();
+    removed_targets = []
 
 
     for target_id in target_ids:
@@ -241,6 +242,7 @@ def process_dataframe(dataframe):
         sample_target_df = target_df[target_df.type == 's']
         if np.isnan(sample_target_df['density'].median()):
             print("Removing target: " + str(target_id));
+            removed_targets.append(target_id);
             dataframe = dataframe[dataframe.target_id != target_id];
             continue;
 
@@ -258,7 +260,7 @@ def process_dataframe(dataframe):
         conditions.append((dataframe['target_id'] == target_id));
 
     dataframe['samples_growth_coefficient'] = np.select(conditions, samples_growth_coefficients);
-    return dataframe;
+    return dataframe, removed_targets;
 
 def compute_growth_coefficient(times, populations):
     if len(times)>=2:

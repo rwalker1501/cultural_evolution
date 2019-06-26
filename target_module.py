@@ -38,7 +38,7 @@ def process_targets(base_path, population_data, target_list, parameters):
         os.makedirs(globals_dir);
     filenames_in_globals = [f for f in os.listdir(globals_dir) if isfile(join(globals_dir,f))]
 
-    globals_filename = (globals_type + "_lat_" + str(min_lat) + "-" + str(max_lat) + "_date_" + str(min_date) + "-" + str(max_date) +  "_mfu_" + str(max_for_uninhabited) + ".csv").lower().replace(" ", "_");
+    globals_filename = (population_data.name + "_" + globals_type + "_lat_" + str(min_lat) + "-" + str(max_lat) + "_date_" + str(min_date) + "-" + str(max_date) +  "_mfu_" + str(max_for_uninhabited) + ".csv").lower().replace(" ", "_");
     globals_dataframe_path = os.path.join(globals_dir, globals_filename);
     if globals_filename not in filenames_in_globals:
         if globals_type == "Australia":

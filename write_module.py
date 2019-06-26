@@ -16,6 +16,11 @@ def write_headers(a_file, headers, delimiter):
             a_file.write(delimiter)
     a_file.write('\n')
     
+def write_list(a_file, label, list_to_write):
+    write_label(a_file, label);
+    for i in list_to_write:
+        a_file.write(str(i) + "\n")
+
 def write_confounder_analysis_table(a_file, label, dictionary, keys, or_MHs, MH_stats, MH_stat_ps):
 
     headers = [""];
@@ -123,13 +128,12 @@ def write_information(a_file, labels, values, delimiter):
     a_file.write(information_str)
     a_file.write('\n')
 
-def write_parameters(a_file, parameters):
-    for key, value in parameters.iteritems():
-        if isinstance(value, basestring):
-            a_file.write(key + ": " + value);
-        else:
-            a_file.write(key + ": " + str(value));
-        a_file.write("\n");
+def write_parameters(a_file, parameters_filename, parameters):
+    keys = ["population_data", "globals_type", "target_file", "results_directory", "bin_size", "max_population", "max_for_uninhabited", "max_date","min_date", "max_lat", "min_lat", "high_resolution", "lambda_start", "lambda_end","zetta_start", "zetta_end", "eps_start", "eps_end", "y_acc_start", "y_acc_end", "remove_not_direct_targets", "remove_not_exact_age_targets", "remove_not_figurative_targets", "remove_not_controversial_targets", "save_processed_targets", "use_processed_targets", "min_p", "min_globals"]
+
+    a_file.write("parameters_filename: " + parameters_filename + "\n")
+    for key in keys:
+        a_file.write(key + ": " + str(parameters[key]) + "\n");
 
 def write_target_table(a_file, dataframe, time_window):
 
