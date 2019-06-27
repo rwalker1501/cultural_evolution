@@ -30,6 +30,7 @@ class MainProgram:
         self.base_path = os.getcwd();
         self.parameters_folder = os.path.join(self.base_path, "experiment_parameters");
         self.targets_folder = os.path.join(self.base_path,"targets");
+        self.parameters_filename = "default_experiment_param.txt"
 
 
     ##################
@@ -37,48 +38,22 @@ class MainProgram:
     ##################
 
 
-    def set_population_data_active(self, is_active, key):
-        self.population_data_sources[key].is_active = is_active;
-    
+    def set_parameters_filename(self, parameters_filename):
+        self.parameters_filename = parameters_filename;
 
-    def set_target_list(self, some_target_list):
-        self.target_list = some_target_list;
-
-    def set_dataframe(self, dataframe, globals_dataframe):
-        self.dataframe = dataframe;
-        self.globals_dataframe = globals_dataframe;
-        self.dataframe_loaded = True;
-
-    def set_user_max_for_uninhabited(self, mfi):
-        self.parameters['user_max_for_uninhabited'] = mfi;
-        self.parameters['default_max_for_uninhabited'] = False;
-
-    def set_parameter(self, parameter_name, value):
-        self.parameters[parameter_name] = value;
 
     ##################
     # Getter Methods #
     ##################
 
-    def get_base_path(self):
-        return self.base_path;
+    def get_targets_folder(self):
+        return self.targets_folder
 
-    def get_population_data(self):
-        return self.population_data_sources;
+    def get_parameters_folder(self):
+        return self.parameters_folder;
 
-    def get_current_target_list(self):
-        return self.target_list;
-
-    def get_parameters(self):
-        return self.parameters;
-
-
-    #############################
-    # Population Data Functions #
-    #############################
-
-    def load_population_data(self):
-        self.population_data_sources = pdm.load_population_data(self.base_path, self.population_data_sources)
+    def get_parameters_filename(self):
+        return self.parameters_filename
 
     def add_population_data(self, name, binary_path, info_path):
         new_population_data = pdm.load_population_data_source(name, binary_path, info_path)
@@ -146,7 +121,9 @@ class MainProgram:
     # Generate Results Function #
     #############################
 
-    def generate_results(self, parameters_filename="default_experiment_param.txt"):
+    def generate_results(self, parameters_filename=None):
+        if parameters_filename is None:
+            parameters_filename = self.parameters_filename;
 
         parameters_filepath = os.path.join(self.parameters_folder, parameters_filename);
         parameters = json.load(open(parameters_filepath));
