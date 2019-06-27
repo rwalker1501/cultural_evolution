@@ -41,7 +41,7 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
         eps_v=np.array([1])
     else:
         eps_v=np.linspace(parameters['eps_start'],parameters['eps_end'],num=res_eps,endpoint=False)
-    rho_bins=np.linspace(0,33,num=3001,endpoint=False)
+    rho_bins=np.linspace(0,33,num=300,endpoint=False)
  # The bins in the python histogram function are open intervals - in matlab they are closed. We add the additional point to make sure the code is
  # identical in both languages
  
@@ -209,20 +209,28 @@ def compute_richard_model(p_infected,rho_bins,my_zetta,my_eps):
     return(p_predicted)
     
 def compute_linear_model(p_infected, my_zetta,my_eps):
-    p_predicted=np.zeros(len(p_infected)).astype(float) 
-    p_predicted=my_zetta*((1-my_eps)*p_infected+my_eps)
+    p_predicted=np.zeros(len(p_infected)).astype(float)
+  #   p_predicted=my_zetta*((1-my_eps)*p_infected)+my_eps
+    p_predicted=my_zetta*p_infected
     p_predicted_small=np.zeros(len(p_predicted))
+    p_predicted_large=np.zeros(len(p_predicted))
     p_predicted_small.fill(1e-20)
+    p_predicted_large.fill(1-1e-20)
     p_predicted=np.maximum(p_predicted,p_predicted_small)
+    p_predicted=np.minimum(p_predicted,p_predicted_large)
     p_predicted=p_predicted.astype(float) #Probably not necessary
     return(p_predicted)
-    
+
 def compute_constant_model(p_infected, my_zetta,my_eps):
-    p_predicted=np.zeros(len(p_infected)).astype(float) 
-    p_predicted=my_zetta*((1-my_eps)*p_infected+my_eps)
+    p_predicted=np.zeros(len(p_infected)).astype(float)
+   #  p_predicted.fill(my_zetta*(1-my_eps)+my_eps)
+    p_predicted.fill(my_zetta)
     p_predicted_small=np.zeros(len(p_predicted))
+    p_predicted_large=np.zeros(len(p_predicted))
     p_predicted_small.fill(1e-20)
+    p_predicted_large.fill(1-1e-20)
     p_predicted=np.maximum(p_predicted,p_predicted_small)
+    p_predicted=np.minimum(p_predicted,p_predicted_large)
     p_predicted=p_predicted.astype(float) #Probably not necessary
     return(p_predicted)
 

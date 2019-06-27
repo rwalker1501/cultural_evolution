@@ -368,7 +368,7 @@ def plot_parameter_values(lnL,lambda_v, zetta_v, eps_v, model,directory,file_pat
         ax2=fig2.add_subplot(111)
         ax2.plot(lambda_v,p_lambda);
         plt.xlabel(r'$\gamma$')
-        plt.ylabel('Likelihood')
+        plt.ylabel('Pdf')
         plt.xlim(min(lambda_v),max(lambda_v))
         fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+model+"_lambda.png"
         fig2.savefig(fig_path)
@@ -398,7 +398,7 @@ def plot_parameter_values(lnL,lambda_v, zetta_v, eps_v, model,directory,file_pat
         ax3=fig3.add_subplot(111)
         ax3.plot(eps_v,p_eps);
         plt.xlabel(r'$\epsilon$')
-        plt.ylabel('Likelihood')
+        plt.ylabel('Pdf')
         plt.xlim(min(eps_v),max(eps_v))
         fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+model+"_eps.png"
         fig3.savefig(fig_path)
@@ -419,7 +419,7 @@ def plot_parameter_values(lnL,lambda_v, zetta_v, eps_v, model,directory,file_pat
   #      print 'p_zetta3=', y_data
         ax4=fig4.add_subplot(111)
         plt.xlabel("log10 " + r"$\zeta$")
-        plt.ylabel('Likelihood')
+        plt.ylabel('Pdf')
    #     print 'x_data=', x_data
    #     print 'y_data=', y_data
         ax4.plot(x_data, y_data);
