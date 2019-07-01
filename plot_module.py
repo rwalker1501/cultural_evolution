@@ -52,9 +52,10 @@ def plot_p_graphs(bins, p_samples, p_globals, bin_size,identifier, file_path):
     bins=[x+add for x in bins]
     fig = plt.figure()
     ax = fig.add_subplot(111)
+    width=0.8
     # ax.set_title(title)
-    ax.plot(bins,p_samples,'b', label="Samples")
-    ax.plot(bins, p_globals,'r',label="Globals")
+    ax.bar(np.asarray(bins)-width/2,p_samples,width=0.4,color='b', label="Samples")
+    ax.bar(np.asarray(bins)+width/2, p_globals,width=0.4,color='r',label="Globals")
     plt.gca().set_ylim(0, 0.40)
     
     plt.ylabel("Relative detection frequency")
@@ -289,7 +290,7 @@ def plot_densities_on_map_by_time_range(population_data, start_time, end_time):
     plt.close()
     
 def plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, gamma_v, opt_threshold, samples_counts2, controls_counts2, model,directory,file_path):
- # Adds a small positive contant to each item in acc. Not quite sure why.
+ # Adds a small positive contant to each item in acc to avoid zeros
     max_acc=acc.max(axis=0) *1e-10   #largest accumulated likelihood for a given rho multiplied by a small constant - gives roughly constant result
     acc_plus=(acc+max_acc)
  # Accumulates the likelihoods for all values of rho_bins and stores in yy
@@ -332,12 +333,12 @@ def plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, gamma_v, opt
 # Add two polygons to plot
     ax.add_patch(h1)
     ax.add_patch(h2)
-    if model=='epidemiological' or model=='richard':
+    if model=='epidemiological':
         ax.axvline(opt_threshold, color='g', linestyle='--',label="Threshold")
 # Add line showing best fit of model
     ax.plot(rho_bins,pred_int[:,2],linewidth=1, color='blue',antialiased=True)
 # Add line showing (coursely binned) experimental values
-    ax.plot(rho_bins2,np.true_divide(samples_counts2, samples_counts2+controls_counts2),color='black', marker='o', markersize=3,linestyle='None',antialiased=True)
+    ax.bar(rho_bins2,np.true_divide(samples_counts2, samples_counts2+controls_counts2),width=0.8,color='g',linestyle='None',antialiased=True)
     ax.set_xlabel(r'Population density (individuals/$100km^2$)')
     ax.set_ylabel(r'Detection frequency')
     plt.tight_layout()
@@ -358,7 +359,7 @@ def plot_parameter_values(lnL,gamma_v, zetta_v, eps_v, model,directory,file_path
     dim1=np.mean(exp_lnlminusmax,axis=2)  #up to here - look at definition of dimension
  #   print 'dim1',dim1
      #      Figure 2
-    if model=='epidemiological' or model=='richard':
+    if model=='epidemiological':
         fig2 = plt.figure();
         p_gamma = np.squeeze(np.mean(dim1,axis=(1)))
 # Next instruction gives NaN values
@@ -392,7 +393,7 @@ def plot_parameter_values(lnL,gamma_v, zetta_v, eps_v, model,directory,file_path
        
        
      #     Figure 3 - eps
-    if model=='epidemiological' or model=='linear' or model=='richard':
+    if model=='epidemiological':
         fig3 = plt.figure();
         dim1=np.mean(exp_lnlminusmax,axis=2) 
         p_eps = np.squeeze(np.mean(dim1,axis=(0)))
@@ -407,27 +408,27 @@ def plot_parameter_values(lnL,gamma_v, zetta_v, eps_v, model,directory,file_path
         plt.close(fig3)
         
          #     Figure 4 - zetta - I am not sure why there are two divides here - second divide does not seem to change result
-        fig4 = plt.figure();
-        dim1=np.mean(exp_lnlminusmax,axis=0) 
-        p_zetta = np.squeeze(np.mean(dim1,axis=(0)))
+    fig4 = plt.figure();
+    dim1=np.mean(exp_lnlminusmax,axis=0) 
+    p_zetta = np.squeeze(np.mean(dim1,axis=(0)))
   #      print 'p_zetta1=', p_zetta
-        p_zetta=np.true_divide(p_zetta,np.trapz(p_zetta,np.log10(zetta_v)))
+    p_zetta=np.true_divide(p_zetta,np.trapz(p_zetta,np.log10(zetta_v)))
   #      print 'p_zetta2=',p_zetta
   #      p_zetta=np.true_divide(p_zetta,trapz)
-        x_data=np.log10(zetta_v)
-        plt.xlim(min(x_data),max(x_data))
+    x_data=np.log10(zetta_v)
+    plt.xlim(min(x_data),max(x_data))
    #     trapz=np.trapz(p_zetta,np.log10(zetta_v))
-        y_data=np.true_divide(p_zetta,np.trapz(p_zetta,np.log10(zetta_v)))
+    y_data=np.true_divide(p_zetta,np.trapz(p_zetta,np.log10(zetta_v)))
   #      print 'p_zetta3=', y_data
-        ax4=fig4.add_subplot(111)
-        plt.xlabel("log10 " + r"$\zeta$")
-        plt.ylabel('Pdf')
+    ax4=fig4.add_subplot(111)
+    plt.xlabel("log10 " + r"$\zeta$")
+    plt.ylabel('Pdf')
    #     print 'x_data=', x_data
    #     print 'y_data=', y_data
-        ax4.plot(x_data, y_data);
-        fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+ model+"_zeta.png"
-        fig4.savefig(fig_path)
-        plt.close(fig4)
+    ax4.plot(x_data, y_data);
+    fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+ model+"_zeta.png"
+    fig4.savefig(fig_path)
+    plt.close(fig4)
      
 # =============================================================================
 #                 #     Figure 4 - zetta - new version
@@ -448,7 +449,7 @@ def plot_parameter_values(lnL,gamma_v, zetta_v, eps_v, model,directory,file_path
 #         fig4.savefig(fig_path)
 #         plt.close()
 # =============================================================================
-    if model=='richard':
+    if model=='epidemiological':
         return(interpolated)
     else:
         return(np.zeros(5))

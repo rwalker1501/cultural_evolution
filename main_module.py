@@ -217,20 +217,20 @@ class MainProgram:
         plm.plot_targets_on_map(targets_dataframe, globals_dataframe, new_path, directory)
         
         ###############
-        # Compare likelihoods of epidemiological, linear and constant models 
+        # Compare likelihoods of epidemiological, proportional and constant models 
         ###############
         print("Computing likelihoods Models")
-        models=('richard', 'linear','constant')
+        models=('epidemiological', 'proportional','constant')
         max_likelihood=np.zeros(len(models))
         for i in range(0,len(models)):
             print("model= " + models[i])
-            max_lambda, max_zetta, max_eps, max_likelihood[i], opt_threshold=stm.compute_likelihood_model(directory, results_path, population_data,merged_dataframe, models[i], parameters)
-            write_likelihood_results(f2,max_lambda, max_zetta, max_eps, max_likelihood[i], opt_threshold,models[i] );
+            max_gamma, max_zetta, max_eps, max_likelihood[i], opt_threshold=stm.compute_likelihood_model(directory, results_path, population_data,merged_dataframe, models[i], parameters)
+            write_likelihood_results(f2,max_gamma, max_zetta, max_eps, max_likelihood[i], opt_threshold,models[i] );
             gc.collect();
-        epid_over_linear=np.exp(max_likelihood[0]-max_likelihood[1])
+        epid_over_proportional=np.exp(max_likelihood[0]-max_likelihood[1])
         epid_over_constant=np.exp(max_likelihood[0]-max_likelihood[2])
         wrm.write_label(f2,'Bayes factors')
-        f2.write( 'Bayes factor epidemiological over linear='+'{:.3g}'.format(epid_over_linear)+'\n')
+        f2.write( 'Bayes factor epidemiological over proportional='+'{:.3g}'.format(epid_over_proportional)+'\n')
         f2.write( 'Bayes factor epidemiological over constant='+'{:.3g}'.format(epid_over_constant)+'\n')
         f2.close();
         return max_likelihood
@@ -238,19 +238,17 @@ class MainProgram:
         
       
 
-def write_likelihood_results(aFile,max_lambda, max_zetta, max_eps, max_likelihood, interpolated_lambdas,model ):
+def write_likelihood_results(aFile,max_gamma, max_zetta, max_eps, max_likelihood, thresholds,model ):
         wrm.write_label(aFile, "Results of max likelihood analysis for "+model+" model")
         if model=='epidemiological' or model=='richard':
-            aFile.write('Relative lambda 0.025='+ '{:.2f}'.format(interpolated_lambdas[0])+"\n")
-            aFile.write('Relative lambda 0.25='+ '{:.2f}'.format(interpolated_lambdas[1])+"\n")
-            aFile.write('Relative lambda 0.5='+ '{:.2f}'.format(interpolated_lambdas[2])+"\n")
-            aFile.write('Relative lambda 0.75='+ '{:.2f}'.format(interpolated_lambdas[3])+"\n")
-            aFile.write('Relative lambda 0.975='+ '{:.2f}'.format(interpolated_lambdas[4])+"\n")
-            threshold_low=interpolated_lambdas[0]**2
-            threshold_high=interpolated_lambdas[4]**2
-            aFile.write('0.025 CI for threshold='+ '{:.2f}'.format(threshold_low)+"\n")
-            aFile.write('0.975 CI for threshold='+ '{:.2f}'.format(threshold_high)+"\n")
-        if model=='epidemiological' or model=='linear' or model=='richard':
+            aFile.write('Threshold 0.025='+ '{:.2f}'.format(thresholds[0])+"\n")
+            aFile.write('Threshold 0.25='+ '{:.2f}'.format(thresholds[1])+"\n")
+            aFile.write('Threshold 0.5='+ '{:.2f}'.format(thresholds[2])+"\n")
+            aFile.write('Threshold 0.75='+ '{:.2f}'.format(thresholds[3])+"\n")
+            aFile.write('Threshold 0.975='+ '{:.2f}'.format(thresholds[4])+"\n")
+        
+        if model=='epidemiological':
+            aFile.write("Max gamma="+'{:.5f}'.format(max_gamma)+"\n")
             aFile.write("Max eps="+'{:.5f}'.format(max_eps)+"\n")
 #            aFile.write("Max comm="+'{:.2f}'.format(max_comm)+"\n")
         aFile.write("Max zetta="+'{:.7f}'.format(max_zetta)+"\n")
@@ -258,14 +256,11 @@ def write_likelihood_results(aFile,max_lambda, max_zetta, max_eps, max_likelihoo
         if model=='epidemiological':
             k=3
         else:
-            if model=='richard':
-                k=3
+            if model=='proportional':
+                k=2
             else:
-                if model=='linear':
-                    k=2
-                else:
-                    if model=='constant':
-                        k=1                               
+                if model=='constant':
+                    k=1                               
         aFile.write("AIC="+ '{:.2f}'.format(2*k-2*max_likelihood)+"\n")
     
 
