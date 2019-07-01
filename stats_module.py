@@ -19,21 +19,21 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
  # Set up the ranges of values to be tested for the three parameters in the model
  # In low_res we explore the same ranges as in high_res but with many fewer samples
  # The parameter values are set up in the info files for the population_dats
- # lambda is the death rate
+ # gamma is the death rate
  # Zetta is the base probability that a  territorial unit) contains at least one site
  # Eps is an error - means that there is a positive probability that a site is present even in a territory with below threshold population
  
     if parameters['high_resolution']:
-        res_lambda = 101
+        res_gamma = 101
         res_zetta = 101
         res_eps = 101
     else:
-        res_lambda = 24
+        res_gamma = 24
         res_zetta = 11
         res_eps = 11
 
 
-    lambda_v=np.linspace(parameters['lambda_start'], parameters['lambda_end'],num=res_lambda)
+    gamma_v=np.linspace(parameters['gamma_start'], parameters['gamma_end'],num=res_gamma)
     zetta_v=np.exp(np.linspace(log(parameters['zetta_start']),log(parameters['zetta_end']),num=res_zetta,endpoint=False)) 
 
 
@@ -65,36 +65,36 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
 # Meant to avoid underflow in calculations but not fully understood.
     l_shift=n_samples*(log(float(n_samples)/float(n_controls))-1)
 # Computes size of parameter ranges according to range actually chosen - could be cleaned up
-    n_lambda=len(lambda_v)
+    n_gamma=len(gamma_v)
     n_eps=len(eps_v)
     n_zetta=len(zetta_v)
  #   n_comm=len(comm_v)
-#  Kills lambda loop for constant and linear models
+#  Kills gamma loop for constant and linear models
     if model=='constant' or model=='linear':
-        n_lambda=1
+        n_gamma=1
 # Set up a (population data specific) range of possible values for the likelihood of a given set of observations
     acc_likelihoods=np.linspace(parameters["y_acc_start"],parameters["y_acc_end"],num=2001) 
 #  Set up an array representing the accumulated likelihood of a given set of sample and control counts 
 #  Across all possible values of the parameters
     acc=np.zeros((len(acc_likelihoods),len(rho_bins)))
-    lnL=np.zeros((n_lambda,n_eps,n_zetta))
+    lnL=np.zeros((n_gamma,n_eps,n_zetta))
     sqrt_rho_bins=np.sqrt(rho_bins) #These are the values we are computing - rhobins_4_python are intervals for histogram only. In original program were inside loop. Have moved it outside
     max_LL=-float('inf') 
     bin_zeros=np.zeros(len(sqrt_rho_bins))
 # Scan all possible values of the parameters
-    for i_lambda in range (0,n_lambda):
-        print 'Percentage completed=', i_lambda/float(n_lambda)
-        my_lambda=float(lambda_v[i_lambda]) 
-# Compute the predicted size of the infected population  as a proportion of population (p_infected) for all possible values of rho_bins, given the value of lambda. Guarantee it is always 0 or greater
+    for i_gamma in range (0,n_gamma):
+        print 'Percentage completed=', i_gamma/float(n_gamma)
+        my_gamma=float(gamma_v[i_gamma]) 
+# Compute the predicted size of the infected population  as a proportion of population (p_infected) for all possible values of rho_bins, given the value of gamma. Guarantee it is always 0 or greater
         if model=='epidemiological':
-            p_infected=np.maximum(bin_zeros,1-my_lambda/sqrt_rho_bins)  #COLUMN VECTOR
+            p_infected=np.maximum(bin_zeros,1-my_gamma/sqrt_rho_bins)  #COLUMN VECTOR
         else:
             if model=='richard':
-#                i_star=np.maximum(bin_zeros,rho_bins-my_lambda*sqrt_rho_bins)
-                p_infected=np.maximum(bin_zeros,1-my_lambda/sqrt_rho_bins)  
+#                i_star=np.maximum(bin_zeros,rho_bins-my_gamma*sqrt_rho_bins)
+                p_infected=np.maximum(bin_zeros,1-my_gamma/sqrt_rho_bins)  
             if model=='linear' or model=='constant':
                 p_infected=rho_bins/max(rho_bins)
-# Scan all possible values of lambda, zetta and eps
+# Scan all possible values of gamma, zetta and eps
         for i_zetta in range(0,n_zetta):
             for i_eps in range (0, n_eps):
                  my_zetta=zetta_v[i_zetta]
@@ -129,7 +129,7 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
                  if np.isnan(log_controls):
                      print 'controls counts=',controls_counts
                      print 'p_predicted=', p_predicted
-                     print 'my_lambda=',my_lambda
+                     print 'my_gamma=',my_gamma
                      print 'my_zetta=',my_zetta
                      print 'my_eps=',my_eps
                      print 'p_infected=',p_infected
@@ -139,7 +139,7 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
 # Finds the parameter values with the highest likelihood
                  if LL>max_LL:
                      max_LL=LL
-                     max_lambda=my_lambda
+                     max_gamma=my_gamma
                      max_zetta=my_zetta
                      max_eps=my_eps
  #                    max_comm=my_comm
@@ -148,7 +148,7 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
                      print 'LL is nan'
                      print 'nSamples=',n_samples
                      print 'nControls=',n_controls
-                     print 'my_lambda=',my_lambda
+                     print 'my_gamma=',my_gamma
                      print 'my_zetta=',my_zetta
                      print 'my_eps=',my_eps
                      print 'log_samples',log_samples
@@ -161,7 +161,7 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
 # Stores the log likelihood in an array indexed the position of the parameter values in the parameter ranges
 # =============================================================================
 #                  if np.isnan(LL)==False:
-                 lnL[i_lambda,i_eps,i_zetta]=LL 
+                 lnL[i_gamma,i_eps,i_zetta]=LL 
 # =============================================================================
 # Computes the actual likelihood of the observations and applies a left shift to make sure it is not too large (This means values shown are relative only)
                  L=np.exp(LL-l_shift)
@@ -175,14 +175,14 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
 # Accumulate likelihood values (x coord) for a each possible value of rho_bins (y_coord) across all values of the parameters
                      acc[x_coord,y_coord]=acc[x_coord,y_coord]+L
 # Compute threshold from model - used in grap
- #   opt_threshold=max_lambda**2  #Not sure about this
+ #   opt_threshold=max_gamma**2  #Not sure about this
 # Plot maximum likelihood graph
 # Plot graphs for most likely values of each parameter
     print 'lnl going into plots=',lnL
-    interpolated_lambdas=plm.plot_parameter_values(lnL,lambda_v, zetta_v, eps_v,model,directory,results_path)
-    opt_threshold=interpolated_lambdas[2]**2  #Not sure about this
-    plm.plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, lambda_v, opt_threshold, sample_counts2, control_counts2, model,directory,results_path)
-    return(max_lambda, max_zetta, max_eps, max_likelihood,interpolated_lambdas)
+    interpolated_gammas=plm.plot_parameter_values(lnL,gamma_v, zetta_v, eps_v,model,directory,results_path)
+    opt_threshold=interpolated_gammas[2]**2  #Not sure about this
+    plm.plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, gamma_v, opt_threshold, sample_counts2, control_counts2, model,directory,results_path)
+    return(max_gamma, max_zetta, max_eps, max_likelihood,interpolated_gammas)
     
 def compute_epidemiological_model(p_infected, my_zetta,my_eps):
     p_predicted=np.zeros(len(p_infected)).astype(float) 

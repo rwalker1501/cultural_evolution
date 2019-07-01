@@ -286,7 +286,7 @@ def plot_densities_on_map_by_time_range(population_data, start_time, end_time):
     plt.savefig(map_path, dpi=500)
     plt.close()
     
-def plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, lambda_v, opt_threshold, samples_counts2, controls_counts2, model,directory,file_path):
+def plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, gamma_v, opt_threshold, samples_counts2, controls_counts2, model,directory,file_path):
  # Adds a small positive contant to each item in acc. Not quite sure why.
     max_acc=acc.max(axis=0) *1e-10   #largest accumulated likelihood for a given rho multiplied by a small constant - gives roughly constant result
     acc_plus=(acc+max_acc)
@@ -343,14 +343,14 @@ def plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, lambda_v, op
     fig1.savefig(fig_path)
     plt.close()
     
-def plot_parameter_values(lnL,lambda_v, zetta_v, eps_v, model,directory,file_path):
+def plot_parameter_values(lnL,gamma_v, zetta_v, eps_v, model,directory,file_path):
  #   print 'lnl first line of plot parameters',lnL
 #    print 'lnl shape=',lnL.shape
     lnlminusmax=lnL-np.amax(lnL)
  #   print 'lnlminusmax=', lnlminusmax
     exp_lnlminusmax=np.exp(lnlminusmax)
 #    print 'exp_lnminusmax',exp_lnlminusmax  
-#    print 'lambda_v=', lambda_v
+#    print 'gamma_v=', gamma_v
  #   print 'zetta_v=',zetta_v
  #   print 'eps_v=', eps_v
     dim1=np.mean(exp_lnlminusmax,axis=2)  #up to here - look at definition of dimension
@@ -358,34 +358,34 @@ def plot_parameter_values(lnL,lambda_v, zetta_v, eps_v, model,directory,file_pat
      #      Figure 2
     if model=='epidemiological' or model=='richard':
         fig2 = plt.figure();
-        p_lambda = np.squeeze(np.mean(dim1,axis=(1)))
+        p_gamma = np.squeeze(np.mean(dim1,axis=(1)))
 # Next instruction gives NaN values
- #       print 'p_lambda1=', p_lambda
+ #       print 'p_gamma1=', p_gamma
 
  
-        p_lambda=np.true_divide(p_lambda,np.trapz(p_lambda,lambda_v))
-#        print 'p_lambda2=', p_lambda
+        p_gamma=np.true_divide(p_gamma,np.trapz(p_gamma,gamma_v))
+#        print 'p_gamma2=', p_gamma
         ax2=fig2.add_subplot(111)
-        ax2.plot(lambda_v,p_lambda);
+        ax2.plot(gamma_v,p_gamma);
         plt.xlabel(r'$\gamma$')
         plt.ylabel('Pdf')
-        plt.xlim(min(lambda_v),max(lambda_v))
-        fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+model+"_lambda.png"
+        plt.xlim(min(gamma_v),max(gamma_v))
+        fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+model+"_gamma.png"
         fig2.savefig(fig_path)
-        total_p=np.sum(p_lambda)
-#        print 'total lambda=', total_p
-        relative_p=np.true_divide(p_lambda,total_p)
+        total_p=np.sum(p_gamma)
+#        print 'total gamma=', total_p
+        relative_p=np.true_divide(p_gamma,total_p)
 #        print 'relative_p=', relative_p
 #        print 'relative_p=',relative_p
         acc_relative_p=np.cumsum(relative_p)
   #      print 'acc_relative_p=',acc_relative_p
-        interpolated=np.interp([0.025, 0.25, 0.5, 0.75, 0.975], acc_relative_p, lambda_v,)
+        interpolated=np.interp([0.025, 0.25, 0.5, 0.75, 0.975], acc_relative_p, gamma_v,)
  #       print 'interpolated=', interpolated
- #       print 'Relative lambda 0.025=', interpolated[0]
-  #      print 'Relative lambda 0.25=', interpolated[1]
-  #      print 'Relative lambda 0.5=', interpolated[2]
-   #     print 'Relative lambda 0.75=', interpolated[3]
-   #     print 'Relative lambda 0.975=', interpolated[4]
+ #       print 'Relative gamma 0.025=', interpolated[0]
+  #      print 'Relative gamma 0.25=', interpolated[1]
+  #      print 'Relative gamma 0.5=', interpolated[2]
+   #     print 'Relative gamma 0.75=', interpolated[3]
+   #     print 'Relative gamma 0.975=', interpolated[4]
         plt.close()
        
        
