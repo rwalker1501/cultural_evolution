@@ -25,25 +25,27 @@ def plot_stat_graphs(stat_dictionary, bin_values_df, population_data, bin_size, 
     # plot graphs
     plot_p_graphs(bin_array, p_samples, p_globals, bin_size, directory, new_path)
     plot_cumulative_p_graphs(bin_array, cum_p_samples,cum_p_globals, bin_size, median_samples, median_globals, directory, new_path)
-    plot_detection_frequencies(bin_array, likelihood_ratios, bin_size, max_population-bin_size*2, directory, new_path)
+ #   plot_detection_frequencies(bin_array, likelihood_ratios, bin_size, max_population-bin_size*2, directory, new_path)
 
 
 
-def plot_detection_frequencies(bins, actual_ratios, bin_size, max_xaxis, identifier, file_path):
-    fig = plt.figure();
-    add=bin_size/2
-    bins=[x+add for x in bins]
-    label = "detection_frequencies";
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.plot(bins,actual_ratios,'bo',label='Observations')
-    plt.ylabel(label)
-    plt.xlabel("Population density per cell")
-    plt.legend(title= "Legend")
-    y_lim=max(actual_ratios)
-    plt.gca().set_ylim(0,y_lim)
-    fig.savefig(os.path.join(file_path, str(identifier) + "_" + label + ".png"))
-    plt.close()
+# =============================================================================
+# def plot_detection_frequencies(bins, actual_ratios, bin_size, max_xaxis, identifier, file_path):
+#     fig = plt.figure();
+#     add=bin_size/2
+#     bins=[x+add for x in bins]
+#     label = "detection_frequencies";
+#     fig = plt.figure()
+#     ax = fig.add_subplot(111)
+#     ax.plot(bins,actual_ratios,'bo',label='Observations')
+#     plt.ylabel(label)
+#     plt.xlabel("Population density per cell")
+#     plt.legend(title= "Legend")
+#     y_lim=max(actual_ratios)
+#     plt.gca().set_ylim(0,y_lim)
+#     fig.savefig(os.path.join(file_path, str(identifier) + "_" + label + ".png"))
+#     plt.close()
+# =============================================================================
 
 def plot_p_graphs(bins, p_samples, p_globals, bin_size,identifier, file_path):
     add=bin_size/2
@@ -56,9 +58,9 @@ def plot_p_graphs(bins, p_samples, p_globals, bin_size,identifier, file_path):
     plt.gca().set_ylim(0, 0.40)
     
     plt.ylabel("Relative detection frequency")
-    plt.xlabel("Population density per cell")
+    plt.xlabel(r'Population density (individuals/$100km^2$)')
     plt.legend(title= "Legend")
-    fig.savefig(os.path.join(file_path, str(identifier) + "_p_graph.png"))
+    fig.savefig(os.path.join(file_path, str(identifier) + "_relative_frequencies.png"))
     plt.close()
     
 def plot_cumulative_p_graphs(bins, cum_p_samples, cum_p_globals, bin_size, median_samples,median_globals,identifier, file_path):
@@ -72,10 +74,10 @@ def plot_cumulative_p_graphs(bins, cum_p_samples, cum_p_globals, bin_size, media
     plt.gca().set_ylim(0, 1.0);
     ax.axvline(median_samples, color='b', linestyle='--',label="Median samples")
     ax.axvline(median_globals, color='r', linestyle='--', label="Median globals")
-    plt.ylabel("Cumulated relative detection frequency")
-    plt.xlabel("Population density per cell")
+    plt.ylabel("Relative detection frequency (cumulated)")
+    plt.xlabel(r'Population density (individuals/$100km^2$)')
     plt.legend(title= "Legend")
-    fig.savefig(os.path.join(file_path, str(identifier) + "_cum_p_graph.png"))
+    fig.savefig(os.path.join(file_path, str(identifier) + "_relative_frequencies_cumulative.png"))
     plt.close()
 
 
@@ -116,7 +118,7 @@ def plot_targets_on_map(dataframe, controls_dataframe, dir_path, directory):
     fontP = FontProperties()
     fontP.set_size('small')
     plt.legend(title="Legend", loc='lower center', prop=fontP, ncol=3)
-    plt.savefig(os.path.join(dir_path, directory + "_target_on_map.png"))
+    plt.savefig(os.path.join(dir_path, directory + "_map.png"))
     plt.close()
 
 def plot_densities_on_map_by_time_point(population_data, time):
