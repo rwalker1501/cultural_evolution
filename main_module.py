@@ -237,12 +237,14 @@ class MainProgram:
         return max_likelihood
     
 
-def run_experiment(parameters_filename):
+def run_experiment(*args):
 
     mp = MainProgram()
-    if parameters_filename == "":
+    if len(args) == 0:
         mp.generate_results();
+    elif len(args) == 1 and isinstance(args[0], str):
+        mp.generate_results(parameters_filename=args[0]);
     else:
-        mp.generate_results(parameters_filename=parameters_filename)
+        print("Input a single parameter (string).")
     gc.collect();
 
