@@ -94,13 +94,13 @@ def process_targets(base_path, population_data, target_list, parameters):
         if parameters["save_processed_targets"]:
             print("Saving sites dataframe...")
             # save dataframe in processed_targets folder
-            dataframe_path = os.path.join(processed_targets_dir, directory + "_dataframe.csv")
+            dataframe_path = os.path.join(processed_targets_dir, parameters['results_directory'] + "_dataframe.csv")
             # WRITE PROCESSED TARGET DATEFRAME
             dataframe.to_csv(dataframe_path, sep=";",quoting=csv.QUOTE_NONNUMERIC) 
 
             print("Saving target list...")
             # save targets in processed_targets folder 
-            targets_filename = directory + "_targets"
+            targets_filename = parameters['results_directory'] + "_targets"
             save_target_list_to_csv(target_list, processed_targets_dir, targets_filename)
 
     return target_list, dataframe, globals_dataframe
@@ -717,7 +717,7 @@ def save_target_list_to_csv(target_list, directory, filename):
         my_writer=csv.writer(target_file,delimiter=',')
         headers='location,latitude,longitude,date_from, date_to, country, is_direct,age_estimation,calibrated,kind, figurative, cluster_id'
         my_writer.writerow(headers)
-        for target in target_list:
+        for k,target in target_list.iteritems():
             row=[]
             row.append(target.location)
             row.append(target.orig_lat)
@@ -730,7 +730,6 @@ def save_target_list_to_csv(target_list, directory, filename):
             row.append(target.calibrated)
             row.append(target.kind)
             row.append(target.figurative)
-            row.append(target.cluster_id)
             my_writer.writerow(row)
     target_file.close
     os.chdir(old_dir)
