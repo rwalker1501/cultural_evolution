@@ -31,6 +31,7 @@ class MainProgram:
         self.parameters_folder = os.path.join(self.base_path, "experiment_parameters");
         self.targets_folder = os.path.join(self.base_path,"targets");
         self.parameters_filename = "default_experiment_param.txt"
+        self.key_order = keys = ["population_data", "globals_type", "target_file", "results_directory", "bin_size", "max_population", "max_for_uninhabited", "max_date","min_date", "max_lat", "min_lat", "high_resolution", "gamma_start", "gamma_end","zetta_start", "zetta_end", "eps_start", "eps_end", "y_acc_start", "y_acc_end", "remove_not_direct_targets", "remove_not_exact_age_targets", "remove_not_figurative_targets", "remove_not_controversial_targets", "save_processed_targets", "use_processed_targets", "min_p", "min_globals"];
 
 
     ##################
@@ -156,7 +157,7 @@ class MainProgram:
         f2.write('Date: '+dateTime)
         f2.write('\n')
 
-        wrm.write_parameters(f2, parameters_filename, parameters)
+        wrm.write_parameters(f2, parameters_filename, parameters, self.key_order)
 
         target_list, targets_dataframe, globals_dataframe = tam.process_targets(self.base_path, population_data, target_list, parameters)
 
@@ -225,43 +226,15 @@ class MainProgram:
         for i in range(0,len(models)):
             print("model= " + models[i])
             max_gamma, max_zetta, max_eps, max_likelihood[i], opt_threshold=stm.compute_likelihood_model(directory, results_path, population_data,merged_dataframe, models[i], parameters)
-            write_likelihood_results(f2,max_gamma, max_zetta, max_eps, max_likelihood[i], opt_threshold,models[i] );
+            wrm.write_likelihood_results(f2,max_gamma, max_zetta, max_eps, max_likelihood[i], opt_threshold,models[i] );
             gc.collect();
         epid_over_proportional=np.exp(max_likelihood[0]-max_likelihood[1])
         epid_over_constant=np.exp(max_likelihood[0]-max_likelihood[2])
         wrm.write_label(f2,'Bayes factors')
-        f2.write( 'Bayes factor epidemiological over proportional='+'{:.3g}'.format(epid_over_proportional)+'\n')
-        f2.write( 'Bayes factor epidemiological over constant='+'{:.3g}'.format(epid_over_constant)+'\n')
+        f2.write( 'Bayes factor epidemiological over proportional;'+'{:.3g}'.format(epid_over_proportional)+'\n')
+        f2.write( 'Bayes factor epidemiological over constant;'+'{:.3g}'.format(epid_over_constant)+'\n')
         f2.close();
         return max_likelihood
-
-        
-      
-
-def write_likelihood_results(aFile,max_gamma, max_zetta, max_eps, max_likelihood, thresholds,model ):
-        wrm.write_label(aFile, "Results of max likelihood analysis for "+model+" model")
-        if model=='epidemiological' or model=='richard':
-            aFile.write('Threshold 0.025='+ '{:.2f}'.format(thresholds[0])+"\n")
-            aFile.write('Threshold 0.25='+ '{:.2f}'.format(thresholds[1])+"\n")
-            aFile.write('Threshold 0.5='+ '{:.2f}'.format(thresholds[2])+"\n")
-            aFile.write('Threshold 0.75='+ '{:.2f}'.format(thresholds[3])+"\n")
-            aFile.write('Threshold 0.975='+ '{:.2f}'.format(thresholds[4])+"\n")
-        
-        if model=='epidemiological':
-            aFile.write("Max gamma="+'{:.5f}'.format(max_gamma)+"\n")
-            aFile.write("Max eps="+'{:.5f}'.format(max_eps)+"\n")
-#            aFile.write("Max comm="+'{:.2f}'.format(max_comm)+"\n")
-        aFile.write("Max zetta="+'{:.7f}'.format(max_zetta)+"\n")
-        aFile.write("Max likelihood="+'{:.0f}'.format(max_likelihood)+"\n")
-        if model=='epidemiological':
-            k=3
-        else:
-            if model=='proportional':
-                k=2
-            else:
-                if model=='constant':
-                    k=1                               
-        aFile.write("AIC="+ '{:.2f}'.format(2*k-2*max_likelihood)+"\n")
     
 
 def run_experiment(parameters_filename=""):

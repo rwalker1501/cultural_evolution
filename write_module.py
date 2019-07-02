@@ -128,16 +128,14 @@ def write_information(a_file, labels, values, delimiter):
     a_file.write(information_str)
     a_file.write('\n')
 
-def write_parameters(a_file, parameters_filename, parameters):
-    keys = ["population_data", "globals_type", "target_file", "results_directory", "bin_size", "max_population", "max_for_uninhabited", "max_date","min_date", "max_lat", "min_lat", "high_resolution", "gamma_start", "gamma_end","zetta_start", "zetta_end", "eps_start", "eps_end", "y_acc_start", "y_acc_end", "remove_not_direct_targets", "remove_not_exact_age_targets", "remove_not_figurative_targets", "remove_not_controversial_targets", "save_processed_targets", "use_processed_targets", "min_p", "min_globals"]
-
+def write_parameters(a_file, parameters_filename, parameters, keys):
     a_file.write("parameters_filename: " + parameters_filename + "\n")
     for key in keys:
         a_file.write(key + ": " + str(parameters[key]) + "\n");
 
 def write_target_table(a_file, dataframe, time_window):
 
-    cluster_headers=["Name of Site", "Latitude", "Longitude", "TargetDateFrom", "TargetDateTo", "AnalysisDateFrom", "AnalysisDateTo", "Direct", "Exact", "Population density", "Controls population density", "Growth Coefficient"]
+    cluster_headers=["Name of Site", "Latitude", "Longitude", "TargetDateFrom", "TargetDateTo", "Direct", "Exact", "Population density target"]
     write_headers(a_file, cluster_headers, ';')
 
     ################################
@@ -160,9 +158,6 @@ def write_target_table(a_file, dataframe, time_window):
         longitude = target_df['target_lon'].values[0];
         date_from = target_df['target_date_from'].values[0];
         date_to = target_df['target_date_to'].values[0];
-        date_from_analysis = date_from
-        date_to_analysis = date_from + time_window;
-
 
         direct = 'not direct';
         if target_df['is_dir'].values[0]:
@@ -173,22 +168,15 @@ def write_target_table(a_file, dataframe, time_window):
             exact = 'exact'
 
         sample_mean = target_df[target_df.type == 's']['density'].values[0];
-        controls_mean = target_df[target_df.type == 'c']['density'].values[0];
-
-        sample_growth_coefficient = target_df['samples_growth_coefficient'].values[0]
 
         a_file.write("\"" + str(location) + "\";")
         a_file.write(str(latitude) + ";")
         a_file.write(str(longitude) + ";")
         a_file.write(str(date_from) + ";")
         a_file.write(str(date_to) + ";")
-        a_file.write(str(date_from_analysis) + ";")
-        a_file.write(str(date_to_analysis) + ";")
         a_file.write(str(direct) + ";")
         a_file.write(str(exact) + ";")
         a_file.write(str(sample_mean) + ";")
-        a_file.write(str(controls_mean) + ";")
-        a_file.write(str(sample_growth_coefficient))
         a_file.write("\n")
         
 def write_bin_table(a_file, bin_values_df, minimum_globals):
@@ -217,19 +205,42 @@ def write_analysis(f2, stat_dictionary, min_p):
 
     write_label(f2, "Statistics")
 
-    f2.write('Total sites: '+str(stat_dictionary['total_samples'])+'\n')
-    f2.write('Total globals: '+str(stat_dictionary['total_globals'])+'\n\n')
+    f2.write('Total sites; '+str(stat_dictionary['total_samples'])+'\n')
+    f2.write('Total globals; '+str(stat_dictionary['total_globals'])+'\n\n')
 
-    f2.write('Median density for sites: '+'{:.2f}'.format(stat_dictionary['median_samples'])+'\n')
-    f2.write('Median density for globals: '+'{:.2f}'.format(stat_dictionary['median_globals'])+'\n\n')
+    f2.write('Median density for sites; '+'{:.2f}'.format(stat_dictionary['median_samples'])+'\n')
+    f2.write('Median density for globals; '+'{:.2f}'.format(stat_dictionary['median_globals'])+'\n\n')
 
-    f2.write('Mean density for sites: '+'{:.2f}'.format(stat_dictionary['mean_samples'])+'\n')
-    f2.write('Mean density for globals: '+'{:.2f}'.format(stat_dictionary['mean_globals'])+'\n\n')
+    f2.write('Mean density for sites; '+'{:.2f}'.format(stat_dictionary['mean_samples'])+'\n')
+    f2.write('Mean density for globals; '+'{:.2f}'.format(stat_dictionary['mean_globals'])+'\n\n')
 
-    f2.write('Standard deviation of density for sites: '+'{:.2f}'.format(stat_dictionary['std_samples'])+'\n')
-    f2.write('Standard deviation of density for globals: '+'{:.2f}'.format(stat_dictionary['std_globals'])+'\n\n')
+    f2.write('Standard deviation of density for sites; '+'{:.2f}'.format(stat_dictionary['std_samples'])+'\n')
+    f2.write('Standard deviation of density for globals; '+'{:.2f}'.format(stat_dictionary['std_globals'])+'\n\n')
 
-
+def write_likelihood_results(aFile, max_gamma, max_zetta, max_eps, max_likelihood, thresholds,model ):
+        write_label(aFile, "Results of max likelihood analysis for "+model+" model")
+        if model=='epidemiological' or model=='richard':
+            aFile.write('Threshold 0.025;'+ '{:.2f}'.format(thresholds[0])+"\n")
+            aFile.write('Threshold 0.25;'+ '{:.2f}'.format(thresholds[1])+"\n")
+            aFile.write('Threshold 0.5;'+ '{:.2f}'.format(thresholds[2])+"\n")
+            aFile.write('Threshold 0.75;'+ '{:.2f}'.format(thresholds[3])+"\n")
+            aFile.write('Threshold 0.975;'+ '{:.2f}'.format(thresholds[4])+"\n")
+        
+        if model=='epidemiological':
+            aFile.write("Max gamma;"+'{:.5f}'.format(max_gamma)+"\n")
+            aFile.write("Max eps;"+'{:.5f}'.format(max_eps)+"\n")
+#            aFile.write("Max comm="+'{:.2f}'.format(max_comm)+"\n")
+        aFile.write("Max zetta;"+'{:.7f}'.format(max_zetta)+"\n")
+        aFile.write("Max likelihood;"+'{:.0f}'.format(max_likelihood)+"\n")
+        if model=='epidemiological':
+            k=3
+        else:
+            if model=='proportional':
+                k=2
+            else:
+                if model=='constant':
+                    k=1                               
+        aFile.write("AIC;"+ '{:.2f}'.format(2*k-2*max_likelihood)+"\n")
 
 def write_lat_bin_table(a_file, bin_array, table, label):
     write_label(a_file, "Distribution of values for " + label + " per latitude range")

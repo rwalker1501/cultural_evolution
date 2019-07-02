@@ -6,6 +6,7 @@ from copy import deepcopy
 from os.path import isfile, join
 from main_module import MainProgram
 from classes_module import Target, PopulationData
+from collections import OrderedDict
 
 
 class Driver:
@@ -67,7 +68,7 @@ class Driver:
 		parameters_filename = self.main_program.get_parameters_filename();
 		parameters_folder = self.main_program.get_parameters_folder();
 		parameters = self.get_parameters(parameters_filename);
-		keys = ["population_data", "globals_type", "target_file", "results_directory", "bin_size", "max_population", "max_for_uninhabited", "max_date","min_date", "max_lat", "min_lat", "high_resolution", "lambda_start", "lambda_end","zetta_start", "zetta_end", "eps_start", "eps_end", "y_acc_start", "y_acc_end", "remove_not_direct_targets", "remove_not_exact_age_targets", "remove_not_figurative_targets", "remove_not_controversial_targets", "save_processed_targets", "use_processed_targets", "min_p", "min_globals"]
+		keys = self.main_program.key_order
 
 		num_parameters = len(parameters);
 		user_option = 0;
@@ -108,8 +109,7 @@ class Driver:
 
 				print("Saving parameters...")
 				filepath = os.path.join(parameters_folder, filename);
-				with open(filepath, "w") as write_file:
-					json.dump(parameters, write_file);
+				self.save_parameters(filepath, parameters);
 				self.main_program.set_parameters_filename(filename);
 				user_option = str(cancel_option);
 
@@ -172,13 +172,23 @@ class Driver:
 
 	def print_parameters(self, parameters_filename):
 		parameters = self.get_parameters(parameters_filename);
-		keys = ["population_data", "globals_type", "target_file", "results_directory", "bin_size", "max_population", "max_for_uninhabited", "max_date","min_date", "max_lat", "min_lat", "high_resolution", "lambda_start", "lambda_end","zetta_start", "zetta_end", "eps_start", "eps_end", "y_acc_start", "y_acc_end", "remove_not_direct_targets", "remove_not_exact_age_targets", "remove_not_figurative_targets", "remove_not_controversial_targets", "save_processed_targets", "use_processed_targets", "min_p", "min_globals"]
+		keys = self.main_program.key_order
 		
 		self.print_label("Current Parameters");
 		for key in keys:
 			print(key + ": " + str(parameters[key]));	
 
 		print("\nParameters file: " + parameters_filename);
+
+	def save_parameters(self, filepath, data):
+		ordered = [];
+		keys = self.main_program.key_order
+		for key in keys:
+			ordered.append((key,data[key]));
+		ordered = OrderedDict(ordered);
+		with open(filepath, "w") as write_file:
+			json.dump(ordered, write_file, indent=4);
+
 
 	def select_file_from_folder(self, folder):
 		filenames = [f for f in os.listdir(folder) if isfile(join(folder,f))];
