@@ -237,7 +237,7 @@ class MainProgram:
         return max_likelihood
     
 
-def run_experiment(parameters_filename=""):
+def run_experiment(parameters_filename):
 
     mp = MainProgram()
     if parameters_filename == "":
