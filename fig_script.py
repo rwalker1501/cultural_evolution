@@ -4,8 +4,8 @@ import os
 import main_module as mm
 
 
-mm.run_experiment("No equatorials LR test.txt")
-#mm.run_experiment("No equatorials HR.txt")
+#mm.run_experiment("Full LR.txt")
+mm.run_experiment("No equatorials HR.txt")
 #mm.run_experiment("No equatorials exact direct_HR.txt")
 #mm.run_experiment("Timmermann no equatorials_HR.txt")
 #mm.run_experiment("Timmermann no equatorials exact direct_HR.txt")

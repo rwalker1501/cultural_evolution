@@ -142,7 +142,9 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
 
     interpolated_gammas=plm.plot_parameter_values(lnL,gamma_v, zetta_v, eps_v,model,directory,results_path)
     thresholds=interpolated_gammas**2
-#    plm.plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, gamma_v, opt_threshold, sample_counts2, control_counts2, model,directory,results_path)
+    opt_threshold=thresholds[2]  #Not sure about this
+    plm.plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, gamma_v, opt_threshold, sample_counts2, control_counts2, model,directory,results_path)
+   # plm.plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, gamma_v, opt_threshold, sample_counts2, control_counts2, model,directory,results_path)
     return(max_gamma, max_zetta, max_eps, max_likelihood,thresholds)
     
 
