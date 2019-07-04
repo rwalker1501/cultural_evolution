@@ -2,7 +2,7 @@ from __future__ import division #This means division always gives a floating res
 import plot_module as plm
 import numpy as np
 import pandas as pd;
-# import sys, pickle;
+import sys, pickle;
 from scipy.stats import linregress, ks_2samp,poisson;
 from math import *
 from scipy.interpolate import interp1d
@@ -153,7 +153,7 @@ def compute_epidemiological_model(p_infected,rho_bins,my_zetta,my_eps):
     p_predicted=my_zetta*((1-my_eps)*p_infected*rho_bins)+my_eps
     p_predicted_small=np.zeros(len(p_predicted))
     p_predicted_large=np.zeros(len(p_predicted))
-    p_predicted_large.fill(1-1e-20)
+    p_predicted_large.fill(1-1-0.000000001)
     p_predicted_small.fill(1e-20)
     p_predicted=np.maximum(p_predicted,p_predicted_small)
     p_predicted=np.minimum(p_predicted,p_predicted_large)
@@ -167,7 +167,7 @@ def compute_proportional_model(p_infected, my_zetta,my_eps):
     p_predicted_small=np.zeros(len(p_predicted))
     p_predicted_large=np.zeros(len(p_predicted))
     p_predicted_small.fill(1e-20)
-    p_predicted_large.fill(1-1e-20)
+    p_predicted_large.fill(1-1-0.000000001)
     p_predicted=np.maximum(p_predicted,p_predicted_small)
     p_predicted=np.minimum(p_predicted,p_predicted_large)
     p_predicted=p_predicted.astype(float) #Probably not necessary
