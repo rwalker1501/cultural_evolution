@@ -29,8 +29,6 @@ def process_targets(base_path, population_data, target_list, parameters):
         target_list = filter_targets_for_not_exact_age(target_list);
     if parameters['remove_not_figurative_targets']:
         target_list = filter_targets_for_not_figurative(target_list);
-    if parameters['remove_not_controversial_targets']:
-        target_list = filter_targets_for_not_controversial(target_list);
 
 
 
@@ -211,8 +209,8 @@ def read_target_list_from_csv(filename):
     for index, row in target_df.iterrows():
         location = row["Name"].replace('\n', ' ').replace('\r', '');
 
-        lat = float(re.sub("[^0-9.-]", "", row["Latitude"]))
-        lon = float(re.sub("[^0-9.-]", "", row["Longitude"]))
+        lat = float(re.sub("[^0-9.-]", "", str(row["Latitude"])))
+        lon = float(re.sub("[^0-9.-]", "", str(row["Longitude"])))
         if lon < 0:
             lon = lon + 360;
         lat_nw=lat+1
@@ -225,7 +223,7 @@ def read_target_list_from_csv(filename):
         date_to = row["Latest age in sample"];
         if date_to == "Modern":
             date_to = 0;
-        elif date_to == "Single sample" or math.isnan(date_to):
+        elif date_to == "Single sample" or (not isinstance(date_to, str) and math.isnan(date_to)):
             date_to = date_from;
 
         country = row["Modern Country"];
@@ -288,18 +286,6 @@ def filter_targets_for_not_figurative(target_list):
 
     return filtered_list
 
-def filter_targets_for_not_controversial(target_list):
-    print("length of original list=",len(target_list))
-    
-    filtered_list = {};
-    for key, target in target_list.iteritems():
-        if target.is_controversial == 'No':
-            filtered_list[key] = target;
-
-    print("length of filtered list=",len(filtered_list))
-
-    return filtered_list
-
 def filter_targets_for_date(target_list, minimum_date, maximum_date):
     filtered_list = {};
     for key, target in target_list.iteritems():
@@ -308,17 +294,6 @@ def filter_targets_for_date(target_list, minimum_date, maximum_date):
 
     return filtered_list
 
-def filter_targets_for_abs_latitude(target_list, minimum_lat, maximum_lat, filters_applied):
-    filtered_targets = []
-    for target in target_list:
-        abs_lat = abs(target.orig_lat)
-        if abs_lat >= minimum_lat and abs_lat <= maximum_lat:
-            filtered_targets.append(target)
-
-    filters_applied += " Only targets within" + str(minimum_lat) + " - " + str(maximum_lat) + " absolute latitude"
-
-    return filtered_targets, filters_applied
-
 def filter_targets_for_latitude(target_list, minimum_lat, maximum_lat):
     filtered_list = {};
     for key, target in target_list.iteritems():
@@ -326,7 +301,6 @@ def filter_targets_for_latitude(target_list, minimum_lat, maximum_lat):
         if lat >= minimum_lat and lat <= maximum_lat:
             filtered_list[key] = target;
     return filtered_list
-
 
 
 def create_binned_column(dataframe, new_column_name, base_column_name, interval):
