@@ -21,82 +21,6 @@ def write_list(a_file, label, list_to_write):
     for i in list_to_write:
         a_file.write(str(i) + "\n")
 
-def write_confounder_analysis_table(a_file, label, dictionary, keys, or_MHs, MH_stats, MH_stat_ps):
-
-    headers = [""];
-    small_headers = ["Bin values"]
-    for key in keys:
-        headers.append(key);
-        headers.append("");
-        headers.append("");
-        headers.append("");
-        headers.append("");
-        headers.append("");
-        headers.append("");
-        headers.append("");
-        small_headers.append("Samples");
-        small_headers.append("Globals");
-        small_headers.append("Controls");
-        small_headers.append("Odds Ratio");
-        small_headers.append("top ORMH");
-        small_headers.append("bottom ORMH");
-        small_headers.append("top test MH");
-        small_headers.append("bottom test MH");
-    headers.append("OR MH");
-    headers.append("MH Statistics");
-    headers.append("MH Statistics p-value");
-
-    write_label(a_file, label);
-    write_headers(a_file, headers, ";");
-    write_headers(a_file, small_headers, ";");
-
-    bin_array = dictionary[keys[0]][0];
-
-    for i in range(0, len(bin_array)):
-        a_file.write(str(bin_array[i]) + ";");
-        for j in range(0, len(keys)):
-            key = keys[j];
-            values = dictionary[key];
-            a_file.write(str(values[1][i]) + ";");
-            a_file.write(str(values[2][i]) + ";");
-            a_file.write(str(values[3][i]) + ";");
-            a_file.write(str(values[4][i]) + ";");
-            a_file.write(str(values[5][i]) + ";");
-            a_file.write(str(values[6][i]) + ";");
-            a_file.write(str(values[7][i]) + ";");
-            a_file.write(str(values[8][i]) + ";");
-        a_file.write(str(or_MHs[i]) + ";");
-        a_file.write(str(MH_stats[i]) + ";");
-        a_file.write(str(MH_stat_ps[i]) + "\n");
-
-
-def write_random_weighting_table(a_file, label, column_keys, column_weights, column_weights_normalized, bin_array, odds_ratios):
-    write_label(a_file, "Keys and Weights For " + label);
-    a_file.write("Number of Keys: " + str(len(column_keys)) + "\n");
-
-    column_weights_normalized = np.round(column_weights_normalized, 6)
-
-    column_weights = column_weights.tolist();
-    column_weights_normalized = column_weights_normalized.tolist();
-
-    column_keys.insert(0, "KEYS");
-    column_weights.insert(0, "WEIGHTS");
-    column_weights_normalized.insert(0, "NORMALIZED_WEIGHTS");
-
-    write_headers(a_file, column_keys, ";");
-    write_headers(a_file, column_weights, ";");
-    write_headers(a_file, column_weights_normalized, ";");
-
-    write_label(a_file, "Bins and Odds Ratios For " + label);
-    headers = ['bin', 'odds_ratio'];
-    write_headers(a_file, headers, ";");
-
-    for i in range(0, len(bin_array)):
-        a_file.write(str(bin_array[i]) + ";");
-        a_file.write(str(odds_ratios[i]) + "\n");
-
-
-
 def write_table(a_file, label, headers, values, delimiter):
     write_label(a_file, label)
     write_headers(a_file, headers, delimiter)
@@ -119,19 +43,11 @@ def write_target(a_file, target, date_window):
     a_file.write(str(int(target.date_to)))
     a_file.write('\n')
 
-    # a_file.write('\n')
-    
-def write_information(a_file, labels, values, delimiter):
-    information_str=""
-    for i in range(0, len(labels)):
-        information_str=information_str+str(labels[i]) + "=" + str(values[i])+" "
-    a_file.write(information_str)
-    a_file.write('\n')
 
 def write_parameters(a_file, parameters_filename, parameters, keys):
-    a_file.write("parameters_filename: " + parameters_filename + "\n")
+    a_file.write("parameters_filename; " + parameters_filename + "\n")
     for key in keys:
-        a_file.write(key + ": " + str(parameters[key]) + "\n");
+        a_file.write(key + "; " + str(parameters[key]) + "\n");
 
 def write_target_table(a_file, dataframe, time_window):
 
@@ -241,45 +157,4 @@ def write_likelihood_results(aFile, max_gamma, max_zetta, max_eps, max_likelihoo
                 if model=='constant':
                     k=1                               
         aFile.write("AIC;"+ '{:.2f}'.format(2*k-2*max_likelihood)+"\n")
-
-def write_lat_bin_table(a_file, bin_array, table, label):
-    write_label(a_file, "Distribution of values for " + label + " per latitude range")
-
-    # Write bins
-    a_file.write(";;")
-    for i in range(0, len(bin_array)):
-        a_file.write(str(bin_array[i]))
-        if i != len(bin_array) - 1:
-            a_file.write(";")
-    a_file.write("\n")
-
-    min_latitudes = [x for x in range(-90, 90, 10)]
-    max_latitudes = [x for x in range(-80, 91, 10)]
-    lat_arr_length = len(min_latitudes)
-
-    for i in range(0, lat_arr_length):
-        a_file.write(str(min_latitudes[i]) + ";" + str(max_latitudes[i]) + ";")
-        values = table[i]
-        for j in range(0, len(values)):
-            a_file.write(str(values[j]))
-            if j != len(values) - 1:
-                a_file.write(";")
-        a_file.write("\n")
-
-def write_validation_file(base_path, title, score_linear_array, score_threshold_array, slopes, intercepts, parameter_1, parameter_2, parameter_3):
-    valid_file = open(base_path+ "/" + title+".csv", "w")
-    print(base_path)
-    headers = [title+"_score_linear_array", title+"_score_threshold_array", "slopes", "intercepts", "parameter_1", "parameter_2", "parameter_3"]
-    write_headers(valid_file, headers, ";")
-
-    for i in range(0, len(score_linear_array)):
-        valid_file.write(str(score_linear_array[i]) + ";")
-        valid_file.write(str(score_threshold_array[i]) + ";")
-        valid_file.write(str(slopes[i]) + ";")
-        valid_file.write(str(intercepts[i]) + ";")
-        valid_file.write(str(parameter_1[i]) + ";")
-        valid_file.write(str(parameter_2[i]) + ";")
-        valid_file.write(str(parameter_3[i]) + "\n")
-
-    valid_file.close()
 

@@ -31,7 +31,7 @@ class MainProgram:
         self.parameters_folder = os.path.join(self.base_path, "experiment_parameters");
         self.targets_folder = os.path.join(self.base_path,"targets");
         self.parameters_filename = "default_experiment_param.txt"
-        self.key_order = keys = ["population_data", "globals_type", "target_file", "results_directory", "bin_size", "max_population", "max_for_uninhabited", "max_date","min_date", "max_lat", "min_lat", "high_resolution", "gamma_start", "gamma_end","zetta_start", "zetta_end", "eps_start", "eps_end", "y_acc_start", "y_acc_end", "remove_not_direct_targets", "remove_not_exact_age_targets", "remove_not_figurative_targets", "remove_not_controversial_targets", "save_processed_targets", "use_processed_targets", "min_p", "min_globals"];
+        self.key_order = keys = ["population_data", "globals_type", "target_file", "results_directory", "bin_size", "max_population", "max_for_uninhabited", "max_date","min_date", "max_lat", "min_lat", "high_resolution", "gamma_start", "gamma_end","zetta_start", "zetta_end", "eps_start", "eps_end", "y_acc_start", "y_acc_end", "remove_not_direct_targets", "remove_not_exact_age_targets", "remove_not_figurative_targets", "remove_not_controversial_targets", "save_processed_targets", "min_p", "min_globals"];
 
 
     ##################
@@ -70,53 +70,6 @@ class MainProgram:
         tam.save_target_list_to_csv(some_target_list, tests_path, filename)
         self.dataframe = pd.DataFrame()
         self.dataframe_loaded = False;
-
-    ##################
-    # Plot Functions #
-    ##################
-
-    def adjust_time_value(self, time, time_multiplier):
-        if  time % time_multiplier != 0:
-            time = time + (time_multiplier - time % time_multiplier)
-        return time
-
-    def plot_population_by_time(self, population_data, time):
-        name = population_data.name
-        time = self.adjust_time_value(time, population_data.time_multiplier)
-
-
-        print("Plotting map...")
-        print("Time: " + str(time))
-        print("Source: " + name)
-        plm.plot_densities_on_map_by_time_point(population_data, time)
-
-    def plot_population_by_time_range(self, population_data, start_time, end_time):
-        name = population_data.name
-        time_multiplier = population_data.time_multiplier
-        start_time = self.adjust_time_value(start_time, population_data.time_multiplier)
-        end_time = self.adjust_time_value(end_time, population_data.time_multiplier)
-
-        print("Plotting map...")
-        print("Start Time: " + str(start_time))
-        print("End Time: " + str(end_time))
-        print("Source: " + name)
-        plm.plot_densities_on_map_by_time_range(population_data, start_time, end_time)
-
-    def plot_population_by_range(self, population_data, min_density, max_density, start_time, end_time):
-        name = population_data.name
-        time_multiplier = population_data.time_multiplier
-        start_time = self.adjust_time_value(start_time, population_data.time_multiplier)
-        end_time = self.adjust_time_value(end_time, population_data.time_multiplier)
-
-        print("Plotting map...")
-        print("Min Density: " + str(min_density))
-        print("Max Density: " + str(max_density))
-        print("Start Time: " + str(start_time))
-        print("End Time: " + str(end_time))
-        print("Source: " + name)
-        plm.plot_densities_on_map_by_range(population_data, min_density, max_density, start_time, end_time);
-
-     
 
     #############################
     # Generate Results Function #
@@ -159,6 +112,10 @@ class MainProgram:
 
         wrm.write_parameters(f2, parameters_filename, parameters, self.key_order)
 
+
+        ##########################################
+        # Process targets and extract dataframes #
+        ##########################################
         target_list, targets_dataframe, globals_dataframe = tam.process_targets(self.base_path, population_data, target_list, parameters)
 
         if targets_dataframe.empty or len(target_list)<10:
