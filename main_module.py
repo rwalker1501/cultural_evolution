@@ -31,7 +31,7 @@ class MainProgram:
         self.parameters_folder = os.path.join(self.base_path, "experiment_parameters");
         self.targets_folder = os.path.join(self.base_path,"targets");
         self.parameters_filename = "default_experiment_param.txt"
-        self.key_order = keys = ["population_data", "globals_type", "target_file", "results_directory", "bin_size", "max_population", "max_for_uninhabited", "max_date","min_date", "max_lat", "min_lat", "high_resolution", "gamma_start", "gamma_end","zetta_start", "zetta_end", "eps_start", "eps_end", "y_acc_start", "y_acc_end", "remove_not_direct_targets", "remove_not_exact_age_targets", "remove_not_figurative_targets", "save_processed_targets"];
+        self.key_order = keys = ["population_data", "globals_type", "target_file", "results_directory", "bin_size", "max_population", "max_for_uninhabited", "max_date","min_date", "max_lat", "min_lat", "high_resolution", "gamma_start", "gamma_end","zetta_start", "zetta_end", "eps_start", "eps_end", "y_acc_start", "y_acc_end", "remove_not_direct_targets", "remove_not_exact_age_targets", "remove_not_figurative_targets", "save_processed_targets", "min_globals"];
 
 
     ##################
@@ -145,7 +145,7 @@ class MainProgram:
         # - write bin values to file
         print("Writing bins...")
         bin_values_df = stm.generate_bin_values_dataframe(targets_dataframe, globals_dataframe, parameters['bin_size'], parameters['max_population'], parameters['min_globals'])
-        wrm.write_bin_table(f2, bin_values_df, parameters['min_globals'])
+        wrm.write_bin_table(f2, bin_values_df,parameters['min_globals'])
 
 
         #################

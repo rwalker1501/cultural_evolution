@@ -95,9 +95,9 @@ def write_target_table(a_file, dataframe, time_window):
         a_file.write(str(sample_mean) + ";")
         a_file.write("\n")
         
-def write_bin_table(a_file, bin_values_df, minimum_globals):
+def write_bin_table(a_file, bin_values_df, min_globals):
 
-    write_label(a_file, "Distribution of values for samples and globals - Minimum_globals="+str(minimum_globals))
+    write_label(a_file, "Distribution of values for samples and globals")
 
     columns = ['Bin value', 'Samples', 'Globals', 'Detection Frequency', 'Relative Frequency of Sites', 'Relative Frequency of Globals']
     write_headers(a_file,columns,";")

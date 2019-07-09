@@ -182,7 +182,7 @@ class Driver:
 
 	def save_parameters(self, filepath, data):
 		ordered = [];
-		keys = self.main_program.key_order
+		keys = self.main_program
 		for key in keys:
 			ordered.append((key,data[key]));
 		ordered = OrderedDict(ordered);
