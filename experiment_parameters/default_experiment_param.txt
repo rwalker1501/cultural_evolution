@@ -22,7 +22,5 @@
     "remove_not_direct_targets": false,
     "remove_not_exact_age_targets": false,
     "remove_not_figurative_targets": false,
-    "save_processed_targets": false,
-    "min_p": 0.01,  
-    "min_globals": 1
+    "save_processed_targets": false
 }
