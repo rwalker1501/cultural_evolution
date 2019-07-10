@@ -4,11 +4,8 @@ import re
 import math
 import numpy as np
 import pandas as pd
-from os import listdir
-from copy import deepcopy
 from os.path import isfile, join
-from clusterer import ClusterAnalysis
-from classes_module import Target, PopulationData
+from classes_module import Target
 
 def process_targets(base_path, population_data, target_list, parameters):
 

@@ -5,7 +5,6 @@
 # from __future__ import division
 import numpy as np
 import os, gc;
-import sys
 import json
 import target_module as tam
 import population_data_module as pdm
@@ -13,7 +12,6 @@ import stats_module as stm
 import plot_module as plm
 import write_module as wrm
 import pandas as pd
-from classes_module import PopulationData
 from datetime import datetime
 pd.options.mode.chained_assignment = None 
 

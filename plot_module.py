@@ -317,7 +317,8 @@ def plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, gamma_v, opt
         # Add line showing best fit of model
     ax.plot(rho_bins,pred_int[:,2],linewidth=1, color='blue',antialiased=True)
     # Add line showing (coursely binned) experimental values
-    ax.bar(rho_bins2,np.true_divide(samples_counts2, samples_counts2+controls_counts2),width=0.8,edgecolor='k', color='None',linestyle='solid',fill='False',antialiased=True)
+    #ax.bar(rho_bins2,np.true_divide(samples_counts2, samples_counts2+controls_counts2),width=0.8,edgecolor='k', color='None',linestyle='solid',fill='False',antialiased=True)
+    ax.plot(rho_bins2,np.true_divide(samples_counts2, samples_counts2+controls_counts2),color='black', marker='o', markersize=3,linestyle='None',antialiased=True)
     ax.set_xlabel(r'Population density (individuals/$100km^2$)')
     ax.set_ylabel(r'Detection frequency')
     plt.tight_layout()
