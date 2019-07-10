@@ -16,7 +16,7 @@ class Driver:
 	def run(self):
 	
 		print('')
-		self.print_label('Population analysis tool v. 1 by Richard Walker')
+		self.print_label('Population analysis tool v. 1 by Richard Walker and Camille Ruiz')
 		user_option = 0
 		while user_option != '4':
 			parameters_filename = self.main_program.get_parameters_filename();

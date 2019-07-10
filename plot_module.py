@@ -25,27 +25,6 @@ def plot_stat_graphs(stat_dictionary, bin_values_df, population_data, bin_size, 
     # plot graphs
     plot_p_graphs(bin_array, p_samples, p_globals, bin_size, directory, new_path)
     plot_cumulative_p_graphs(bin_array, cum_p_samples,cum_p_globals, bin_size, median_samples, median_globals, directory, new_path)
- #   plot_detection_frequencies(bin_array, likelihood_ratios, bin_size, max_population-bin_size*2, directory, new_path)
-
-
-
-# =============================================================================
-# def plot_detection_frequencies(bins, actual_ratios, bin_size, max_xaxis, identifier, file_path):
-#     fig = plt.figure();
-#     add=bin_size/2
-#     bins=[x+add for x in bins]
-#     label = "detection_frequencies";
-#     fig = plt.figure()
-#     ax = fig.add_subplot(111)
-#     ax.plot(bins,actual_ratios,'bo',label='Observations')
-#     plt.ylabel(label)
-#     plt.xlabel("Population density per cell")
-#     plt.legend(title= "Legend")
-#     y_lim=max(actual_ratios)
-#     plt.gca().set_ylim(0,y_lim)
-#     fig.savefig(os.path.join(file_path, str(identifier) + "_" + label + ".png"))
-#     plt.close()
-# =============================================================================
 
 def plot_p_graphs(bins, p_samples, p_globals, bin_size,identifier, file_path):
     add=bin_size/2
@@ -290,19 +269,19 @@ def plot_densities_on_map_by_time_range(population_data, start_time, end_time):
     plt.close()
     
 def plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, gamma_v, opt_threshold, samples_counts2, controls_counts2, model,directory,file_path):
- # Adds a small positive contant to each item in acc to avoid zeros
+    # Adds a small positive contant to each item in acc to avoid zeros
     max_acc=acc.max(axis=0) *1e-10   #largest accumulated likelihood for a given rho multiplied by a small constant - gives roughly constant result
     acc_plus=(acc+max_acc)
- # Accumulates the likelihoods for all values of rho_bins and stores in yy
+    # Accumulates the likelihoods for all values of rho_bins and stores in yy
     yy=np.cumsum(acc_plus,axis=0) 
     np.seterr(divide='ignore',invalid='ignore') #probably not necessary
- # Transforms absolutde likelihoods into relative likelihoods on a scale from 0 to 1
+    # Transforms absolutde likelihoods into relative likelihoods on a scale from 0 to 1
     yy=np.divide(yy,yy[len(yy)-1:]) 
- # Represents likelihood of model at different values of rho_bins with p=0.025, 0.25, 0.5, 0.75, 0.975
+    # Represents likelihood of model at different values of rho_bins with p=0.025, 0.25, 0.5, 0.75, 0.975
     pred_int=np.zeros((len(rho_bins),6)) #Not sure about size of this - in the original looks like an empty matrix - NOW LESS SURE
     for k in range (0,len(rho_bins)):
         data_x=np.hstack((np.array((0)),yy[0:(len(yy)-1),k])) #[0; yy(1:end-1,k)]. This looks OK
-# Computes interpolated value of likelihood for different certainty levels for all values of rho_bins 
+        # Computes interpolated value of likelihood for different certainty levels for all values of rho_bins 
         interpolated=np.interp([0.025, 0.25, 0.5, 0.75, 0.975], data_x,acc_likelihoods) #Not sure I have interpreted this correctly. 
         term2_1=np.dot(acc_likelihoods[0:(len(acc_likelihoods)-1)]+acc_likelihoods[1:len(acc_likelihoods)],acc[0:len(acc)-1,k]) #unsure about this. Is it a dot or a matrix multiplicaiton. It also works as a matrix multiplication but that is not what I am using now
         if(term2_1==0) and (np.sum(acc[0:(len(acc)-1),k],axis=0)==0):
@@ -311,17 +290,17 @@ def plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, gamma_v, opt
             term2=((0.5*term2_1/np.sum(acc[0:(len(acc)-1),k],axis=0)))
         pred_int[k,:]=np.hstack((interpolated,term2)) #This is one dimensional - correct - but not sure why it is doing this. Adds a 6th element which is not in sequence with the others and which seems to be  never used.
     patches=[]
-# For the x values we concatenate all values of rho_bins with the inverted list of rho_bin values
+    # For the x values we concatenate all values of rho_bins with the inverted list of rho_bin values
     term1=rho_bins
     term2=np.flip(rho_bins,0)
-# This concatenates rho_bins with the inverse of row binds
+    # Concatenates rho_bins with the inverse of row binds
     h1_x=np.hstack((term1,term2))
-# Create a shaded polygon showing all values with certainty between 0.025 and 0.975
+    # Creates a shaded polygon showing all values with certainty between 0.025 and 0.975
     h1_y=np.hstack((pred_int[:,0],np.flip(pred_int[:,4],0)))
     h1_array=np.vstack((h1_x,h1_y)).T
     h1 = Polygon(h1_array,linewidth=1,edgecolor='none',facecolor=(1,0.9,0.9),closed=True,antialiased=True)
     patches.append(h1)
-# Create a secibd shaded polygon showing all values with certainty between 0.25 and 0.75
+    # Create a secibd shaded polygon showing all values with certainty between 0.25 and 0.75
     h2_x = np.hstack((rho_bins,np.flip(rho_bins,0))) 
     h2_y=np.hstack((pred_int[:,1],np.flip(pred_int[:,3],0)))
     h2_array=np.vstack((h2_x,h2_y)).T
@@ -330,15 +309,15 @@ def plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, gamma_v, opt
     fig1 = plt.figure();
     ax = fig1.add_subplot(111)
     plt.gca().set_xlim(0, 33);
-# Add two polygons to plot
+    # Add two polygons to plot
     ax.add_patch(h1)
     ax.add_patch(h2)
     if model=='epidemiological':
         ax.axvline(opt_threshold, color='g', linestyle='--',label="Threshold")
-# Add line showing best fit of model
+        # Add line showing best fit of model
     ax.plot(rho_bins,pred_int[:,2],linewidth=1, color='blue',antialiased=True)
-# Add line showing (coursely binned) experimental values
-    ax.bar(rho_bins2,np.true_divide(samples_counts2, samples_counts2+controls_counts2),width=0.8,color='g',linestyle='None',antialiased=True)
+    # Add line showing (coursely binned) experimental values
+    ax.bar(rho_bins2,np.true_divide(samples_counts2, samples_counts2+controls_counts2),width=0.8,edgecolor='k', color='None',linestyle='solid',fill='False',antialiased=True)
     ax.set_xlabel(r'Population density (individuals/$100km^2$)')
     ax.set_ylabel(r'Detection frequency')
     plt.tight_layout()
@@ -347,27 +326,13 @@ def plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, gamma_v, opt
     plt.close()
     
 def plot_parameter_values(lnL,gamma_v, zetta_v, eps_v, model,directory,file_path):
- #   print 'lnl first line of plot parameters',lnL
-#    print 'lnl shape=',lnL.shape
     lnlminusmax=lnL-np.amax(lnL)
- #   print 'lnlminusmax=', lnlminusmax
     exp_lnlminusmax=np.exp(lnlminusmax)
-#    print 'exp_lnminusmax',exp_lnlminusmax  
-#    print 'gamma_v=', gamma_v
- #   print 'zetta_v=',zetta_v
- #   print 'eps_v=', eps_v
-    dim1=np.mean(exp_lnlminusmax,axis=2)  #up to here - look at definition of dimension
- #   print 'dim1',dim1
-     #      Figure 2
+    dim1=np.mean(exp_lnlminusmax,axis=2)  
     if model=='epidemiological':
         fig2 = plt.figure();
         p_gamma = np.squeeze(np.mean(dim1,axis=(1)))
-# Next instruction gives NaN values
- #       print 'p_gamma1=', p_gamma
-
- 
         p_gamma=np.true_divide(p_gamma,np.trapz(p_gamma,gamma_v))
-#        print 'p_gamma2=', p_gamma
         ax2=fig2.add_subplot(111)
         ax2.plot(gamma_v,p_gamma);
         plt.xlabel(r'$\gamma$')
@@ -376,19 +341,9 @@ def plot_parameter_values(lnL,gamma_v, zetta_v, eps_v, model,directory,file_path
         fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+model+"_gamma.png"
         fig2.savefig(fig_path)
         total_p=np.sum(p_gamma)
-#        print 'total gamma=', total_p
         relative_p=np.true_divide(p_gamma,total_p)
-#        print 'relative_p=', relative_p
-#        print 'relative_p=',relative_p
         acc_relative_p=np.cumsum(relative_p)
-  #      print 'acc_relative_p=',acc_relative_p
         interpolated=np.interp([0.025, 0.25, 0.5, 0.75, 0.975], acc_relative_p, gamma_v,)
- #       print 'interpolated=', interpolated
- #       print 'Relative gamma 0.025=', interpolated[0]
-  #      print 'Relative gamma 0.25=', interpolated[1]
-  #      print 'Relative gamma 0.5=', interpolated[2]
-   #     print 'Relative gamma 0.75=', interpolated[3]
-   #     print 'Relative gamma 0.975=', interpolated[4]
         plt.close()
        
        
@@ -406,78 +361,25 @@ def plot_parameter_values(lnL,gamma_v, zetta_v, eps_v, model,directory,file_path
         fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+model+"_eps.png"
         fig3.savefig(fig_path)
         plt.close(fig3)
-        
-         #     Figure 4 - zetta - I am not sure why there are two divides here - second divide does not seem to change result
     fig4 = plt.figure();
     dim1=np.mean(exp_lnlminusmax,axis=0) 
     p_zetta = np.squeeze(np.mean(dim1,axis=(0)))
-  #      print 'p_zetta1=', p_zetta
     p_zetta=np.true_divide(p_zetta,np.trapz(p_zetta,np.log10(zetta_v)))
-  #      print 'p_zetta2=',p_zetta
-  #      p_zetta=np.true_divide(p_zetta,trapz)
     x_data=np.log10(zetta_v)
     plt.xlim(min(x_data),max(x_data))
-   #     trapz=np.trapz(p_zetta,np.log10(zetta_v))
     y_data=np.true_divide(p_zetta,np.trapz(p_zetta,np.log10(zetta_v)))
-  #      print 'p_zetta3=', y_data
     ax4=fig4.add_subplot(111)
     plt.xlabel("log10 " + r"$\zeta$")
     plt.ylabel('Pdf')
-   #     print 'x_data=', x_data
-   #     print 'y_data=', y_data
     ax4.plot(x_data, y_data);
     fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+ model+"_zeta.png"
     fig4.savefig(fig_path)
     plt.close(fig4)
-     
-# =============================================================================
-#                 #     Figure 4 - zetta - new version
-#         fig4 = plt.figure();
-#         dim1=np.mean(exp_lnlminusmax,axis=0) 
-#         p_zetta = np.squeeze(np.mean(dim1,axis=(1)))
-#         p_zetta=np.true_divide(p_zetta,np.trapz(p_zetta,np.log10(zetta_v)))
-#   #      p_zetta=np.true_divide(p_zetta,trapz)
-#         x_data=np.log10(zetta_v)
-#         plt.xlim(min(x_data),max(x_data))
-#    #     trapz=np.trapz(p_zetta,np.log10(zetta_v))
-#         y_data=p_zetta
-#         ax4=fig4.add_subplot(111)
-#         plt.xlabel("log10 " + r"$\zeta$")
-#         plt.ylabel('Likelihood')
-#         ax4.plot(x_data, y_data);
-#         fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+ model+"_zeta.png"
-#         fig4.savefig(fig_path)
-#         plt.close()
-# =============================================================================
     if model=='epidemiological':
         return(interpolated)
     else:
         return(np.zeros(5))
     
-    
-    #     Figure 5
-    
-# =============================================================================
-#     if model=='richard':
-#         fig5 = plt.figure();
-#         dim1=np.mean(exp_lnlminusmax,axis=0) 
-#         p_comm = np.squeeze(np.mean(dim1,axis=(0,1)))
-#         trapz=np.trapz(p_comm,comm_v)
-#         p_comm=np.true_divide(p_comm,trapz)
-#         x_data=comm_v
-#         plt.xlim(min(x_data),max(x_data))
-#         trapz=np.trapz(p_comm,comm_v)
-#         y_data=np.true_divide(p_comm,trapz)
-#         ax5=fig5.add_subplot(111)
-#         plt.xlabel("Community size")
-#         plt.ylabel('Likelihood')
-#         ax5.plot(x_data, y_data);
-#         fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+ model+"_comm.png"
-#         fig5.savefig(fig_path)
-#         plt.close()
-#     
-# =============================================================================
-
 def get_map_file_path(filename):
     base_path = os.getcwd();
     map_path = os.path.join(base_path, "maps")

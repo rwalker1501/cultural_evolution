@@ -39,46 +39,45 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
         eps_v=np.linspace(parameters['eps_start'],parameters['eps_end'],num=res_eps,endpoint=False)
     rho_bins=np.linspace(0,33,num=300,endpoint=False)
     rho_bins_4_python=np.append(rho_bins,33)
-# When we show the actual frequencies in Figure 1 - we use smaller bins - with a larger number of samples per bin. This makes the graph easier to read
-# bin_boundaries2_4_python contains the second type of bis
+    # When we show the actual frequencies in Figure 1 - we use smaller bins - with a larger number of samples per bin. This makes the graph easier to read
+    # bin_boundaries2_4_python contains the second type of bis
     bin_width=2 
     bin_boundaries2_4_python=np.linspace(0,33,num=16,endpoint=False) 
     bin_boundaries2_4_python=np.append(bin_boundaries2_4_python,33)
     rho_bins2=bin_boundaries2_4_python[0:len(bin_boundaries2_4_python)-1]+bin_width/2 
-# Count the number of samples and controls in each bin
+    # Count the number of samples and controls in each bin
     samples_counts=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==1],bins=rho_bins_4_python)[0] 
     controls_counts=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==0],bins=rho_bins_4_python) [0]
-# Repeat for the larger bins
+    # Repeat for the larger bins
     control_counts2=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==0],bins=bin_boundaries2_4_python)[0]
     sample_counts2=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==1],bins=bin_boundaries2_4_python)[0]
-# Compute total number of controls and samples
+    # Compute total number of controls and samples
     n_controls=np.sum(controls_counts)  
     n_samples=np.sum(samples_counts) 
-# Avoids underflow in calculations but not fully understood.
+    # Avoid underflow in calculations
     l_shift=n_samples*(log(float(n_samples)/float(n_controls))-1)
-# Computes size of parameter ranges according to range actually chosen - could be cleaned up
+    # Computes size of parameter ranges according to range actually chosen - could be cleaned up
     n_gamma=len(gamma_v)
     n_eps=len(eps_v)
     n_zetta=len(zetta_v)
-#  Kills gamma loop for constant and proportional models
+    #  Kills gamma loop for constant and proportional models
     if model=='constant' or model=='proportional':
         n_gamma=1
-# Set up a (population data specific) range of possible values for the likelihood of a given set of observations
+        # Set up a (population data specific) range of possible values for the likelihood of a given set of observations
     acc_likelihoods=np.linspace(parameters["y_acc_start"],parameters["y_acc_end"],num=2001) 
-#  Set up an array representing the accumulated likelihood of a given set of sample and control counts 
-#  Across all possible values of the parameters
+    #  Set up an array representing the accumulated likelihood of a given set of sample and control counts 
+    #  Across all possible values of the parameters
     acc=np.zeros((len(acc_likelihoods),len(rho_bins)))
     lnL=np.zeros((n_gamma,n_eps,n_zetta))
     sqrt_rho_bins=np.sqrt(rho_bins) #These are the values we are computing - rhobins_4_python are intervals for histogram only. In original program were inside loop. Have moved it outside
     max_LL=-float('inf') 
     bin_zeros=np.zeros(len(sqrt_rho_bins))
-# Scan all possible values of the parameters
+    # Scan all possible values of the parameters
     for i_gamma in range (0,n_gamma):
         print 'Percentage completed=', i_gamma/float(n_gamma)
         my_gamma=float(gamma_v[i_gamma]) 
-# Compute the predicted size of the infected population  as a proportion of population (p_infected) for all possible values of rho_bins, given the value of gamma. Guarantee it is always 0 or greater
+        # Compute the predicted size of the infected population  as a proportion of population (p_infected) for all possible values of rho_bins, given the value of gamma. Guarantee it is always 0 or greater
         if model=='epidemiological':
-#                i_star=np.maximum(bin_zeros,rho_bins-my_gamma*sqrt_rho_bins)
             p_infected=np.maximum(bin_zeros,1-my_gamma/sqrt_rho_bins)  
         if model=='proportional' or model=='constant':
             p_infected=rho_bins/max(rho_bins)
@@ -86,7 +85,7 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
             for i_eps in range (0, n_eps):
                  my_zetta=zetta_v[i_zetta]
                  my_eps=eps_v[i_eps]
-# Predicts the probability of finding at least one site in a territory for each of the population densities in rho_bins. Make sure value is never too small
+                 # Predicts the probability of finding at least one site in a territory for each of the population densities in rho_bins. Make sure value is never too small
                  if model=='proportional':
                      p_predicted=compute_proportional_model(p_infected,my_zetta,my_eps)
                  else:
@@ -95,16 +94,14 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
                      else:
                          if model=='epidemiological':
                              p_predicted=compute_epidemiological_model(p_infected,rho_bins,my_zetta,my_eps)
- #                                print 'p_predicted=', p_predicted
-
-# Computes the log likelihood of obtaining the OBSERVED number of samples at a given value of rho_bins, given the predicted number of samples
+                             # Computes the log likelihood of obtaining the OBSERVED number of samples at a given value of rho_bins, given the predicted number of samples
                   
                  log_samples=np.dot(samples_counts,np.log(p_predicted)) 
-# The same for controls
+                 # The same for controls
                  log_controls=np.dot(controls_counts,np.log(1-p_predicted)) 
-# Computes the log likelihood of a certain number of samples AND a certain number of controls (for a given value of rho_bins)
+                 # Computes the log likelihood of a certain number of samples AND a certain number of controls (for a given value of rho_bins)
                  LL=log_samples+log_controls
-# Finds the parameter values with the maximum likelihood
+                 # Finds the parameter values with the maximum likelihood
                  if LL>max_LL:
                      max_LL=LL
                      max_gamma=my_gamma
@@ -125,26 +122,25 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
                      print 'controls_counts=',controls_counts
                      sys.exit()
                          
-# Stores the log likelihood in an array indexed the position of the parameter values in the parameter ranges
+                     # Stores the log likelihood in an array indexed the position of the parameter values in the parameter ranges
 
                  lnL[i_gamma,i_eps,i_zetta]=LL 
-# Computes the actual likelihood of the observations and applies a left shift to make sure it is not too large (This means values shown are relative only)
+                 # Computes the actual likelihood of the observations and applies a left shift to make sure it is not too large (This means values shown are relative only)
                  L=np.exp(LL-l_shift)
                  len_acc_likelihoods=np.array(len(acc_likelihoods))
                  len_acc_likelihoods.fill(len(acc_likelihoods))
-# Create a one dimensional array of indexes pointing to values in acc_likelihoods (e.g. possible likelihood values) corresponding to different values of pObs,COMPLEX - WOULD BE NICE TO HAVE EASIER APPROACH. 
+                 # Create a one dimensional array of indexes pointing to values in acc_likelihoods (e.g. possible likelihood values) corresponding to different values of pObs,COMPLEX - WOULD BE NICE TO HAVE EASIER APPROACH. 
                  i_acc=np.minimum(len_acc_likelihoods,np.floor(1+p_predicted/acc_likelihoods[1]).astype(int)) #This yields column vector of indexes corresponding to different values of pObs. ector length =401. Maximum value of index =400 (zero based vector).I am keeping it 1-based
                  for i in range(0,len(i_acc)):
                      x_coord=i_acc[i]-1
                      y_coord=i
-# Accumulate likelihood values (x coord) for a each possible value of rho_bins (y_coord) across all values of the parameters
+                     # Accumulate likelihood values (x coord) for a each possible value of rho_bins (y_coord) across all values of the parameters
                      acc[x_coord,y_coord]=acc[x_coord,y_coord]+L
 
     interpolated_gammas=plm.plot_parameter_values(lnL,gamma_v, zetta_v, eps_v,model,directory,results_path)
     thresholds=interpolated_gammas**2
     opt_threshold=thresholds[2]  #Not sure about this
     plm.plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, gamma_v, opt_threshold, sample_counts2, control_counts2, model,directory,results_path)
-   # plm.plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, gamma_v, opt_threshold, sample_counts2, control_counts2, model,directory,results_path)
     return(max_gamma, max_zetta, max_eps, max_likelihood,thresholds)
     
 
@@ -157,12 +153,11 @@ def compute_epidemiological_model(p_infected,rho_bins,my_zetta,my_eps):
     p_predicted_small.fill(1e-20)
     p_predicted=np.maximum(p_predicted,p_predicted_small)
     p_predicted=np.minimum(p_predicted,p_predicted_large)
-    p_predicted=p_predicted.astype(float) #Probably not necessary
+    p_predicted=p_predicted.astype(float)
     return(p_predicted)
     
 def compute_proportional_model(p_infected, my_zetta,my_eps):
     p_predicted=np.zeros(len(p_infected)).astype(float)
-  #   p_predicted=my_zetta*((1-my_eps)*p_infected)+my_eps
     p_predicted=my_zetta*p_infected
     p_predicted_small=np.zeros(len(p_predicted))
     p_predicted_large=np.zeros(len(p_predicted))
@@ -175,7 +170,6 @@ def compute_proportional_model(p_infected, my_zetta,my_eps):
 
 def compute_constant_model(p_infected, my_zetta,my_eps):
     p_predicted=np.zeros(len(p_infected)).astype(float)
-   #  p_predicted.fill(my_zetta*(1-my_eps)+my_eps)
     p_predicted.fill(my_zetta)
     p_predicted_small=np.zeros(len(p_predicted))
     p_predicted_large=np.zeros(len(p_predicted))
@@ -183,7 +177,7 @@ def compute_constant_model(p_infected, my_zetta,my_eps):
     p_predicted_large.fill(1-1e-20)
     p_predicted=np.maximum(p_predicted,p_predicted_small)
     p_predicted=np.minimum(p_predicted,p_predicted_large)
-    p_predicted=p_predicted.astype(float) #Probably not necessary
+    p_predicted=p_predicted.astype(float)
     return(p_predicted)
 
 
@@ -344,85 +338,4 @@ def generate_statistics(dataframe, globals_dataframe, bin_values_df, minimum_glo
 
     trimmed_p_samples = trimmed_bin_values_df['p_samples'].values;
     trimmed_p_globals = trimmed_bin_values_df['p_globals'].values;
-
-
-    # ks_d,ks_p= ks_2samp(trimmed_p_samples,trimmed_p_globals)
-
-    # stat_dictionary['ks_d'] = ks_d;
-    # stat_dictionary['ks_p'] = ks_p;
-
     return stat_dictionary, trimmed_bin_values_df;
-
-
-
-
-# =============================================================================
-# def write_results(aFile,anIdentifier, aPath,dataframe, globals_dataframe,population_data, min_globals, min_p):
-#     
-#     bin_array, sample_counts, global_counts, likelihood_ratios, p_samples, p_globals = generate_bin_values(dataframe, globals_dataframe, population_data, min_globals);
-#     wrm.write_bin_table(aFile, bin_array, sample_counts, global_counts, likelihood_ratios, p_samples, p_globals, min_globals)
-#     
-#     ################################
-#     # Compute and write statistics #
-#     ################################
-#     # - binomial test
-#     # - wilcoxon
-#     wrm.write_label(aFile, "Statistics")
-# 
-# 
-#     #######################
-#     # Statistics
-#     #######################
-# 
-#     wrm.write_label(aFile, "Statistics");
-# 
-#     total_samples=dataframe[dataframe.type=='s']['density'].count ()
-#     total_globals=globals_dataframe ['density'].count()
-#     aFile.write('Total sites: '+str(total_samples)+'\n')
-#     aFile.write('Total globals: '+str(total_globals)+'\n\n')
-# 
-#     median_samples=dataframe[dataframe.type=='s']['density'].median()
-#     median_globals=globals_dataframe ['density'].median()
-#     aFile.write('Median density for sites: '+str(median_samples)+'\n')
-#     aFile.write('Median density for globals: '+str(median_globals)+'\n\n')
-# 
-# 
-#     mean_samples=dataframe[dataframe.type=='s']['density'].mean()
-#     mean_globals=globals_dataframe ['density'].mean()
-#     aFile.write('Mean density for sites: '+str(mean_samples)+'\n')
-#     aFile.write('Mean density for globals: '+str(mean_globals)+'\n\n')
-# 
-#     std_samples=dataframe[dataframe.type=='s']['density'].std()
-#     std_globals=globals_dataframe ['density'].std()
-#     aFile.write('Mean density for sites: '+str(median_samples)+'\n')
-#     aFile.write('Mean density for globals: '+str(median_globals)+'\n')
-# 
-# 
-#     #######################
-#     # Test distributions are different
-#     #######################
-# 
-#     wrm.write_label(aFile, "K-S2 Test\n")
-# 
-#     ks_d,ks_p=ks_2samp(trimmed_p_samples,trimmed_p_globals)
-#     aFile.write( 'KS test  for samples vs globals with full controls:'+str(float(ks_d))+ '   p='+str(float(ks_p))+'\n')
-#     if ks_p<min_p:
-#         aFile.write('The two distribitions are significantly different p<0.001'+'\n')
-# 
-#     ks_d,ks_p=ks_2samp(trimmed_p_samples,trimmed_p_globals)
-#     f2.write( 'KS test for p_samples vs p_globals :'+str(float(ks_d))+ '   p='+str(float(ks_p))+'\n')
-#     if ks_p<self.min_p:
-#          f2.write('The two distribitions are significantly different p<0.001'+'\n')    
-#         
-#     # plot graphs
-#     plm.plot_p_graphs(trimmed_bin_array, trimmed_p_samples, trimmed_p_globals,population_data.bin_size, anIdentifier, aPath)
-#     plm.plot_cumulative_p_graphs(trimmed_bin_array, trimmed_p_samples, trimmed_p_globals, population_data.bin_size,median_samples,median_globals, anIdentifier, aPath)
-#     plm.plot_detection_frequencies (trimmed_bin_array, trimmed_likelihood_ratios, population_data.bin_size, population_data.max_population-population_data.bin_size*2, anIdentifier, "detection_frequencies", aPath)
-# 
-#     # - plots targets and globals on a map
-#     plm.plot_targets_on_map(dataframe, globals_dataframe, aPath, anIdentifier)
-#     
-# 
-#     
-# 
-# =============================================================================

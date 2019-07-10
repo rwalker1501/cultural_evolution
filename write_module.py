@@ -117,7 +117,7 @@ def write_bin_table(a_file, bin_values_df, min_globals):
         a_file.write('{:.4f}'.format(p_globals[i]) + ";")
         a_file.write("\n")
 
-def write_analysis(f2, stat_dictionary, min_p):
+def write_analysis(f2, stat_dictionary):
 
     write_label(f2, "Statistics")
 

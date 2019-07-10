@@ -161,7 +161,7 @@ class MainProgram:
             return 'insufficient non-zero bins for analysis';
         
         print("Writing analysis...")
-        wrm.write_analysis(f2, stat_dictionary, parameters['min_p']);
+        wrm.write_analysis(f2, stat_dictionary);
 
         
         ###############

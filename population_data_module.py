@@ -32,17 +32,5 @@ def load_all_population_data_sources(base_path, population_data_sources):
 
     population_data_sources['eriksson'] = load_population_data_source(base_path, 'eriksson')
     population_data_sources['timmermann'] = load_population_data_source(base_path, 'timmermann')
-
-    # # Eriksson
-    # eriksson_binary_path = os.path.join(pop_data_path, 'eriksson.npz')
-    # eriksson_info_path = os.path.join(pop_data_path, 'eriksson_info.txt')
-    # eriksson = load_population_data_source("Eriksson", eriksson_binary_path, eriksson_info_path)
-    # population_data_sources['Eriksson'] = eriksson;
-
-    # # Timmermann
-    # timmermann_binary_path = os.path.join(pop_data_path, 'timmermann.npz')
-    # timmermann_info_path = os.path.join(pop_data_path, 'timmermann_info.txt')
-    # timmermann = load_population_data_source("Timmermann", timmermann_binary_path, timmermann_info_path, label='ncf')
-    # population_data_sources['Timmermann'] = timmermann;
     
     return population_data_sources
