@@ -238,8 +238,9 @@ def read_target_list_from_csv(filename):
         elif len(figurative) > 2:
             figurative = "Yes" if row["Figurative"][0:3] == "Yes" else "No"
 
-        target_id = location + "(lat: " + str(lat) + ", lon: " + str(lon) + ", date_from: " + str(date_from) + ")"
-
+        # target_id = location + "(lat: " + str(lat) + ", lon: " + str(lon) + ", date_from: " + str(date_from) + ")"
+        target_id = location;
+        
         target=Target(target_id, lat,lon,lat_nw,lon_nw,lat_se,lon_se,location,date_from, date_to, country,is_direct,calibrated,kind,figurative, age_est)
 
         target_list[target_id] = target
