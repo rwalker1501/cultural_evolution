@@ -156,14 +156,7 @@ def load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date
     time_length = len(time_np);
     indices = np.reshape(range(latlon_length*time_length), [-1, latlon_length])
     valid_ind = indices[mask];
-
-
-    # print("Latlon: " + str(latlon_length))
-    # print("Time: " + str(time_length))
-    # print("density: " + str(len(den_np)));
-    # print(indices[time_length-1][latlon_length-1]/(latlon_length))
-    # print(latlon_length*time_length/(time_length-1))
-
+    
     print("Masking lat, lon, time..")
     periods = time_np[valid_ind/(latlon_length)]*time_multiplier
 
