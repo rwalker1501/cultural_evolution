@@ -239,7 +239,7 @@ def read_target_list_from_csv(filename):
             figurative = "Yes" if row["Figurative"][0:3] == "Yes" else "No"
 
         # target_id = location + "(lat: " + str(lat) + ", lon: " + str(lon) + ", date_from: " + str(date_from) + ")"
-        target_id = location;
+        target_id = "\"" + location + "\"";
         
         target=Target(target_id, lat,lon,lat_nw,lon_nw,lat_se,lon_se,location,date_from, date_to, country,is_direct,calibrated,kind,figurative, age_est)
 
@@ -336,16 +336,8 @@ def generate_merged_dataframe(base_path, directory, dataframe, globals_dataframe
     # MERGE
     to_concat = [temp_globals_df, temp_samples_df]
     merged_df = pd.concat(to_concat);
+  #  merged_df.drop(["Unnamed: 0"], axis = 1, inplace = True)
     
-    # abs lat
-    merged_df['abs_latitude'] = merged_df['latitude'].abs();
-
-    # binned_period
-    merged_df = create_binned_column(merged_df, 'binned_period', 'period', 10000);
-
-    # binned_period
-    merged_df = create_binned_column(merged_df, 'binned_latitude', 'latitude', 10);
-    merged_df.drop(["Unnamed: 0"], axis = 1, inplace = True)
 
     if save_processed_targets:
         processed_targets_dir = os.path.join(base_path, "processed_targets")

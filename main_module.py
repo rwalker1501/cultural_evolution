@@ -104,10 +104,10 @@ class MainProgram:
         ############################
         # Write header information #
         ############################
+        wrm.write_label(f2, 'Epidemiology of culture data analysis v.1.0 Copyright (C) 2019  Richard Walker & Camille Ruiz')
         dateTime=str(datetime.now())
         f2.write('Date: '+dateTime)
         f2.write('\n')
-
         wrm.write_parameters(f2, parameters_filename, parameters, self.key_order)
 
 

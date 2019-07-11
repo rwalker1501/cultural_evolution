@@ -16,7 +16,7 @@ class Driver:
 	def run(self):
 	
 		print('')
-		self.print_label('Population analysis tool v. 1 by Richard Walker and Camille Ruiz')
+		self.print_label('Epidemiology of culture data analysis v.1.0 Copyright (C) 2019  Richard Walker & Camille Ruiz')
 		user_option = 0
 		while user_option != '4':
 			parameters_filename = self.main_program.get_parameters_filename();
