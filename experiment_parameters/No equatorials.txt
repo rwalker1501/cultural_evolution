@@ -1,8 +1,8 @@
 {
     "population_data": "eriksson",
     "globals_type": "No equatorials", 
-    "target_file": "No equatorials",
-    "results_directory": "No equatorials",
+    "target_file": "no equatorials",
+    "results_directory": "no equatorials",
     "bin_size": 1,
     "max_population": 34,
     "max_for_uninhabited": 1,
@@ -24,5 +24,4 @@
     "remove_not_figurative_targets": false,
     "save_processed_targets": false,
     "min_globals":1
-
 }
