@@ -97,9 +97,9 @@ def write_target_table(a_file, dataframe, time_window):
         
 def write_bin_table(a_file, bin_values_df, min_globals):
 
-    write_label(a_file, "Distribution of values for samples and globals")
+    write_label(a_file, "Distribution of values for sites and globals")
 
-    columns = ['Bin value', 'Samples', 'Globals', 'Detection Frequency', 'Relative Frequency of Sites', 'Relative Frequency of Globals']
+    columns = ['Bin value', 'Sites', 'Globals', 'Detection Frequency', 'Relative Frequency of Sites', 'Relative Frequency of Globals']
     write_headers(a_file,columns,";")
     bin_array = bin_values_df['bin_array'].values
     sample_counts = bin_values_df['sample_counts'].values

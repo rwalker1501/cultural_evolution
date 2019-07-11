@@ -56,7 +56,7 @@ class PopulationData():
         self.density_array = density_array
         self.time_multiplier = population_data_info['time_multiplier']
         self.density_multiplier= population_data_info['density_multiplier']
-        self.is_active = population_data_info['is_active']
+ #       self.is_active = population_data_info['is_active']
         self.time_window = population_data_info['time_window']
         self.ascending_time = population_data_info['ascending_time']
         

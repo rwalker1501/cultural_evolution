@@ -195,7 +195,7 @@ def process_dataframe(dataframe):
         target_df = dataframe[dataframe.target_id==target_id]
         sample_target_df = target_df[target_df.type == 's']
         if np.isnan(sample_target_df['density'].median()):
-            print("Removing target: " + str(target_id));
+            print('Removing target: ' + str(target_id));
             removed_targets.append(target_id);
             dataframe = dataframe[dataframe.target_id != target_id];
             continue;
