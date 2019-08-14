@@ -19,7 +19,8 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
  # gamma is the subpopulation extinction rate
  # Zetta is the base probability that a  territorial unit) contains at least one site
  # Eps is an error - means that there is a positive probability that a site is present even in a territory with below threshold population
- 
+ # number of contacts is presumed to be a power function of density (actually a root of density). Contact power fixes the power we are talking about
+    contact_power=0.25
     if parameters['high_resolution']:
         res_gamma = 101
         res_zetta = 101
@@ -70,6 +71,7 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
     acc=np.zeros((len(acc_likelihoods),len(rho_bins)))
     lnL=np.zeros((n_gamma,n_eps,n_zetta))
     sqrt_rho_bins=np.sqrt(rho_bins) #These are the values we are computing - rhobins_4_python are intervals for histogram only. In original program were inside loop. Have moved it outside
+    root_rho_bins=np.power(rho_bins,contact_power)
     max_LL=-float('inf') 
     bin_zeros=np.zeros(len(sqrt_rho_bins))
     # Scan all possible values of the parameters
@@ -78,7 +80,8 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
         my_gamma=float(gamma_v[i_gamma]) 
         # Compute the predicted size of the infected population  as a proportion of population (p_infected) for all possible values of rho_bins, given the value of gamma. Guarantee it is always 0 or greater
         if model=='epidemiological':
-            p_infected=np.maximum(bin_zeros,1-my_gamma/sqrt_rho_bins)  
+        #    p_infected=np.maximum(bin_zeros,1-my_gamma/sqrt_rho_bins) 
+            p_infected=np.maximum(bin_zeros,1-my_gamma/root_rho_bins) 
         if model=='proportional' or model=='constant':
             p_infected=rho_bins/max(rho_bins)
         for i_zetta in range(0,n_zetta):
@@ -138,7 +141,8 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
                      acc[x_coord,y_coord]=acc[x_coord,y_coord]+L
 
     interpolated_gammas=plm.plot_parameter_values(lnL,gamma_v, zetta_v, eps_v,model,directory,results_path)
-    thresholds=interpolated_gammas**2
+#    thresholds=interpolated_gammas**2
+    thresholds=interpolated_gammas**(1/contact_power)
     opt_threshold=thresholds[2]  #Not sure about this
     plm.plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, gamma_v, opt_threshold, sample_counts2, control_counts2, model,directory,results_path)
     return(max_gamma, max_zetta, max_eps, max_likelihood,thresholds)
