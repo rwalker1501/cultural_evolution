@@ -180,8 +180,8 @@ class MainProgram:
         max_likelihood=np.zeros(len(models))
         for i in range(0,len(models)):
             print("model= " + models[i])
-            max_gamma, max_zetta, max_eps, max_likelihood[i], opt_threshold=stm.compute_likelihood_model(directory, results_path, population_data,merged_dataframe, models[i], parameters)
-            wrm.write_likelihood_results(f2,max_gamma, max_zetta, max_eps, max_likelihood[i], opt_threshold,models[i] );
+            max_gamma, max_zetta, max_eps, max_power,max_likelihood[i], opt_threshold=stm.compute_likelihood_model(directory, results_path, population_data,merged_dataframe, models[i], parameters)
+            wrm.write_likelihood_results(f2,max_gamma, max_zetta, max_eps, max_power,max_likelihood[i], opt_threshold,models[i] );
             gc.collect();
         epid_over_proportional=np.exp(max_likelihood[0]-max_likelihood[1])
         epid_over_constant=np.exp(max_likelihood[0]-max_likelihood[2])

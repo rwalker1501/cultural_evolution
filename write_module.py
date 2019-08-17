@@ -131,9 +131,13 @@ def write_analysis(f2, stat_dictionary):
     f2.write('Mean density for globals; '+'{:.2f}'.format(stat_dictionary['mean_globals'])+'\n\n')
 
     f2.write('Standard deviation of density for sites; '+'{:.2f}'.format(stat_dictionary['std_samples'])+'\n')
-    f2.write('Standard deviation of density for globals; '+'{:.2f}'.format(stat_dictionary['std_globals'])+'\n\n')
+    f2.write('Standard deviation of density for globals; '+'{:.2f}'.format(stat_dictionary['std_globals'])+'\n')
+    
+    f2.write('KS test  for samples vs globals with full controls d=:'+'{:.2f}'.format(stat_dictionary['ks_d'])+'\n')
+    f2.write('KS test  for samples vs globals with full controls p=:'+'{:.2f}'.format(stat_dictionary['ks_p'])+'\n')
+    
 
-def write_likelihood_results(aFile, max_gamma, max_zetta, max_eps, max_likelihood, thresholds,model ):
+def write_likelihood_results(aFile, max_gamma, max_zetta, max_eps, max_power, max_likelihood, thresholds,model ):
         write_label(aFile, "Results of max likelihood analysis for "+model+" model")
         if model=='epidemiological' or model=='richard':
             aFile.write('Threshold 0.025;'+ '{:.2f}'.format(thresholds[0])+"\n")
@@ -147,6 +151,7 @@ def write_likelihood_results(aFile, max_gamma, max_zetta, max_eps, max_likelihoo
             aFile.write("Max eps;"+'{:.5f}'.format(max_eps)+"\n")
 #            aFile.write("Max comm="+'{:.2f}'.format(max_comm)+"\n")
         aFile.write("Max zetta;"+'{:.7f}'.format(max_zetta)+"\n")
+        aFile.write(("Max power;"+'{:.3f}'.format(max_power)+"\n"))
         aFile.write("Max likelihood;"+'{:.0f}'.format(max_likelihood)+"\n")
         if model=='epidemiological':
             k=3

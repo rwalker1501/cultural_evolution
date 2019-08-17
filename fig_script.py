@@ -5,7 +5,8 @@ import main_module as mm
 
 print 'Epidemiology of culture data analysis v.1.0 Copyright (C) 2019  Richard Walker & Camille Ruiz'
 #mm.run_experiment("Full.txt")
-mm.run_experiment("No equatorials power4 exact direct.txt")
+#mm.run_experiment("No equatorials power4 exact direct.txt")
+mm.run_experiment("No equatorials variable power.txt")
 #mm.run_experiment("No equatorials exact direct.txt")
 #mm.run_experiment("Timmermann no equatorials.txt")
 #mm.run_experiment("Timmermann no equatorials exact direct.txt")

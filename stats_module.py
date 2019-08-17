@@ -25,19 +25,21 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
         res_gamma = 101
         res_zetta = 101
         res_eps = 101
+        res_power=101
     else:
         res_gamma = 24
         res_zetta = 11
         res_eps = 11
+        res_power=11
 
     gamma_v=np.linspace(parameters['gamma_start'], parameters['gamma_end'],num=res_gamma)
     zetta_v=np.exp(np.linspace(log(parameters['zetta_start']),log(parameters['zetta_end']),num=res_zetta,endpoint=False)) 
-
-
     if model=='constant':
         eps_v=np.array([1])
+        contact_power_v=np.array([1])
     else:
         eps_v=np.linspace(parameters['eps_start'],parameters['eps_end'],num=res_eps,endpoint=False)
+        contact_power_v=np.linspace(0.1,3,num=res_power,endpoint=False)
     rho_bins=np.linspace(0,33,num=300,endpoint=False)
     rho_bins_4_python=np.append(rho_bins,33)
     # When we show the actual frequencies in Figure 1 - we use smaller bins - with a larger number of samples per bin. This makes the graph easier to read
@@ -61,91 +63,96 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
     n_gamma=len(gamma_v)
     n_eps=len(eps_v)
     n_zetta=len(zetta_v)
+    n_power=len(contact_power_v)
     #  Kills gamma loop for constant and proportional models
     if model=='constant' or model=='proportional':
         n_gamma=1
+        n_power=1
         # Set up a (population data specific) range of possible values for the likelihood of a given set of observations
     acc_likelihoods=np.linspace(parameters["y_acc_start"],parameters["y_acc_end"],num=2001) 
     #  Set up an array representing the accumulated likelihood of a given set of sample and control counts 
     #  Across all possible values of the parameters
     acc=np.zeros((len(acc_likelihoods),len(rho_bins)))
-    lnL=np.zeros((n_gamma,n_eps,n_zetta))
+    lnL=np.zeros((n_gamma,n_eps,n_zetta,n_power))
     sqrt_rho_bins=np.sqrt(rho_bins) #These are the values we are computing - rhobins_4_python are intervals for histogram only. In original program were inside loop. Have moved it outside
-    root_rho_bins=np.power(rho_bins,contact_power)
     max_LL=-float('inf') 
     bin_zeros=np.zeros(len(sqrt_rho_bins))
     # Scan all possible values of the parameters
     for i_gamma in range (0,n_gamma):
         print 'Percentage completed=', i_gamma/float(n_gamma)
-        my_gamma=float(gamma_v[i_gamma]) 
-        # Compute the predicted size of the infected population  as a proportion of population (p_infected) for all possible values of rho_bins, given the value of gamma. Guarantee it is always 0 or greater
-        if model=='epidemiological':
-        #    p_infected=np.maximum(bin_zeros,1-my_gamma/sqrt_rho_bins) 
-            p_infected=np.maximum(bin_zeros,1-my_gamma/root_rho_bins) 
-        if model=='proportional' or model=='constant':
-            p_infected=rho_bins/max(rho_bins)
-        for i_zetta in range(0,n_zetta):
-            for i_eps in range (0, n_eps):
-                 my_zetta=zetta_v[i_zetta]
-                 my_eps=eps_v[i_eps]
-                 # Predicts the probability of finding at least one site in a territory for each of the population densities in rho_bins. Make sure value is never too small
-                 if model=='proportional':
-                     p_predicted=compute_proportional_model(p_infected,my_zetta,my_eps)
-                 else:
-                     if model=='constant':
-                         p_predicted=compute_constant_model(p_infected,my_zetta,my_eps)
+        my_gamma=float(gamma_v[i_gamma])
+        for i_contact_power in range(0,n_power):
+            contact_power=contact_power_v[i_contact_power]
+            root_rho_bins=np.power(rho_bins,contact_power)
+            # Compute the predicted size of the infected population  as a proportion of population (p_infected) for all possible values of rho_bins, given the value of gamma. Guarantee it is always 0 or greater
+            if model=='epidemiological':
+            #    p_infected=np.maximum(bin_zeros,1-my_gamma/sqrt_rho_bins) 
+                p_infected=np.maximum(bin_zeros,1-my_gamma/root_rho_bins) 
+            if model=='proportional' or model=='constant':
+                p_infected=rho_bins/max(rho_bins)
+            for i_zetta in range(0,n_zetta):
+                for i_eps in range (0, n_eps):
+                     my_zetta=zetta_v[i_zetta]
+                     my_eps=eps_v[i_eps]
+                     # Predicts the probability of finding at least one site in a territory for each of the population densities in rho_bins. Make sure value is never too small
+                     if model=='proportional':
+                         p_predicted=compute_proportional_model(p_infected,my_zetta,my_eps)
                      else:
-                         if model=='epidemiological':
-                             p_predicted=compute_epidemiological_model(p_infected,rho_bins,my_zetta,my_eps)
-                             # Computes the log likelihood of obtaining the OBSERVED number of samples at a given value of rho_bins, given the predicted number of samples
-                  
-                 log_samples=np.dot(samples_counts,np.log(p_predicted)) 
-                 # The same for controls
-                 log_controls=np.dot(controls_counts,np.log(1-p_predicted)) 
-                 # Computes the log likelihood of a certain number of samples AND a certain number of controls (for a given value of rho_bins)
-                 LL=log_samples+log_controls
-                 # Finds the parameter values with the maximum likelihood
-                 if LL>max_LL:
-                     max_LL=LL
-                     max_gamma=my_gamma
-                     max_zetta=my_zetta
-                     max_eps=my_eps
-                     max_likelihood=LL
-                 if np.isnan(np.min(LL)):
-                     print 'LL is nan'
-                     print 'nSamples=',n_samples
-                     print 'nControls=',n_controls
-                     print 'my_gamma=',my_gamma
-                     print 'my_zetta=',my_zetta
-                     print 'my_eps=',my_eps
-                     print 'log_samples',log_samples
-                     print 'log_controls', log_controls
-                     print 'p_predicted=', p_predicted
-                     print 'samples_counts=', samples_counts
-                     print 'controls_counts=',controls_counts
-                     sys.exit()
-                         
-                     # Stores the log likelihood in an array indexed the position of the parameter values in the parameter ranges
+                         if model=='constant':
+                             p_predicted=compute_constant_model(p_infected,my_zetta,my_eps)
+                         else:
+                             if model=='epidemiological':
+                                 p_predicted=compute_epidemiological_model(p_infected,rho_bins,my_zetta,my_eps)
+                                 # Computes the log likelihood of obtaining the OBSERVED number of samples at a given value of rho_bins, given the predicted number of samples
+                      
+                     log_samples=np.dot(samples_counts,np.log(p_predicted)) 
+                     # The same for controls
+                     log_controls=np.dot(controls_counts,np.log(1-p_predicted)) 
+                     # Computes the log likelihood of a certain number of samples AND a certain number of controls (for a given value of rho_bins)
+                     LL=log_samples+log_controls
+                     # Finds the parameter values with the maximum likelihood
+                     if LL>max_LL:
+                         max_LL=LL
+                         max_gamma=my_gamma
+                         max_zetta=my_zetta
+                         max_eps=my_eps
+                         max_power=contact_power
+                         max_likelihood=LL
+                     if np.isnan(np.min(LL)):
+                         print 'LL is nan'
+                         print 'nSamples=',n_samples
+                         print 'nControls=',n_controls
+                         print 'my_gamma=',my_gamma
+                         print 'my_zetta=',my_zetta
+                         print 'my_eps=',my_eps
+                         print 'log_samples',log_samples
+                         print 'log_controls', log_controls
+                         print 'p_predicted=', p_predicted
+                         print 'samples_counts=', samples_counts
+                         print 'controls_counts=',controls_counts
+                         sys.exit()
+                             
+                         # Stores the log likelihood in an array indexed the position of the parameter values in the parameter ranges
+    
+                     lnL[i_gamma,i_eps,i_zetta, i_contact_power]=LL 
+                     # Computes the actual likelihood of the observations and applies a left shift to make sure it is not too large (This means values shown are relative only)
+                     L=np.exp(LL-l_shift)
+                     len_acc_likelihoods=np.array(len(acc_likelihoods))
+                     len_acc_likelihoods.fill(len(acc_likelihoods))
+                     # Create a one dimensional array of indexes pointing to values in acc_likelihoods (e.g. possible likelihood values) corresponding to different values of pObs,COMPLEX - WOULD BE NICE TO HAVE EASIER APPROACH. 
+                     i_acc=np.minimum(len_acc_likelihoods,np.floor(1+p_predicted/acc_likelihoods[1]).astype(int)) #This yields column vector of indexes corresponding to different values of pObs. ector length =401. Maximum value of index =400 (zero based vector).I am keeping it 1-based
+                     for i in range(0,len(i_acc)):
+                         x_coord=i_acc[i]-1
+                         y_coord=i
+                         # Accumulate likelihood values (x coord) for a each possible value of rho_bins (y_coord) across all values of the parameters
+                         acc[x_coord,y_coord]=acc[x_coord,y_coord]+L
 
-                 lnL[i_gamma,i_eps,i_zetta]=LL 
-                 # Computes the actual likelihood of the observations and applies a left shift to make sure it is not too large (This means values shown are relative only)
-                 L=np.exp(LL-l_shift)
-                 len_acc_likelihoods=np.array(len(acc_likelihoods))
-                 len_acc_likelihoods.fill(len(acc_likelihoods))
-                 # Create a one dimensional array of indexes pointing to values in acc_likelihoods (e.g. possible likelihood values) corresponding to different values of pObs,COMPLEX - WOULD BE NICE TO HAVE EASIER APPROACH. 
-                 i_acc=np.minimum(len_acc_likelihoods,np.floor(1+p_predicted/acc_likelihoods[1]).astype(int)) #This yields column vector of indexes corresponding to different values of pObs. ector length =401. Maximum value of index =400 (zero based vector).I am keeping it 1-based
-                 for i in range(0,len(i_acc)):
-                     x_coord=i_acc[i]-1
-                     y_coord=i
-                     # Accumulate likelihood values (x coord) for a each possible value of rho_bins (y_coord) across all values of the parameters
-                     acc[x_coord,y_coord]=acc[x_coord,y_coord]+L
-
-    interpolated_gammas=plm.plot_parameter_values(lnL,gamma_v, zetta_v, eps_v,model,directory,results_path)
+    interpolated_gammas=plm.plot_parameter_values(lnL,gamma_v, zetta_v, eps_v,contact_power_v,model,directory,results_path)
 #    thresholds=interpolated_gammas**2
-    thresholds=interpolated_gammas**(1/contact_power)
+    thresholds=interpolated_gammas**(1/max_power)
     opt_threshold=thresholds[2]  #Not sure about this
     plm.plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, gamma_v, opt_threshold, sample_counts2, control_counts2, model,directory,results_path)
-    return(max_gamma, max_zetta, max_eps, max_likelihood,thresholds)
+    return(max_gamma, max_zetta, max_eps, max_power, max_likelihood,thresholds)
     
 
 def compute_epidemiological_model(p_infected,rho_bins,my_zetta,my_eps):
@@ -342,4 +349,6 @@ def generate_statistics(dataframe, globals_dataframe, bin_values_df, minimum_glo
 
     trimmed_p_samples = trimmed_bin_values_df['p_samples'].values;
     trimmed_p_globals = trimmed_bin_values_df['p_globals'].values;
+       
+    stat_dictionary['ks_d'], stat_dictionary['ks_p']=ks_2samp(trimmed_p_samples,trimmed_p_globals)
     return stat_dictionary, trimmed_bin_values_df;

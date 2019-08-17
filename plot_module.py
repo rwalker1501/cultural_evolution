@@ -326,13 +326,13 @@ def plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, gamma_v, opt
     fig1.savefig(fig_path)
     plt.close()
     
-def plot_parameter_values(lnL,gamma_v, zetta_v, eps_v, model,directory,file_path):
+def plot_parameter_values(lnL,gamma_v, zetta_v, eps_v, contact_power_v,model,directory,file_path):
     lnlminusmax=lnL-np.amax(lnL)
     exp_lnlminusmax=np.exp(lnlminusmax)
-    dim1=np.mean(exp_lnlminusmax,axis=2)  
+    dim1=np.mean(exp_lnlminusmax,axis=3)  
     if model=='epidemiological':
         fig2 = plt.figure();
-        p_gamma = np.squeeze(np.mean(dim1,axis=(1)))
+        p_gamma = np.squeeze(np.mean(dim1,axis=(1,2)))
         p_gamma=np.true_divide(p_gamma,np.trapz(p_gamma,gamma_v))
         ax2=fig2.add_subplot(111)
         ax2.plot(gamma_v,p_gamma);
@@ -341,6 +341,7 @@ def plot_parameter_values(lnL,gamma_v, zetta_v, eps_v, model,directory,file_path
         plt.xlim(min(gamma_v),max(gamma_v))
         fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+model+"_gamma.png"
         fig2.savefig(fig_path)
+                # compute interpolated values of gamma for use in computing thresholds
         total_p=np.sum(p_gamma)
         relative_p=np.true_divide(p_gamma,total_p)
         acc_relative_p=np.cumsum(relative_p)
@@ -351,8 +352,8 @@ def plot_parameter_values(lnL,gamma_v, zetta_v, eps_v, model,directory,file_path
      #     Figure 3 - eps
     if model=='epidemiological':
         fig3 = plt.figure();
-        dim1=np.mean(exp_lnlminusmax,axis=2) 
-        p_eps = np.squeeze(np.mean(dim1,axis=(0)))
+        dim1=np.mean(exp_lnlminusmax,axis=3) 
+        p_eps = np.squeeze(np.mean(dim1,axis=(0,1)))
         p_eps=np.true_divide(p_eps,np.trapz(p_eps,eps_v))
         ax3=fig3.add_subplot(111)
         ax3.plot(eps_v,p_eps);
@@ -362,20 +363,33 @@ def plot_parameter_values(lnL,gamma_v, zetta_v, eps_v, model,directory,file_path
         fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+model+"_eps.png"
         fig3.savefig(fig_path)
         plt.close(fig3)
-    fig4 = plt.figure();
-    dim1=np.mean(exp_lnlminusmax,axis=0) 
-    p_zetta = np.squeeze(np.mean(dim1,axis=(0)))
-    p_zetta=np.true_divide(p_zetta,np.trapz(p_zetta,np.log10(zetta_v)))
-    x_data=np.log10(zetta_v)
-    plt.xlim(min(x_data),max(x_data))
-    y_data=np.true_divide(p_zetta,np.trapz(p_zetta,np.log10(zetta_v)))
-    ax4=fig4.add_subplot(111)
-    plt.xlabel("log10 " + r"$\zeta$")
-    plt.ylabel('Pdf')
-    ax4.plot(x_data, y_data);
-    fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+ model+"_zeta.png"
-    fig4.savefig(fig_path)
-    plt.close(fig4)
+        
+        fig6 = plt.figure();
+        dim1=np.mean(exp_lnlminusmax,axis=2) 
+        p_power = np.squeeze(np.mean(dim1,axis=(0,1)))
+        p_power=np.true_divide(p_power,np.trapz(p_power,contact_power_v))
+        ax6=fig6.add_subplot(111)
+        ax6.plot(contact_power_v,p_power);
+        plt.xlabel('power')
+        plt.ylabel('Pdf')
+        plt.xlim(min(eps_v),max(contact_power_v))
+        fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+model+"_power.png"
+        fig6.savefig(fig_path)
+        plt.close(fig6)
+        fig4 = plt.figure();
+        dim1=np.mean(exp_lnlminusmax,axis=3) 
+        p_zetta = np.squeeze(np.mean(dim1,axis=(0,2)))
+        p_zetta=np.true_divide(p_zetta,np.trapz(p_zetta,np.log10(zetta_v)))
+        x_data=np.log10(zetta_v)
+        plt.xlim(min(x_data),max(x_data))
+        y_data=np.true_divide(p_zetta,np.trapz(p_zetta,np.log10(zetta_v)))
+        ax4=fig4.add_subplot(111)
+        plt.xlabel("log10 " + r"$\zeta$")
+        plt.ylabel('Pdf')
+        ax4.plot(x_data, y_data);
+        fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+ model+"_zeta.png"
+        fig4.savefig(fig_path)
+        plt.close(fig4)
     if model=='epidemiological':
         return(interpolated)
     else:
